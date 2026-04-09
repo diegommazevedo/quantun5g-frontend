@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ── Impressão / Export PDF ──────────────────────────── */
+@media print {
+
+  /* Elementos não impressos */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset de body */
+  body {
+    background: white !important;
+    color: #000 !important;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Layout máximo para A4 */
+  .max-w-4xl {
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Remove sticky bar de ações */
+  .sticky {
+    position: static !important;
+    display: none !important;
+  }
+
+  /* Quebra de página entre seções */
+  .page-break {
+    break-after: page;
+  }
+
+  /* Evita quebras dentro de cards e tabelas */
+  .rounded-xl,
+  .rounded-lg,
+  table,
+  tr {
+    break-inside: avoid;
+  }
+
+  /* Garante impressão de cores e gradientes */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ── Fix Recharts em modo print ──────────────────────
+   * ResponsiveContainer colapsa para width=0 em print
+   * porque o DOM não tem dimensões visíveis. Forçamos
+   * dimensões fixas para o SVG renderizar corretamente.
+   */
+  .recharts-responsive-container {
+    width: 500px !important;
+    min-width: 500px !important;
+    height: 360px !important;
+    min-height: 360px !important;
+  }
+
+  .recharts-wrapper {
+    width: 500px !important;
+    height: 360px !important;
+  }
+
+  /* SVG do radar não deve ser cortado */
+  .recharts-wrapper svg {
+    width: 500px !important;
+    height: 360px !important;
+    overflow: visible !important;
+  }
+
+  /* ── Capa: garante que o gradiente seja impresso ── */
+  [class*="bg-gradient"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ── Margens de página ── */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm;
+  }
+}
