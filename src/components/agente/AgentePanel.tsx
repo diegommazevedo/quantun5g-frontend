@@ -17,6 +17,7 @@ interface Message {
 
 const STORAGE_EXPANDED = 'agente_expanded'
 const MAX_HISTORY      = 50
+const REQUEST_TIMEOUT_MS = 45_000
 
 export function AgentePanel() {
   const [expanded,  setExpanded]  = useState(false)
@@ -81,6 +82,8 @@ export function AgentePanel() {
     setMessages(prev => [...prev, userMsg, { role: 'assistant', content: '' }])
 
     try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
       const resp = await fetch('/api/agente/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +96,9 @@ export function AgentePanel() {
             systemHint:   context.systemHint,
           },
         }),
+        signal: controller.signal,
       })
+      clearTimeout(timeout)
 
       if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`)
 
@@ -113,12 +118,24 @@ export function AgentePanel() {
           const data = line.slice(6)
           if (data === '[DONE]') break
           try {
-            const { delta } = JSON.parse(data) as { delta: string }
+            const parsed = JSON.parse(data) as { delta?: string; error?: string; message?: string }
+            if (parsed.error) {
+              setMessages(prev => {
+                const next = [...prev]
+                next[next.length - 1] = {
+                  role: 'assistant',
+                  content: `⚠️ ${parsed.message ?? parsed.error}`,
+                }
+                return next
+              })
+              continue
+            }
+            if (!parsed.delta) continue
             setMessages(prev => {
               const next = [...prev]
               next[next.length - 1] = {
                 role:    'assistant',
-                content: (next[next.length - 1]?.content ?? '') + delta,
+                content: (next[next.length - 1]?.content ?? '') + parsed.delta,
               }
               return next
             })
@@ -144,11 +161,14 @@ export function AgentePanel() {
       })
 
     } catch (err) {
+      const isTimeout = err instanceof Error && err.name === 'AbortError'
       setMessages(prev => {
         const next = [...prev]
         next[next.length - 1] = {
           role:    'assistant',
-          content: `⚠️ Erro: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
+          content: isTimeout
+            ? '⚠️ Tempo limite atingido. Tente novamente com uma pergunta mais objetiva.'
+            : `⚠️ Erro: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
         }
         return next
       })

@@ -40,8 +40,19 @@ export async function POST(
     return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
   }
 
+  const body = await req.json().catch(() => ({})) as {
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+  }
+
+  const sessionHistory = (body.history ?? [])
+    .filter((m) => (m.role === 'user' || m.role === 'assistant') && !!m.content?.trim())
+    .slice(-30)
+
   // Gera
-  const result = await generateExpandedReport(id)
+  const result = await generateExpandedReport(id, {
+    userId: user.id,
+    sessionHistory,
+  })
 
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 })

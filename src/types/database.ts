@@ -416,6 +416,7 @@ export interface AiReport {
 export interface AiChatMessage {
   id:            string
   diagnostic_id: string
+  user_id?:      string | null
   role:          'user' | 'assistant'
   content:       string
   created_at:    string

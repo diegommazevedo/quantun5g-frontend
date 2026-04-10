@@ -1,33 +1,38 @@
 'use client'
 
 /**
- * QUANTUM5G — AgenteChat
- * Interface de chat com o agente IA — chips inteligentes + relatório expandido.
+ * QUANTUM5G - AgenteChat
+ * Chat UI for report-scoped assistant.
  */
 
 import { useState, useRef, useEffect } from 'react'
 import type { ChipCategory } from '@/lib/ai/smart-chips'
 
-interface Message { role: 'user' | 'assistant'; content: string }
-
-interface Props {
-  diagnosticId:    string
-  initialMessages: Message[]
-  smartChips:      ChipCategory[]
-  chatCount:       number  // total de mensagens no histórico
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
 }
 
+interface Props {
+  diagnosticId: string
+  initialMessages: Message[]
+  smartChips: ChipCategory[]
+  chatCount: number
+}
+
+const MAX_SESSION_HISTORY = 20
+const REQUEST_TIMEOUT_MS = 45_000
+
 export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCount }: Props) {
-  const [messages,  setMessages]  = useState<Message[]>(initialMessages)
-  const [input,     setInput]     = useState('')
-  const [loading,   setLoading]   = useState(false)
+  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const [expanding, setExpanding] = useState(false)
   const [expandMsg, setExpandMsg] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef  = useRef<HTMLTextAreaElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Conta mensagens do usuário (para habilitar botão de relatório expandido)
-  const userMsgCount = messages.filter(m => m.role === 'user').length + Math.floor(chatCount / 2)
+  const userMsgCount = messages.filter((m) => m.role === 'user').length + Math.floor(chatCount / 2)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -37,29 +42,39 @@ export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCoun
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return
+
     setInput('')
     setLoading(true)
 
     const userMsg: Message = { role: 'user', content: text.trim() }
-    setMessages(prev => [...prev, userMsg])
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+    const historyToSend = [...messages, userMsg].slice(-MAX_SESSION_HISTORY)
+
+    setMessages((prev) => [...prev, userMsg, { role: 'assistant', content: '' }])
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
     try {
       const resp = await fetch(`/api/ai/chat/${diagnosticId}`, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ message: text.trim() }),
+        body: JSON.stringify({
+          message: text.trim(),
+          history: historyToSend,
+        }),
+        signal: controller.signal,
       })
 
       if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`)
 
-      const reader  = resp.body.getReader()
+      const reader = resp.body.getReader()
       const decoder = new TextDecoder()
-      let   buffer  = ''
+      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
+
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() ?? ''
@@ -68,29 +83,55 @@ export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCoun
           if (!line.startsWith('data: ')) continue
           const data = line.slice(6)
           if (data === '[DONE]') break
+
           try {
-            const { delta } = JSON.parse(data) as { delta: string }
-            setMessages(prev => {
+            const parsed = JSON.parse(data) as {
+              delta?: string
+              error?: string
+              message?: string
+            }
+
+            if (parsed.error) {
+              setMessages((prev) => {
+                const next = [...prev]
+                next[next.length - 1] = {
+                  role: 'assistant',
+                  content: `Não consegui responder agora: ${parsed.message ?? parsed.error}`,
+                }
+                return next
+              })
+              continue
+            }
+
+            if (!parsed.delta) continue
+
+            setMessages((prev) => {
               const next = [...prev]
               next[next.length - 1] = {
-                role:    'assistant',
-                content: (next[next.length - 1]?.content ?? '') + delta,
+                role: 'assistant',
+                content: (next[next.length - 1]?.content ?? '') + parsed.delta,
               }
               return next
             })
-          } catch { /* ignora chunks malformados */ }
+          } catch {
+            // Ignore malformed chunks
+          }
         }
       }
     } catch (err) {
-      setMessages(prev => {
+      const isTimeout = err instanceof Error && err.name === 'AbortError'
+      setMessages((prev) => {
         const next = [...prev]
         next[next.length - 1] = {
           role: 'assistant',
-          content: `Erro ao conectar com o agente: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
+          content: isTimeout
+            ? 'Tempo limite atingido. Tente novamente com uma pergunta mais objetiva.'
+            : `Erro ao conectar com o agente: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
         }
         return next
       })
     } finally {
+      clearTimeout(timeout)
       setLoading(false)
       inputRef.current?.focus()
     }
@@ -104,7 +145,13 @@ export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCoun
     setExpandMsg(null)
 
     try {
-      const resp = await fetch(`/api/ai/generate-expanded/${diagnosticId}`, { method: 'POST' })
+      const resp = await fetch(`/api/ai/generate-expanded/${diagnosticId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          history: messages.slice(-MAX_SESSION_HISTORY),
+        }),
+      })
       const data = await resp.json() as { success?: boolean; error?: string }
 
       if (!resp.ok || !data.success) {
@@ -134,22 +181,23 @@ export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCoun
 
   return (
     <div className="flex flex-col h-full">
-      {/* ── Histórico ─────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">&#x1F9E0;</p>
-            <p className="text-zinc-600 font-medium">Agente IA — Pentagrama de Ginger</p>
+            <p className="text-zinc-600 font-medium">Agente IA - Pentagrama de Ginger</p>
             <p className="text-zinc-400 text-sm mt-1">Selecione um chip abaixo ou escreva sua pergunta</p>
           </div>
         )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-              m.role === 'user'
-                ? 'bg-zinc-900 text-white rounded-br-sm'
-                : 'bg-white border border-zinc-200 text-zinc-800 rounded-bl-sm shadow-sm'
-            }`}>
+            <div
+              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                m.role === 'user'
+                  ? 'bg-zinc-900 text-white rounded-br-sm'
+                  : 'bg-white border border-zinc-200 text-zinc-800 rounded-bl-sm shadow-sm'
+              }`}
+            >
               {m.content || (
                 <span className="flex gap-1 items-center text-zinc-400">
                   <span className="animate-pulse">&#x25CF;</span>
@@ -163,16 +211,15 @@ export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCoun
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Chips inteligentes ────────────────────────────── */}
       {showChips && smartChips.length > 0 && (
         <div className="px-4 pb-2 space-y-2">
-          {smartChips.map(category => (
+          {smartChips.map((category) => (
             <div key={category.title}>
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1.5">
                 {category.title}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {category.chips.map(chip => (
+                {category.chips.map((chip) => (
                   <button
                     key={chip.prompt}
                     onClick={() => sendMessage(chip.prompt)}
@@ -187,7 +234,6 @@ export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCoun
         </div>
       )}
 
-      {/* ── Gerar Relatório Expandido ─────────────────────── */}
       {canExpand && !loading && (
         <div className="px-4 pb-2">
           <div className="rounded-xl border border-purple-200 bg-purple-50 p-3 flex items-center justify-between gap-3">
@@ -210,16 +256,15 @@ export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCoun
         </div>
       )}
 
-      {/* ── Input ─────────────────────────────────────────── */}
       <div className="border-t border-zinc-200 bg-white px-4 py-3">
         <div className="flex gap-2 items-end">
           <textarea
             ref={inputRef}
             rows={2}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Pergunte sobre o diagn&#243;stico... (Enter para enviar)"
+            placeholder="Pergunte sobre o diagnóstico... (Enter para enviar)"
             disabled={loading}
             className="flex-1 resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent disabled:opacity-50"
           />
@@ -232,9 +277,10 @@ export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCoun
           </button>
         </div>
         <p className="text-xs text-zinc-400 mt-1.5 text-center">
-          Shift+Enter para quebra de linha · Enter para enviar
+          Shift+Enter para quebra de linha - Enter para enviar
         </p>
       </div>
     </div>
   )
 }
+

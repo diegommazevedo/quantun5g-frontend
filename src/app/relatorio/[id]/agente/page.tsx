@@ -12,6 +12,13 @@ import { generateSmartChips } from '@/lib/ai/smart-chips'
 import { AgenteChat }    from './AgenteChat'
 import type { DiagnosticResult, AiReport, AiChatMessage } from '@/types/database'
 
+function isMissingUserIdColumnError(error: unknown) {
+  const msg = typeof error === 'object' && error && 'message' in error
+    ? String((error as { message?: unknown }).message ?? '')
+    : String(error ?? '')
+  return msg.toLowerCase().includes('user_id')
+}
+
 export default async function AgenteChatPage({
   params,
 }: {
@@ -43,11 +50,14 @@ export default async function AgenteChatPage({
   // Dados do diagnóstico
   const { data: diag } = await admin
     .from('diagnostics')
-    .select('id, name, companies(name)')
+    .select('id, name, consultant_id, companies(name)')
     .eq('id', id)
     .single()
 
   if (!diag) redirect('/dashboard')
+  if (profile.role !== 'admin' && diag.consultant_id !== user.id) {
+    redirect('/dashboard')
+  }
 
   // Resultado (necessário para smart chips)
   const { data: result } = await admin
@@ -64,13 +74,21 @@ export default async function AgenteChatPage({
     .eq('report_type', 'inicial')
     .single() as { data: AiReport | null }
 
-  // Histórico de chat
-  const { data: chatHistory } = await admin
+  // Histórico de chat (escopado por usuário quando a coluna user_id existir)
+  const scopedHistoryQuery = await admin
     .from('ai_chat_history')
     .select('role, content')
     .eq('diagnostic_id', id)
+    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
-    .limit(50) as { data: Pick<AiChatMessage, 'role' | 'content'>[] | null }
+    .limit(50)
+
+  let chatHistory: Pick<AiChatMessage, 'role' | 'content'>[] = []
+  if (!scopedHistoryQuery.error) {
+    chatHistory = (scopedHistoryQuery.data ?? []) as Pick<AiChatMessage, 'role' | 'content'>[]
+  } else if (!isMissingUserIdColumnError(scopedHistoryQuery.error)) {
+    throw new Error(scopedHistoryQuery.error.message)
+  }
 
   // Smart chips baseados nos dados reais
   const smartChips = result
@@ -78,7 +96,7 @@ export default async function AgenteChatPage({
     : []
 
   const companyName = (diag.companies as unknown as { name: string } | null)?.name ?? 'Empresa'
-  const initialMessages = (chatHistory ?? []).map(m => ({
+  const initialMessages = chatHistory.map(m => ({
     role: m.role as 'user' | 'assistant',
     content: m.content,
   }))
@@ -111,7 +129,7 @@ export default async function AgenteChatPage({
           diagnosticId={id}
           initialMessages={initialMessages}
           smartChips={smartChips}
-          chatCount={chatHistory?.length ?? 0}
+          chatCount={chatHistory.length}
         />
       </div>
     </div>

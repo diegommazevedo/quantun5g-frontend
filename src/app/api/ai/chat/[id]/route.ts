@@ -1,8 +1,7 @@
 /**
  * POST /api/ai/chat/[id]
- * Chat streaming com o agente IA — contexto diagnóstico completo.
- * Body: { message: string }
- * Retorna: text/event-stream (SSE)
+ * Streaming chat with diagnostic-scoped AI context.
+ * Body: { message: string, history?: Array<{ role, content }> }
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -13,6 +12,15 @@ import {
   createChatStream,
 } from '@/lib/ai/chat-service'
 
+type ChatRole = 'user' | 'assistant'
+
+interface RequestBody {
+  message?: string
+  history?: Array<{ role: ChatRole; content: string }>
+}
+
+const MAX_SESSION_HISTORY = 20
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,43 +28,60 @@ export async function POST(
   const { id } = await params
   const supabase = await createServerClient()
 
-  // Auth
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
-  // Permissão
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null }
-  const isAdmin      = profile?.role === 'admin'
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single() as { data: { role: string } | null }
+
+  const isAdmin = profile?.role === 'admin'
   const isConsultant = profile?.role === 'consultant'
   if (!isAdmin && !isConsultant) {
     return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
   }
 
-  const body = await req.json() as { message?: string }
+  const { data: diag } = await supabase
+    .from('diagnostics')
+    .select('consultant_id')
+    .eq('id', id)
+    .single() as { data: { consultant_id: string } | null }
+
+  if (!diag) return NextResponse.json({ error: 'Diagnóstico não encontrado' }, { status: 404 })
+  if (!isAdmin && diag.consultant_id !== user.id) {
+    return NextResponse.json({ error: 'Sem permissão para este diagnóstico' }, { status: 403 })
+  }
+
+  const body = await req.json() as RequestBody
   const userMessage = body.message?.trim()
   if (!userMessage) return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })
 
-  // Busca contexto diagnóstico completo (dados, laudos, RAG, histórico)
-  const ctx = await fetchDiagnosticChatContext(id, userMessage)
+  const sessionHistory = (body.history ?? [])
+    .filter((m) => (m.role === 'user' || m.role === 'assistant') && !!m.content?.trim())
+    .slice(-MAX_SESSION_HISTORY)
+
+  const ctx = await fetchDiagnosticChatContext(id, userMessage, user.id)
   if (!ctx) return NextResponse.json({ error: 'Diagnóstico não encontrado' }, { status: 404 })
 
-  // Salva mensagem do usuário
-  await saveChatMessage(id, 'user', userMessage)
+  await saveChatMessage(id, 'user', userMessage, user.id)
 
-  // Stream
   const readable = createChatStream({
-    systemContent:  ctx.systemContent,
-    history:        ctx.history.map(m => ({ role: m.role, content: m.content })),
+    systemContent: ctx.systemContent,
+    history: sessionHistory.length ? sessionHistory : ctx.history.map((m) => ({ role: m.role, content: m.content })),
     userMessage,
-    maxTokens:      4096,
-    diagnosticId:   id,
+    maxTokens: 2048,
+    diagnosticId: id,
+    userId: user.id,
   })
 
   return new NextResponse(readable, {
     headers: {
-      'Content-Type':  'text/event-stream',
+      'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection':    'keep-alive',
+      Connection: 'keep-alive',
     },
   })
 }
+
