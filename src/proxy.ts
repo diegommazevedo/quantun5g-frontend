@@ -20,6 +20,6 @@ export const config = {
      * - favicon.ico
      * - rotas de formulário público (il e ic via token — sem auth)
      */
-    '/((?!_next/static|_next/image|favicon.ico|formulario/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|formulario/|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 }

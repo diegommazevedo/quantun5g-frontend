@@ -41,15 +41,15 @@ export async function login(formData: FormData) {
     .returns<{ role: UserRole }[]>()
     .single()
 
-  revalidatePath('/', 'layout')
-
   const role = (profile?.role ?? 'consultant') as UserRole
-  redirect(ROLE_REDIRECT[role] ?? '/dashboard')
+  const dest = ROLE_REDIRECT[role] ?? '/dashboard'
+  revalidatePath(dest, 'page')
+  redirect(dest)
 }
 
 export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  revalidatePath('/', 'layout')
+  revalidatePath('/login', 'page')
   redirect('/login')
 }

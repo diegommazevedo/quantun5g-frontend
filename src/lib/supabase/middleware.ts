@@ -32,28 +32,29 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANTE: não usar getUser() com getSession() — getUser() valida no servidor
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   // Rotas protegidas — redireciona para login se não autenticado
   const protectedPaths = ['/dashboard', '/diagnostico', '/relatorio', '/admin']
-  const isProtected = protectedPaths.some(path =>
-    request.nextUrl.pathname.startsWith(path)
-  )
+  const pathname = request.nextUrl.pathname
+  const isProtected = protectedPaths.some(path => pathname.startsWith(path))
+  const isAuthPage = pathname === '/' || pathname === '/login'
 
-  if (!user && isProtected) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+  // Só valida com getUser() em rotas que realmente precisam de decisão de auth
+  if (isProtected || isAuthPage) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  // Redireciona usuário autenticado que tenta acessar / ou /login
-  if (user && (request.nextUrl.pathname === '/' || request.nextUrl.pathname === '/login')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    if (!user && isProtected) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+
+    if (user && isAuthPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

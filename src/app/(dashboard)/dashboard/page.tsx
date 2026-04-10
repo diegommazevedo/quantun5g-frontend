@@ -47,21 +47,26 @@ export default async function DashboardPage() {
 
   const diags = diagRaw ?? []
 
-  // ── Contagem de IC responses — uma única query para todos os diagnósticos
+  // ── Contagem de IC responses — busca apenas IDs distintos por diagnóstico
   let icCountMap: Record<string, number> = {}
 
   if (diags.length > 0) {
     const diagIds = diags.map(d => d.id)
 
-    // Busca todos os IC responses dos diagnósticos visíveis
+    // Busca apenas respondente_anonimo_id distinto (1 por respondente, não 1 por questão)
     const { data: icRows } = await supabase
       .from('ic_responses')
-      .select('diagnostic_id')
-      .in('diagnostic_id', diagIds) as { data: { diagnostic_id: string }[] | null }
+      .select('diagnostic_id, respondente_anonimo_id')
+      .in('diagnostic_id', diagIds) as { data: { diagnostic_id: string; respondente_anonimo_id: string }[] | null }
 
-    // Agrupa por diagnostic_id em JS
+    // Conta respondentes únicos por diagnóstico
+    const seen = new Set<string>()
     for (const row of (icRows ?? [])) {
-      icCountMap[row.diagnostic_id] = (icCountMap[row.diagnostic_id] ?? 0) + 1
+      const key = `${row.diagnostic_id}:${row.respondente_anonimo_id}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        icCountMap[row.diagnostic_id] = (icCountMap[row.diagnostic_id] ?? 0) + 1
+      }
     }
   }
 
