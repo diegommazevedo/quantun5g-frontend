@@ -14,6 +14,8 @@ import type {
   AiReportPlanoAcao,
   AiReportFerramenta,
   AiReportPergunta,
+  AiReportInsight,
+  AiReportRecomendacao,
 } from '@/types/database'
 
 const PRIORIDADE_COLOR: Record<string, string> = {
@@ -123,14 +125,16 @@ function Accordion({ title, children }: { title: string; children: React.ReactNo
 // ─── Componente principal ──────────────────────────────────────
 
 interface Props {
-  diagnosticId: string
-  companyName:  string
-  report:       AiReport | null
-  canGenerate:  boolean  // só consultant/admin pode gerar
+  diagnosticId:    string
+  companyName:     string
+  report:          AiReport | null
+  expandedReport?: AiReport | null
+  canGenerate:     boolean  // só consultant/admin pode gerar
 }
 
-export function SecaoIA({ diagnosticId, companyName, report, canGenerate }: Props) {
+export function SecaoIA({ diagnosticId, companyName, report, expandedReport, canGenerate }: Props) {
   const [mode, setMode] = useState<'sintetico' | 'analitico'>('analitico')
+  const [viewType, setViewType] = useState<'inicial' | 'expandido'>(expandedReport ? 'expandido' : 'inicial')
 
   useEffect(() => {
     const saved = localStorage.getItem('quantum5g_ai_mode')
@@ -142,13 +146,19 @@ export function SecaoIA({ diagnosticId, companyName, report, canGenerate }: Prop
     localStorage.setItem('quantum5g_ai_mode', m)
   }
 
-  const narrativa  = report?.narrativa_executiva
-  const plano      = report?.plano_de_acao      as AiReportPlanoAcao[] | null
-  const ferramentas = report?.ferramentas_prescritas as AiReportFerramenta[] | null
-  const roteiro    = report?.roteiro_devolutiva
-  const perguntas  = report?.perguntas_aprofundamento as AiReportPergunta[] | null
+  // Relatório ativo: expandido (se existir e selecionado) ou inicial
+  const activeReport = viewType === 'expandido' && expandedReport ? expandedReport : report
+
+  const narrativa   = activeReport?.narrativa_executiva
+  const plano       = activeReport?.plano_de_acao      as AiReportPlanoAcao[] | null
+  const ferramentas = activeReport?.ferramentas_prescritas as AiReportFerramenta[] | null
+  const roteiro     = activeReport?.roteiro_devolutiva
+  const perguntas   = activeReport?.perguntas_aprofundamento as AiReportPergunta[] | null
+  const insights    = activeReport?.insights_da_conversa as AiReportInsight[] | null
+  const recomendacoes = activeReport?.recomendacoes_adicionais as AiReportRecomendacao[] | null
 
   const showSintetico = mode === 'sintetico'
+  const isExpanded = viewType === 'expandido' && !!expandedReport
 
   return (
     <section className="py-10">
@@ -161,10 +171,27 @@ export function SecaoIA({ diagnosticId, companyName, report, canGenerate }: Prop
               Pentagrama de Ginger — gerada por {report?.model_used ?? 'llama-3.3-70b-versatile'}
             </p>
           </div>
-          {report && (
+          {activeReport && (
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Toggle Inicial / Expandido */}
+              {expandedReport && (
+                <div className="flex rounded-lg border border-purple-200 overflow-hidden text-xs font-semibold">
+                  <button
+                    onClick={() => setViewType('inicial')}
+                    className={`px-3 py-1.5 transition-colors ${viewType === 'inicial' ? 'bg-purple-700 text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}
+                  >
+                    Inicial
+                  </button>
+                  <button
+                    onClick={() => setViewType('expandido')}
+                    className={`px-3 py-1.5 transition-colors ${viewType === 'expandido' ? 'bg-purple-700 text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}
+                  >
+                    Expandido
+                  </button>
+                </div>
+              )}
               {/* Botões de exportação */}
-              <ExportButtons report={report} companyName={companyName} size="sm" />
+              <ExportButtons report={activeReport} companyName={companyName} size="sm" />
               {/* Toggle Sintético / Analítico */}
               <div className="flex rounded-lg border border-zinc-200 overflow-hidden text-xs font-semibold">
                 <button
@@ -340,31 +367,63 @@ export function SecaoIA({ diagnosticId, companyName, report, canGenerate }: Prop
             </Accordion>
           )}
 
+          {/* Insights da Conversa (apenas no expandido) */}
+          {isExpanded && insights && insights.length > 0 && (
+            <Accordion title={`Insights da Conversa — ${insights.length} descobertas`}>
+              <div className="space-y-3">
+                {insights.map((ins, i) => (
+                  <div key={i} className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3">
+                    <p className="text-sm text-amber-900 font-medium mb-1">{ins.insight}</p>
+                    <p className="text-xs text-amber-600 italic">Fonte: {ins.fonte}</p>
+                  </div>
+                ))}
+              </div>
+            </Accordion>
+          )}
+
+          {/* Recomendações Adicionais (apenas no expandido) */}
+          {isExpanded && recomendacoes && recomendacoes.length > 0 && (
+            <Accordion title={`Recomendações Adicionais — ${recomendacoes.length} itens`}>
+              <div className="space-y-3">
+                {recomendacoes.map((rec, i) => (
+                  <div key={i} className="border-l-4 border-amber-300 pl-4">
+                    <p className="text-sm font-semibold text-zinc-800 mb-1">{rec.recomendacao}</p>
+                    <p className="text-xs text-zinc-600 mb-1">{rec.contexto}</p>
+                    <p className="text-xs text-zinc-400 capitalize">{rec.dimensao}</p>
+                  </div>
+                ))}
+              </div>
+            </Accordion>
+          )}
+
           {/* CTA Chat */}
           {canGenerate && (
             <div className="rounded-xl border border-purple-200 bg-purple-50 p-5 flex items-center justify-between">
               <div>
                 <p className="font-semibold text-purple-900 text-sm">
-                  Quer aprofundar a análise?
+                  {expandedReport ? 'Continuar explorando?' : 'Quer aprofundar a análise?'}
                 </p>
                 <p className="text-purple-700 text-xs mt-0.5">
-                  Converse com o agente IA sobre este diagnóstico específico.
+                  {expandedReport
+                    ? 'Continue a conversa e regenere o relatório expandido.'
+                    : 'Converse com o agente IA e gere um relatório expandido.'}
                 </p>
               </div>
               <a
                 href={`/relatorio/${diagnosticId}/agente`}
                 className="shrink-0 rounded-xl bg-purple-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-purple-800 transition-colors"
               >
-                Abrir chat →
+                {expandedReport ? 'Continuar chat →' : 'Abrir chat →'}
               </a>
             </div>
           )}
 
           {/* Rodapé */}
           <p className="text-center text-xs text-zinc-400 pt-2">
-            Powered by Groq · {report.model_used} ·{' '}
-            {report.generation_time_ms ? `gerado em ${(report.generation_time_ms / 1000).toFixed(1)}s` : ''}
-            {report.tokens_used ? ` · ${report.tokens_used.toLocaleString()} tokens` : ''}
+            {isExpanded ? 'Relatório Expandido · ' : ''}
+            Powered by Groq · {activeReport?.model_used} ·{' '}
+            {activeReport?.generation_time_ms ? `gerado em ${(activeReport.generation_time_ms / 1000).toFixed(1)}s` : ''}
+            {activeReport?.tokens_used ? ` · ${activeReport.tokens_used.toLocaleString()} tokens` : ''}
           </p>
         </div>
       )}

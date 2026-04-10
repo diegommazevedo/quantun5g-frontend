@@ -114,16 +114,18 @@ export default async function RelatorioPage({ params }: Props) {
 
   const isConsultantOrAdmin = profile?.role === 'admin' || profile?.role === 'consultant'
 
-  // ── AI Report
+  // ── AI Reports (inicial + expandido)
   const adminSupabase = adminCli(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
-  const { data: aiReport } = await adminSupabase
+  const { data: aiReports } = await adminSupabase
     .from('ai_reports')
     .select('*')
-    .eq('diagnostic_id', id)
-    .single() as { data: AiReport | null }
+    .eq('diagnostic_id', id) as { data: AiReport[] | null }
+
+  const aiReport = (aiReports ?? []).find(r => !r.report_type || r.report_type === 'inicial') ?? null
+  const expandedReport = (aiReports ?? []).find(r => r.report_type === 'expandido') ?? null
 
   // ── Laudos
   const laudoIds = [
@@ -552,6 +554,7 @@ export default async function RelatorioPage({ params }: Props) {
               diagnosticId={id}
               companyName={company.name}
               report={aiReport}
+              expandedReport={expandedReport}
               canGenerate={isConsultantOrAdmin}
             />
           </div>

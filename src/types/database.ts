@@ -378,19 +378,35 @@ export interface AiReportPergunta {
   objetivo:  string
 }
 
+export interface AiReportInsight {
+  insight: string
+  fonte:   string
+}
+
+export interface AiReportRecomendacao {
+  recomendacao: string
+  contexto:     string
+  dimensao:     string
+}
+
 export interface AiReport {
-  id:                       string
-  diagnostic_id:            string
-  mode:                     'sintetico' | 'analitico'
-  narrativa_executiva:      AiReportNarrativa | null
-  plano_de_acao:            AiReportPlanoAcao[] | null
-  ferramentas_prescritas:   AiReportFerramenta[] | null
-  roteiro_devolutiva:       AiReportRoteiro | null
-  perguntas_aprofundamento: AiReportPergunta[] | null
-  generated_at:             string
-  model_used:               string
-  tokens_used:              number | null
-  generation_time_ms:       number | null
+  id:                        string
+  diagnostic_id:             string
+  report_type:               'inicial' | 'expandido'
+  mode:                      'sintetico' | 'analitico'
+  narrativa_executiva:       AiReportNarrativa | null
+  plano_de_acao:             AiReportPlanoAcao[] | null
+  ferramentas_prescritas:    AiReportFerramenta[] | null
+  roteiro_devolutiva:        AiReportRoteiro | null
+  perguntas_aprofundamento:  AiReportPergunta[] | null
+  insights_da_conversa:      AiReportInsight[] | null
+  recomendacoes_adicionais:  AiReportRecomendacao[] | null
+  source_chat_messages:      string[] | null
+  version:                   number
+  generated_at:              string
+  model_used:                string
+  tokens_used:               number | null
+  generation_time_ms:        number | null
 }
 
 // ============================================================

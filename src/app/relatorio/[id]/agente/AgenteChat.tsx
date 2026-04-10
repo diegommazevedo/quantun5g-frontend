@@ -2,58 +2,38 @@
 
 /**
  * QUANTUM5G — AgenteChat
- * Interface de chat com o agente IA.
- * Chips de prompts pré-tokenizados + input livre + streaming SSE.
+ * Interface de chat com o agente IA — chips inteligentes + relatório expandido.
  */
 
 import { useState, useRef, useEffect } from 'react'
+import type { ChipCategory } from '@/lib/ai/smart-chips'
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
-const CHIPS: Record<string, { label: string; prompt: string }[]> = {
-  'Aprofundamento': [
-    { label: 'Dimensão mais crítica',         prompt: 'Aprofunde a análise da dimensão mais crítica' },
-    { label: 'Questões âncora',               prompt: 'Quais questões âncora merecem atenção imediata?' },
-    { label: 'Padrão sistêmico',              prompt: 'Explique o padrão sistêmico encontrado entre as dimensões' },
-    { label: 'O gap de percepção',            prompt: 'O que o gap de percepção revela sobre esta liderança?' },
-  ],
-  'Plano de ação': [
-    { label: '30/60/90 dias',                 prompt: 'Monte um plano de 30/60/90 dias para esta empresa' },
-    { label: 'Primeira ação',                 prompt: 'Qual a primeira ação que o líder deve tomar amanhã?' },
-    { label: 'Prioridade das ferramentas',    prompt: 'Priorize as ferramentas por impacto e facilidade de implementação' },
-    { label: 'Resistência ao plano',          prompt: 'O que fazer se a liderança resistir ao plano?' },
-  ],
-  'Devolutiva': [
-    { label: 'Sem assustar o cliente',        prompt: 'Como apresentar os resultados sem assustar o cliente?' },
-    { label: 'Abertura da reunião',           prompt: 'Sugira como abrir a reunião de devolutiva' },
-    { label: 'Resistência da liderança',      prompt: 'Como lidar com resistência da liderança aos resultados?' },
-    { label: 'Ordem das dimensões',           prompt: 'Qual dimensão apresentar primeiro e por quê?' },
-  ],
-  'Prescrição': [
-    { label: 'Ferramenta mais urgente',       prompt: 'Explique como aplicar a ferramenta prescrita mais urgente' },
-    { label: 'Sequência em 90 dias',          prompt: 'Como sequenciar as ferramentas ao longo de 90 dias?' },
-    { label: 'Próxima pesquisa',              prompt: 'Sugira a próxima pesquisa após este diagnóstico' },
-    { label: 'Como conectar ferramentas',     prompt: 'Como as ferramentas se conectam entre si neste diagnóstico?' },
-  ],
-}
-
 interface Props {
-  diagnosticId:   string
+  diagnosticId:    string
   initialMessages: Message[]
+  smartChips:      ChipCategory[]
+  chatCount:       number  // total de mensagens no histórico
 }
 
-export function AgenteChat({ diagnosticId, initialMessages }: Props) {
+export function AgenteChat({ diagnosticId, initialMessages, smartChips, chatCount }: Props) {
   const [messages,  setMessages]  = useState<Message[]>(initialMessages)
   const [input,     setInput]     = useState('')
   const [loading,   setLoading]   = useState(false)
+  const [expanding, setExpanding] = useState(false)
+  const [expandMsg, setExpandMsg] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
+
+  // Conta mensagens do usuário (para habilitar botão de relatório expandido)
+  const userMsgCount = messages.filter(m => m.role === 'user').length + Math.floor(chatCount / 2)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const showChips = input.trim() === '' && !loading
+  const showChips = input.trim() === '' && !loading && messages.length === 0
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return
@@ -62,8 +42,6 @@ export function AgenteChat({ diagnosticId, initialMessages }: Props) {
 
     const userMsg: Message = { role: 'user', content: text.trim() }
     setMessages(prev => [...prev, userMsg])
-
-    // Placeholder da resposta
     setMessages(prev => [...prev, { role: 'assistant', content: '' }])
 
     try {
@@ -108,13 +86,40 @@ export function AgenteChat({ diagnosticId, initialMessages }: Props) {
         const next = [...prev]
         next[next.length - 1] = {
           role: 'assistant',
-          content: `⚠️ Erro ao conectar com o agente: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
+          content: `Erro ao conectar com o agente: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
         }
         return next
       })
     } finally {
       setLoading(false)
       inputRef.current?.focus()
+    }
+  }
+
+  async function handleGenerateExpanded() {
+    if (expanding) return
+    if (!confirm('Gerar relatório expandido com base nesta conversa? Pode levar 30-60 segundos.')) return
+
+    setExpanding(true)
+    setExpandMsg(null)
+
+    try {
+      const resp = await fetch(`/api/ai/generate-expanded/${diagnosticId}`, { method: 'POST' })
+      const data = await resp.json() as { success?: boolean; error?: string }
+
+      if (!resp.ok || !data.success) {
+        setExpandMsg(data.error ?? 'Erro ao gerar relatório expandido.')
+        return
+      }
+
+      setExpandMsg('Relatório expandido gerado! Redirecionando...')
+      setTimeout(() => {
+        window.location.href = `/relatorio/${diagnosticId}`
+      }, 1500)
+    } catch (err) {
+      setExpandMsg(err instanceof Error ? err.message : 'Erro desconhecido.')
+    } finally {
+      setExpanding(false)
     }
   }
 
@@ -125,13 +130,15 @@ export function AgenteChat({ diagnosticId, initialMessages }: Props) {
     }
   }
 
+  const canExpand = userMsgCount >= 3
+
   return (
     <div className="flex flex-col h-full">
       {/* ── Histórico ─────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-4xl mb-3">🧠</p>
+            <p className="text-4xl mb-3">&#x1F9E0;</p>
             <p className="text-zinc-600 font-medium">Agente IA — Pentagrama de Ginger</p>
             <p className="text-zinc-400 text-sm mt-1">Selecione um chip abaixo ou escreva sua pergunta</p>
           </div>
@@ -145,9 +152,9 @@ export function AgenteChat({ diagnosticId, initialMessages }: Props) {
             }`}>
               {m.content || (
                 <span className="flex gap-1 items-center text-zinc-400">
-                  <span className="animate-pulse">●</span>
-                  <span className="animate-pulse delay-100">●</span>
-                  <span className="animate-pulse delay-200">●</span>
+                  <span className="animate-pulse">&#x25CF;</span>
+                  <span className="animate-pulse delay-100">&#x25CF;</span>
+                  <span className="animate-pulse delay-200">&#x25CF;</span>
                 </span>
               )}
             </div>
@@ -156,16 +163,16 @@ export function AgenteChat({ diagnosticId, initialMessages }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Chips ─────────────────────────────────────────── */}
-      {showChips && (
+      {/* ── Chips inteligentes ────────────────────────────── */}
+      {showChips && smartChips.length > 0 && (
         <div className="px-4 pb-2 space-y-2">
-          {Object.entries(CHIPS).map(([category, chips]) => (
-            <div key={category}>
+          {smartChips.map(category => (
+            <div key={category.title}>
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1.5">
-                {category}
+                {category.title}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {chips.map(chip => (
+                {category.chips.map(chip => (
                   <button
                     key={chip.prompt}
                     onClick={() => sendMessage(chip.prompt)}
@@ -180,6 +187,29 @@ export function AgenteChat({ diagnosticId, initialMessages }: Props) {
         </div>
       )}
 
+      {/* ── Gerar Relatório Expandido ─────────────────────── */}
+      {canExpand && !loading && (
+        <div className="px-4 pb-2">
+          <div className="rounded-xl border border-purple-200 bg-purple-50 p-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-purple-900">
+                Conversa suficiente para expandir o relatório
+              </p>
+              <p className="text-xs text-purple-600 mt-0.5 truncate">
+                {expandMsg ?? 'Gere uma versão aprofundada com insights desta conversa.'}
+              </p>
+            </div>
+            <button
+              onClick={handleGenerateExpanded}
+              disabled={expanding}
+              className="shrink-0 rounded-lg bg-purple-700 px-4 py-2 text-xs font-bold text-white hover:bg-purple-800 disabled:opacity-50 transition-colors"
+            >
+              {expanding ? 'Gerando...' : 'Gerar Expandido'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Input ─────────────────────────────────────────── */}
       <div className="border-t border-zinc-200 bg-white px-4 py-3">
         <div className="flex gap-2 items-end">
@@ -189,7 +219,7 @@ export function AgenteChat({ diagnosticId, initialMessages }: Props) {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Pergunte sobre o diagnóstico… (Enter para enviar)"
+            placeholder="Pergunte sobre o diagn&#243;stico... (Enter para enviar)"
             disabled={loading}
             className="flex-1 resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent disabled:opacity-50"
           />
@@ -198,7 +228,7 @@ export function AgenteChat({ diagnosticId, initialMessages }: Props) {
             disabled={!input.trim() || loading}
             className="shrink-0 rounded-xl bg-purple-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-800 disabled:opacity-40 transition-colors"
           >
-            {loading ? '…' : '→'}
+            {loading ? '...' : '\u2192'}
           </button>
         </div>
         <p className="text-xs text-zinc-400 mt-1.5 text-center">

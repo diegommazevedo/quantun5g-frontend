@@ -166,6 +166,7 @@ export async function generateAiReport(diagnosticId: string): Promise<{
       .from('ai_reports')
       .upsert({
         diagnostic_id:            diagnosticId,
+        report_type:              'inicial',
         mode:                     'analitico',
         narrativa_executiva:      parsed.narrativa_executiva,
         plano_de_acao:            parsed.plano_de_acao,
@@ -176,7 +177,7 @@ export async function generateAiReport(diagnosticId: string): Promise<{
         tokens_used:              tokensUsed,
         generation_time_ms:       genTimeMs,
         generated_at:             new Date().toISOString(),
-      }, { onConflict: 'diagnostic_id' })
+      }, { onConflict: 'diagnostic_id,report_type' })
       .select()
       .single()
 
