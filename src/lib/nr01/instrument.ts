@@ -83,13 +83,14 @@ export function parseAnswersFromFormData(
 }
 
 // ============================================================
-// LIKERT LABELS PADRÃO (pt-BR)
+// LIKERT LABELS — literais do NR01_GRO.docx, linhas 17-25.
+// Patch 005 (2026-04-19): atualizado para texto canônico do doc.
 // ============================================================
 
 export const LIKERT_LABELS = [
   { value: 1, label: 'Discordo totalmente' },
-  { value: 2, label: 'Discordo' },
-  { value: 3, label: 'Indiferente' },
-  { value: 4, label: 'Concordo' },
+  { value: 2, label: 'Discordo parcialmente' },
+  { value: 3, label: 'Nem concordo, nem discordo' },
+  { value: 4, label: 'Concordo parcialmente' },
   { value: 5, label: 'Concordo totalmente' },
 ] as const

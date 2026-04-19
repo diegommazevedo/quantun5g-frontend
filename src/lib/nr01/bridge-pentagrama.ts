@@ -80,6 +80,18 @@ interface Pair {
   delta: number
 }
 
+/**
+ * Patch 005: NR-01 agora opera em escala Likert 1-5 onde MAIOR = pior.
+ * Pentagrama opera em 0-100 onde MAIOR = melhor (saúde).
+ * Para comparar, convertemos NR-01 mean Likert para "equivalente Pentagrama"
+ * (0-100, saúde-positivo): equivalent = ((5 - mean) / 4) * 100.
+ *
+ * Bridge inteiro será removido no Patch 010. Aqui mantemos apenas funcional.
+ */
+function nr01LikertToPentagramaEquivalent(meanLikert: number): number {
+  return ((5 - meanLikert) / 4) * 100
+}
+
 function buildPairs(
   nr01Scores: Nr01DimensionScore[],
   pent: DiagnosticResult,
@@ -87,6 +99,7 @@ function buildPairs(
   const pairs: Pair[] = []
   for (const ds of nr01Scores) {
     if (ds.score_pct == null) continue
+    const nr01EquivPent = nr01LikertToPentagramaEquivalent(ds.score_pct)
     const targets = NR01_TO_PENTAGRAMA[ds.dimension_code] ?? []
     for (const t of targets) {
       const ps = pentagramaScore(pent, t)
@@ -94,9 +107,9 @@ function buildPairs(
       pairs.push({
         nr01_dim: ds.dimension_code,
         pentagrama_dim: t,
-        nr01_score: ds.score_pct,
+        nr01_score: nr01EquivPent,
         pent_score: ps,
-        delta: ds.score_pct - ps,
+        delta: nr01EquivPent - ps,
       })
     }
   }
@@ -160,10 +173,16 @@ export function classifyPairs(pairs: Pair[]): {
 // ============================================================
 
 export function computeCombinedScore(
-  isoScore: number | null,
+  isoScoreLikert: number | null,
   pentagramaIcGlobal: number | null,
   weightNr01 = 0.5,
 ): { combined_score: number | null; combined_level: 'critico' | 'vulneravel' | 'saudavel' | 'excelente' | 'sem_dados' } {
+  // Patch 005: ISO em Likert 1-5 (maior = pior). Converte para escala
+  // Pentagrama (0-100, maior = melhor) antes de combinar.
+  const isoScore = isoScoreLikert == null
+    ? null
+    : nr01LikertToPentagramaEquivalent(isoScoreLikert)
+
   if (isoScore == null && pentagramaIcGlobal == null) {
     return { combined_score: null, combined_level: 'sem_dados' }
   }

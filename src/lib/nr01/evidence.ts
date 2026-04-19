@@ -42,11 +42,15 @@ empregador; apenas agregados com k-anonymity ≥ 5 são divulgados, conforme
 recomendação da ANPD para tratamento de dados sensíveis em saúde ocupacional.
 
 ### Análise
-O score por dimensão é a média Likert normalizada para o intervalo 0–100, com
-inversão prévia das questões reversas. A classificação de risco segue cinco
-faixas (muito_baixo / baixo / atenção / elevado / crítico). O Índice de Saúde
-Organizacional (ISO) é a média ponderada dos scores das dimensões com dados
-suficientes, com pesos calibrados conforme o Guia MTE.
+O score por dimensão é a média Likert (1.0 a 5.0) das questões respondidas,
+com inversão prévia (6 - v) das questões em sentido positivo para preservar
+a orientação canônica do instrumento (maior valor = maior risco percebido,
+conforme NR01_GRO). A classificação de risco segue cinco faixas conforme
+fronteiras do instrumento canônico (1.0–1.8 muito baixo · 1.9–2.6 baixo ·
+2.7–3.4 atenção · 3.5–4.2 elevado · 4.3–5.0 crítico). O Índice de Saúde
+Organizacional (ISO) é a média aritmética das médias de cada dimensão, com
+peso diferenciado para a dimensão Violência e Assédio (fator 1,30) em função
+da Lei 14.457/2022. As demais dimensões têm peso uniforme (1,00).
 
 ### Validade técnica
 Esta avaliação é assinada pelo responsável técnico abaixo e mantém pacote de

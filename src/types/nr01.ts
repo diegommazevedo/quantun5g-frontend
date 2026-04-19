@@ -490,25 +490,31 @@ export type Nr01AssessmentFull = Nr01Assessment & {
 }
 
 // ============================================================
-// THRESHOLDS — classificação de risco a partir do score 0-100
-// (5 = mais saudável → 100; 1 = pior → 0)
+// THRESHOLDS — classificação de risco em escala Likert 1-5.
+// Fonte: NR01_GRO.docx, seção "CLASSIFICAÇÃO FINAL" (linhas 253-263).
+// Orientação: MAIOR valor = MAIOR risco (doc:27 — "Quanto maior a
+// nota, maior o risco percebido").
 // ============================================================
 
-export const NR01_RISK_THRESHOLDS = {
-  muito_baixo: 80,   // ≥ 80
-  baixo:       65,   // 65 ≤ x < 80
-  atencao:     50,   // 50 ≤ x < 65
-  elevado:     35,   // 35 ≤ x < 50
-  critico:     0,    // < 35
+export const NR01_RISK_THRESHOLDS_LIKERT = {
+  muito_baixo: { min: 1.0, max: 1.8 },  // [1.0, 1.8]
+  baixo:       { min: 1.9, max: 2.6 },  // [1.9, 2.6]
+  atencao:     { min: 2.7, max: 3.4 },  // [2.7, 3.4]
+  elevado:     { min: 3.5, max: 4.2 },  // [3.5, 4.2]
+  critico:     { min: 4.3, max: 5.0 },  // [4.3, 5.0]
 } as const
 
-export function classifyRisk(scorePct: number | null | undefined, n: number): Nr01RiskLevel {
-  if (n <= 0 || scorePct == null || Number.isNaN(scorePct)) return 'sem_dados'
-  if (scorePct >= NR01_RISK_THRESHOLDS.muito_baixo) return 'muito_baixo'
-  if (scorePct >= NR01_RISK_THRESHOLDS.baixo)       return 'baixo'
-  if (scorePct >= NR01_RISK_THRESHOLDS.atencao)     return 'atencao'
-  if (scorePct >= NR01_RISK_THRESHOLDS.elevado)     return 'elevado'
-  return 'critico'
+/**
+ * Recebe média Likert (1.0 a 5.0) e devolve nível de risco conforme
+ * fronteiras canônicas do NR01_GRO.docx. Maior média = maior risco.
+ */
+export function classifyRisk(meanLikert: number | null | undefined, n: number): Nr01RiskLevel {
+  if (n <= 0 || meanLikert == null || Number.isNaN(meanLikert)) return 'sem_dados'
+  if (meanLikert <= 1.8) return 'muito_baixo'
+  if (meanLikert <= 2.6) return 'baixo'
+  if (meanLikert <= 3.4) return 'atencao'
+  if (meanLikert <= 4.2) return 'elevado'
+  return 'critico'  // 4.3 a 5.0
 }
 
 export const RISK_LEVEL_LABEL: Record<Nr01RiskLevel, string> = {

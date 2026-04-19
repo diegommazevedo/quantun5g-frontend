@@ -89,28 +89,29 @@ export default async function ColetaPublicaNr01Page({ params, searchParams }: Pr
               placeholder="Função"
               className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
+            {/* Patch 005: opções literais do NR01_GRO.docx (Bloco 1) */}
             <select
               name="vinculo"
               defaultValue=""
               className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             >
-              <option value="">Vínculo</option>
-              <option value="CLT">CLT</option>
-              <option value="PJ">PJ</option>
-              <option value="estagio">Estágio</option>
+              <option value="">Tipo de vínculo</option>
+              <option value="efetivo">Efetivo</option>
+              <option value="temporario">Temporário</option>
               <option value="terceirizado">Terceirizado</option>
+              <option value="outro">Outro</option>
             </select>
             <select
               name="tempo_casa"
               defaultValue=""
               className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             >
-              <option value="">Tempo de casa</option>
-              <option value="<1a">menos de 1 ano</option>
-              <option value="1-3a">1 a 3 anos</option>
-              <option value="3-5a">3 a 5 anos</option>
-              <option value="5-10a">5 a 10 anos</option>
-              <option value=">10a">mais de 10 anos</option>
+              <option value="">Tempo de empresa</option>
+              <option value="ate_6_meses">Até 6 meses</option>
+              <option value="6_meses_1_ano">6 meses a 1 ano</option>
+              <option value="1_3_anos">1 a 3 anos</option>
+              <option value="3_5_anos">3 a 5 anos</option>
+              <option value="mais_5_anos">Mais de 5 anos</option>
             </select>
             <label className="flex items-center gap-2 text-sm text-zinc-700">
               <input type="checkbox" name="is_leader" value="true" />
@@ -149,27 +150,48 @@ export default async function ColetaPublicaNr01Page({ params, searchParams }: Pr
 
         <fieldset className="rounded-lg border border-zinc-200 bg-white p-4">
           <legend className="px-2 text-xs uppercase tracking-wide text-zinc-500">
-            Comentários abertos (opcionais)
+            Bloco 12 — Perguntas abertas (opcionais)
           </legend>
+          {/* Patch 005: textos literais do NR01_GRO.docx (linhas 243-251) */}
           <div className="mt-3 space-y-3">
-            <textarea
-              name="open_q1"
-              rows={2}
-              placeholder="O que mais te ajuda no trabalho?"
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-            <textarea
-              name="open_q2"
-              rows={2}
-              placeholder="O que mais te atrapalha?"
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-            <textarea
-              name="open_q3"
-              rows={2}
-              placeholder="O que você mudaria amanhã, se pudesse?"
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
+            <label className="block text-xs text-zinc-700">
+              <span className="mb-1 block">
+                Qual é hoje o principal fator de desgaste no seu trabalho?
+              </span>
+              <textarea
+                name="open_q1"
+                rows={2}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-xs text-zinc-700">
+              <span className="mb-1 block">
+                O que mais contribui positivamente para o seu trabalho?
+              </span>
+              <textarea
+                name="open_q2"
+                rows={2}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-xs text-zinc-700">
+              <span className="mb-1 block">
+                O que precisa mudar com urgência no ambiente de trabalho?
+              </span>
+              <textarea
+                name="open_q3"
+                rows={2}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-xs text-zinc-700">
+              <span className="mb-1 block">Deseja acrescentar algo?</span>
+              <textarea
+                name="open_q4"
+                rows={2}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </label>
           </div>
         </fieldset>
 

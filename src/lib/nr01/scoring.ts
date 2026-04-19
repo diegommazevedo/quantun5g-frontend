@@ -1,15 +1,21 @@
 /**
  * QUANTUM5G — Módulo NR-01 | Motor de Cálculo
  *
- * Converte respostas Likert 1-5 em scores 0-100 por dimensão,
- * detecta alertas sistêmicos e calcula o ISO global.
+ * Opera nativamente em escala Likert 1-5 (conforme NR01_GRO.docx).
+ * Detecta alertas sistêmicos e calcula o ISO global.
  *
- * Princípios:
- * - Resposta Likert 1-5; reverse_scored invertido (6 - v) ANTES da agregação.
- * - score_pct = ((mean - 1) / 4) * 100  → 0..100, onde 100 = mais saudável.
- * - risk_level via thresholds em src/types/nr01.ts.
+ * Princípios (Patch 005, 2026-04-19):
+ * - Escala nativa: Likert 1-5. MAIOR valor = MAIOR risco (doc:27).
+ * - reverse_scored: questões em sentido positivo são invertidas (6 - v)
+ *   ANTES da agregação para que o eixo do score fique consistente
+ *   com a orientação canônica do doc.
+ * - score_pct (no DB) passa a armazenar a média Likert (1.0 a 5.0),
+ *   NÃO escala 0-100. Compatibilidade preservada: a constraint
+ *   `CHECK (score_pct BETWEEN 0 AND 100)` continua válida porque
+ *   1-5 ⊂ [0, 100].
+ * - risk_level via thresholds em src/types/nr01.ts (NR01_RISK_THRESHOLDS_LIKERT).
  * - k-anonymity ≥ assessment.k_anonymity_min — abaixo disso retorna sem_dados.
- * - ISO global = média ponderada dos scores das dimensões com dados.
+ * - ISO global = média ponderada das médias Likert das dimensões com dados.
  */
 
 import {
@@ -57,11 +63,6 @@ export interface ScoringResult {
 // ============================================================
 // FUNÇÕES AUXILIARES
 // ============================================================
-
-function normalize(meanLikert: number): number {
-  // 1..5 → 0..100
-  return ((meanLikert - 1) / 4) * 100
-}
 
 function median(arr: number[]): number {
   if (arr.length === 0) return 0
@@ -116,9 +117,9 @@ export function scoreDimension(
   const mean = normalized.reduce((s, v) => s + v, 0) / normalized.length
   const med = median(normalized)
   const sd = stddev(normalized)
-  const score = normalize(mean)
 
-  // anchor_items: top 3 questões com PIOR média (já invertidas)
+  // anchor_items: top 3 questões com PIOR média (em escala Likert; após
+  // inversão, "pior" = mais alto = mais risco)
   const perQ: Map<string, number[]> = new Map()
   for (const a of dimAnswers) {
     const q = qIndex.get(a.question_id)!
@@ -135,12 +136,15 @@ export function scoreDimension(
       mean: values.reduce((s, x) => s + x, 0) / values.length,
     } satisfies Nr01AnchorItem
   })
-  const anchors = perQMeans.sort((a, b) => a.mean - b.mean).slice(0, 3)
+  // ordenação descendente: pior (mais risco) primeiro
+  const anchors = perQMeans.sort((a, b) => b.mean - a.mean).slice(0, 3)
 
   return {
     dimension_code: dimensionCode,
-    score_pct: round2(score),
-    risk_level: classifyRisk(score, responseCount),
+    // score_pct agora armazena a média Likert (1.0 a 5.0), não escala 0-100.
+    // Mantido o nome do campo por compatibilidade de schema (CHECK 0-100 OK).
+    score_pct: round2(mean),
+    risk_level: classifyRisk(mean, responseCount),
     mean_likert: round2(mean),
     median_likert: round2(med),
     stddev_likert: round2(sd),

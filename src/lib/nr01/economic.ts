@@ -73,13 +73,18 @@ export const VECTOR_CONFIDENCE: Record<keyof NoActionVectors, 'production' | 'ro
 // ISO baixo (risco alto) → mais provável de pegar multa agravada.
 // ============================================================
 
+/**
+ * Multiplicador de severidade aplicado às multas potenciais a partir do
+ * ISO. Patch 005: ISO agora é média Likert (1-5), não score 0-100.
+ * Maior ISO = mais risco (alinhado com NR01_GRO).
+ */
 function severityFromIso(isoScore: number | null): number {
   if (isoScore == null) return 1.0
-  if (isoScore < 35) return 4.00      // crítico → cenário agravado
-  if (isoScore < 50) return 2.00      // elevado → cenário provável-agravado
-  if (isoScore < 65) return 1.00      // atenção → cenário provável
-  if (isoScore < 80) return 0.50      // baixo → exposição reduzida
-  return 0.20                         // muito baixo → mínima
+  if (isoScore >= 4.3) return 4.00     // crítico → cenário agravado
+  if (isoScore >= 3.5) return 2.00     // elevado → cenário provável-agravado
+  if (isoScore >= 2.7) return 1.00     // atenção → cenário provável
+  if (isoScore >= 1.9) return 0.50     // baixo → exposição reduzida
+  return 0.20                          // muito baixo → mínima
 }
 
 // ============================================================
@@ -118,7 +123,8 @@ export function computeNoActionVectors(
     assumptions.absence_cost_per_day_brl
 
   // V3 — turnover voluntário atribuível ao psicossocial
-  const baselineAttribution = isoScore != null && isoScore < 50 ? 0.55 : 0.35
+  // Patch 005: ISO em escala Likert 1-5; cutoff = 2.7 (zona de atenção+).
+  const baselineAttribution = isoScore != null && isoScore >= 2.7 ? 0.55 : 0.35
   const annualSalary = inputs.avg_monthly_salary_brl * 13.33
   const turnoverWorkers = (inputs.total_workers * inputs.voluntary_turnover_pct) / 100
   const v3 = turnoverWorkers * baselineAttribution * annualSalary * assumptions.turnover_cost_multiplier
