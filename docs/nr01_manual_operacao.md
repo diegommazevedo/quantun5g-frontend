@@ -538,6 +538,25 @@ Migração: salvar PDF em Supabase Storage na primeira geração (path `nr01/{as
 
 **Status:** ✓ Documentado.
 
+### 8.7 Pegadinha do `supabase-js` count com `head: true`
+
+**Aprendido no smoke test ao vivo (2026-04-19):** ao usar `select('col', { count: 'exact', head: true })`,
+o Supabase retorna `count` como propriedade **irmã** de `data`, não dentro dela:
+
+```ts
+// ERRADO (count sempre vira undefined → null → 0):
+const { data: respCount } = await supabase.from('x').select('id', { count: 'exact', head: true })
+const total = (respCount as { count: number } | null)?.count ?? 0
+
+// CERTO:
+const result = await supabase.from('x').select('id', { count: 'exact', head: true })
+const total = result.count ?? 0
+```
+
+Bug existiu inicialmente em `src/app/(nr01)/nr01/avaliacao/[id]/page.tsx` (P1) — adesão sempre exibia 0
+mesmo com respostas no banco. Corrigido em commit `6ce4077`. Verificar nas próximas adições de código
+que usem essa API.
+
 **[SMOKE_TEST_LEARNING_8]** — adicionar aqui qualquer risco descoberto no smoke test ao vivo
 
 ---
