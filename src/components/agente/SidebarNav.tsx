@@ -16,14 +16,15 @@ interface NavItem {
 }
 
 const NAV_CONSULTANT: NavItem[] = [
-  { href: '/dashboard',  label: 'Dashboard',     icon: '◈', match: '/dashboard'  },
-  { href: '/admin',      label: 'Admin',          icon: '⚙', match: '/admin'      },
-  { href: '/pricing',    label: 'Planos',         icon: '◇', match: '/pricing'    },
+  { href: '/dashboard',      label: 'Pentagrama',    icon: '◈', match: '/dashboard'      },
+  { href: '/nr01/dashboard', label: 'NR-01',         icon: '◉', match: '/nr01'           },
+  { href: '/admin',          label: 'Admin',         icon: '⚙', match: '/admin'          },
+  { href: '/pricing',        label: 'Planos',        icon: '◇', match: '/pricing'        },
 ]
 
 const NAV_LEADER: NavItem[] = [
-  { href: '/dashboard',  label: 'Dashboard',     icon: '◈', match: '/dashboard'  },
-  { href: '/pricing',    label: 'Planos',         icon: '◇', match: '/pricing'    },
+  { href: '/dashboard',      label: 'Pentagrama',    icon: '◈', match: '/dashboard'      },
+  { href: '/pricing',        label: 'Planos',        icon: '◇', match: '/pricing'        },
 ]
 
 interface Props {
