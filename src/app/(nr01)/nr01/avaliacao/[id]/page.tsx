@@ -44,7 +44,7 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
   if (!assess) notFound()
   const a = assess as unknown as AssessFull
 
-  const [{ data: result }, { data: scores }, { data: respCount }, { data: pack }, { data: pubTokensData }] = await Promise.all([
+  const [{ data: result }, { data: scores }, respCountResult, { data: pack }, { data: pubTokensData }] = await Promise.all([
     supabase.from('nr01_assessment_results').select('*').eq('assessment_id', id).maybeSingle(),
     supabase.from('nr01_dimension_scores').select('*').eq('assessment_id', id).order('dimension_code'),
     supabase.from('nr01_responses').select('id', { count: 'exact', head: true }).eq('assessment_id', id),
@@ -54,7 +54,8 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
 
   const r = result as Nr01AssessmentResult | null
   const ds = (scores ?? []) as Nr01DimensionScore[]
-  const totalResponses = (respCount as unknown as { count: number } | null)?.count ?? 0
+  // count com { head: true } vem como propriedade irmã de data, não dentro dela.
+  const totalResponses = respCountResult.count ?? 0
   const collectionUrl = `/nr01/coleta/${a.collection_token}`
   const publicTokens = (pubTokensData ?? []) as Nr01PublicStatusToken[]
   const activeToken = publicTokens.find((t) => t.revoked_at == null) ?? null
