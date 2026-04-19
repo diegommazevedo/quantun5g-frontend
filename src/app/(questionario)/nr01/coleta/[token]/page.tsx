@@ -1,0 +1,187 @@
+/**
+ * QUANTUM5G — NR-01 · Coleta pública (anônima)
+ * Acesso por token de avaliação. Sem autenticação.
+ */
+
+import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { loadInstrument, LIKERT_LABELS } from '@/lib/nr01/instrument'
+import { Nr01Assessment } from '@/types/nr01'
+import { submeterRespostaNr01 } from './actions'
+
+interface Props {
+  params: Promise<{ token: string }>
+  searchParams: Promise<{ status?: string; error?: string }>
+}
+
+export default async function ColetaPublicaNr01Page({ params, searchParams }: Props) {
+  const { token } = await params
+  const { status, error } = await searchParams
+  const supabase = await createClient()
+
+  const { data: assess } = await supabase
+    .from('nr01_assessments')
+    .select('id, name, status, instrument_version, collection_opens_at, collection_closes_at, k_anonymity_min')
+    .eq('collection_token', token)
+    .maybeSingle()
+
+  if (!assess) notFound()
+  const a = assess as Pick<Nr01Assessment, 'id' | 'name' | 'status' | 'instrument_version' | 'collection_opens_at' | 'collection_closes_at' | 'k_anonymity_min'>
+
+  if (a.status !== 'COLETANDO') {
+    return (
+      <div className="mx-auto max-w-xl rounded-xl border border-zinc-200 bg-white p-8 text-center">
+        <h1 className="text-xl font-semibold text-zinc-900">Coleta não disponível</h1>
+        <p className="mt-2 text-sm text-zinc-600">
+          Esta avaliação não está aberta para respostas no momento.
+        </p>
+      </div>
+    )
+  }
+
+  if (status === 'ok') {
+    return (
+      <div className="mx-auto max-w-xl rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center">
+        <h1 className="text-xl font-semibold text-emerald-900">Resposta registrada</h1>
+        <p className="mt-2 text-sm text-emerald-800">
+          Obrigado pela sua participação. Sua resposta é anônima e foi registrada
+          com sucesso.
+        </p>
+      </div>
+    )
+  }
+
+  const groups = await loadInstrument(a.instrument_version)
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-8 py-8">
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-orange-600">Avaliação NR-01</p>
+        <h1 className="text-2xl font-bold text-zinc-900">{a.name}</h1>
+        <p className="text-sm text-zinc-600">
+          Sua resposta é <strong>anônima</strong>. Nenhuma identificação pessoal é coletada
+          ou armazenada. Somente agregados com pelo menos {a.k_anonymity_min} respondentes
+          são exibidos a líderes ou consultores.
+        </p>
+      </header>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {decodeURIComponent(error)}
+        </div>
+      )}
+
+      <form action={submeterRespostaNr01} className="space-y-10">
+        <input type="hidden" name="token" value={token} />
+
+        <fieldset className="rounded-lg border border-zinc-200 bg-white p-4">
+          <legend className="px-2 text-xs uppercase tracking-wide text-zinc-500">
+            Dados de contexto (opcionais)
+          </legend>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <input
+              name="setor"
+              placeholder="Setor"
+              className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+            <input
+              name="funcao"
+              placeholder="Função"
+              className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+            <select
+              name="vinculo"
+              defaultValue=""
+              className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              <option value="">Vínculo</option>
+              <option value="CLT">CLT</option>
+              <option value="PJ">PJ</option>
+              <option value="estagio">Estágio</option>
+              <option value="terceirizado">Terceirizado</option>
+            </select>
+            <select
+              name="tempo_casa"
+              defaultValue=""
+              className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              <option value="">Tempo de casa</option>
+              <option value="<1a">menos de 1 ano</option>
+              <option value="1-3a">1 a 3 anos</option>
+              <option value="3-5a">3 a 5 anos</option>
+              <option value="5-10a">5 a 10 anos</option>
+              <option value=">10a">mais de 10 anos</option>
+            </select>
+            <label className="flex items-center gap-2 text-sm text-zinc-700">
+              <input type="checkbox" name="is_leader" value="true" />
+              Sou liderança
+            </label>
+          </div>
+        </fieldset>
+
+        {groups.map((g) => (
+          <section key={g.dimension.code} className="rounded-lg border border-zinc-200 bg-white p-4">
+            <h2 className="text-sm font-semibold text-zinc-900">{g.dimension.name}</h2>
+            <p className="mb-4 text-xs text-zinc-500">{g.dimension.description}</p>
+            <div className="space-y-4">
+              {g.questions.map((q) => (
+                <div key={q.id} className="border-t border-zinc-100 pt-3">
+                  <p className="text-sm text-zinc-800">{q.text}</p>
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    {LIKERT_LABELS.map((l) => (
+                      <label key={l.value} className="flex items-center gap-1 text-xs text-zinc-700">
+                        <input
+                          type="radio"
+                          name={`q_${q.id}`}
+                          value={l.value}
+                          required
+                          className="h-3.5 w-3.5"
+                        />
+                        {l.value} · {l.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <fieldset className="rounded-lg border border-zinc-200 bg-white p-4">
+          <legend className="px-2 text-xs uppercase tracking-wide text-zinc-500">
+            Comentários abertos (opcionais)
+          </legend>
+          <div className="mt-3 space-y-3">
+            <textarea
+              name="open_q1"
+              rows={2}
+              placeholder="O que mais te ajuda no trabalho?"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+            <textarea
+              name="open_q2"
+              rows={2}
+              placeholder="O que mais te atrapalha?"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+            <textarea
+              name="open_q3"
+              rows={2}
+              placeholder="O que você mudaria amanhã, se pudesse?"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </fieldset>
+
+        <div className="sticky bottom-4 flex justify-end">
+          <button
+            type="submit"
+            className="rounded-lg bg-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-orange-700"
+          >
+            Enviar resposta anônima
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}

@@ -7,13 +7,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database'
+import { getSupabasePublishableKey, getSupabaseUrl } from './env'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
     {
       cookies: {
         getAll() {
@@ -32,8 +33,17 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Rotas protegidas — redireciona para login se não autenticado
-  const protectedPaths = ['/dashboard', '/diagnostico', '/relatorio', '/admin']
+  // Rotas protegidas — redireciona para login se não autenticado.
+  // /nr01/coleta/* é PÚBLICO (questionário anônimo), por isso o startsWith é
+  // checado em /nr01/dashboard e /nr01/avaliacao explicitamente.
+  const protectedPaths = [
+    '/dashboard',
+    '/diagnostico',
+    '/relatorio',
+    '/admin',
+    '/nr01/dashboard',
+    '/nr01/avaliacao',
+  ]
   const pathname = request.nextUrl.pathname
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
   const isAuthPage = pathname === '/' || pathname === '/login'

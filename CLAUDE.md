@@ -23,6 +23,7 @@ Todos os arquivos estão em `docs/`:
 | `pentagrama_ginger_solucao_tecnologica.md` | Especificação técnica de produto — fluxos, telas, motor, alertas, banco, confidencialidade |
 | `pentagrama_claude_code_prompt.md` | Prompt de entrada para Semana 1 |
 | `pentagrama_cockpit_secao13.md` | Decisões de produto registradas (001–007) |
+| `nr01_modulo_arquitetura.md` | Módulo NR-01 — análise sênior + mapa de arquivos + roadmap |
 
 ## Decisões de Produto Fechadas
 
@@ -90,3 +91,30 @@ docs/
 2. Ler `docs/pentagrama_claude_code_prompt.md`
 3. Configurar `.env.local` com credenciais Supabase
 4. `npm run dev` — http://localhost:3000
+
+## Módulo NR-01 (paralelo ao Pentagrama)
+
+Sistema regulatório para Fatores de Risco Psicossocial Relacionados ao Trabalho
+conforme NR-01/GRO (Portarias MTE 1.419/2024 + 765/2025). Vigência punitiva
+em **26/05/2026**. Reusa auth, multi-tenancy e padrões do Pentagrama; bridge
+opcional cruza ISO regulatório com IC vivido.
+
+**Arquivos:**
+- SQL: `supabase/nr01_schema.sql` + `nr01_rls.sql` + `nr01_seed.sql`
+- Tipos: `src/types/nr01.ts`
+- Lib: `src/lib/nr01/{instrument,scoring,economic,evidence,bridge-pentagrama}.ts`
+- Rotas autenticadas: `src/app/(nr01)/nr01/{dashboard,avaliacao}`
+- Coleta pública: `src/app/(questionario)/nr01/coleta/[token]`
+- Análise completa: `docs/nr01_modulo_arquitetura.md`
+
+**Estados da avaliação NR-01:**
+`CRIADO → COLETANDO → COLETA_ENCERRADA → PROCESSANDO → CONCLUIDO → ARQUIVADO`
+
+**Regras críticas NR-01:**
+1. **k-anonymity ≥ 5** (configurável por avaliação) — view `nr01_dim_scores_safe`.
+2. **Anon_id sem FK** — anonimato inviolável (mesma regra do IC do Pentagrama).
+3. **Pacote de evidências imutável** — hash SHA-256 do instrumento + hash global
+   do pacote; primeira coisa que o auditor fiscal abre.
+4. **Audit log append-only** (`nr01_audit_log`) com `ip_hash` (LGPD).
+5. **Cruzamento com Pentagrama é opcional** — set `linked_diagnostic_id` na
+   criação para habilitar bridge.
