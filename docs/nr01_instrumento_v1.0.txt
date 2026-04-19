@@ -1,0 +1,409 @@
+==============================================================================
+QUANTUM5G — INSTRUMENTO NR-01 / GRO  ·  v1.0
+Data de extração: 2026-04-19
+Origem: nr01_questions (instrument_version = 'v1.0', is_active = true)
+Fundamentação: NR-01 (Portarias MTE 1.419/2024 e 765/2025) + Guia Técnico
+               sobre Fatores de Risco Psicossocial (MTE/SIT 2024) + modelo
+               de Maslach (Carga, Controle, Recompensa, Comunidade,
+               Justiça, Valores).
+==============================================================================
+
+ESCALA LIKERT (5 pontos)
+------------------------------------------------------------------------------
+  1 — Discordo totalmente
+  2 — Discordo
+  3 — Indiferente
+  4 — Concordo
+  5 — Concordo totalmente
+
+NOTA SOBRE QUESTÕES NEGATIVAS [REVERSA]
+------------------------------------------------------------------------------
+Questões marcadas com [REVERSA] têm enunciado em sentido negativo.
+O motor de cálculo aplica inversão automática (6 - resposta) antes de
+agregar, de forma que o score final é monotônico:
+  maior score = condição mais saudável (independente do enunciado).
+
+TOTAL: 80 questões  ·  10 dimensões  ·  8 questões por dimensão
+
+CLASSIFICAÇÃO DE RISCO (após normalização para 0-100)
+------------------------------------------------------------------------------
+  ≥ 80   muito_baixo
+  65-79  baixo
+  50-64  atenção
+  35-49  elevado
+  < 35   crítico
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 1/10 — CARGA DE TRABALHO E RITMO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        carga_trabalho
+Peso no ISO:   1.10
+Norma:         NR-01 1.5.3.2 + Anexo Guia MTE — fatores de demanda
+
+Descrição:
+  Volume, prazos, sobrecarga e ritmo imposto pelo trabalho.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1.
+      Tenho tempo suficiente para realizar minhas tarefas com a qualidade esperada.
+
+   2. [REVERSA]
+      Frequentemente trabalho além do meu horário regular para dar conta das demandas.
+
+   3.
+      O ritmo de trabalho que me é exigido é sustentável.
+
+   4. [REVERSA]
+      Sinto-me sobrecarregado(a) na maior parte do tempo.
+
+   5.
+      Os prazos que recebo são realistas em relação à complexidade das tarefas.
+
+   6.
+      Saio do trabalho com energia para minha vida pessoal.
+
+   7. [REVERSA]
+      Preciso interromper pausas e refeições para dar conta da demanda.
+
+   8.
+      Existe um equilíbrio aceitável entre o que me pedem e o que consigo entregar.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 2/10 — CONTROLE E AUTONOMIA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        controle_autonomia
+Peso no ISO:   1.05
+Norma:         NR-01 1.5.3.2 + Maslach: Control
+
+Descrição:
+  Liberdade de decisão sobre como, quando e em que ritmo executar tarefas.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1.
+      Tenho liberdade para decidir como executar minhas tarefas.
+
+   2.
+      Posso influenciar decisões importantes sobre o meu trabalho.
+
+   3.
+      Sei claramente o que se espera de mim na minha função.
+
+   4.
+      Tenho autonomia para organizar a sequência das minhas atividades.
+
+   5.
+      Recebo informações suficientes para tomar boas decisões no meu trabalho.
+
+   6. [REVERSA]
+      Sinto que sou apenas um(a) executor(a) de ordens, sem voz ativa.
+
+   7.
+      Posso opinar sobre mudanças que afetam minha rotina.
+
+   8.
+      Recebo feedback claro sobre o desempenho do meu trabalho.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 3/10 — EXIGÊNCIAS EMOCIONAIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        exigencias_emocionais
+Peso no ISO:   1.10
+Norma:         NR-01 1.5.3.2 + Guia MTE Anexo I item 5
+
+Descrição:
+  Desgaste afetivo, contato com sofrimento, regulação emocional exigida.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1. [REVERSA]
+      Meu trabalho me expõe a situações emocionalmente difíceis.
+
+   2. [REVERSA]
+      Preciso esconder o que sinto para conseguir realizar meu trabalho.
+
+   3. [REVERSA]
+      Saio do expediente emocionalmente esgotado(a) com frequência.
+
+   4.
+      Tenho apoio adequado para lidar com situações emocionalmente complexas.
+
+   5.
+      Consigo manter o equilíbrio emocional mesmo nos dias mais difíceis.
+
+   6. [REVERSA]
+      Levo problemas do trabalho para casa em pensamentos recorrentes.
+
+   7.
+      Sinto-me preparado(a) para lidar com clientes/pessoas difíceis.
+
+   8.
+      Existe espaço seguro na empresa para falar sobre como me sinto.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 4/10 — RECONHECIMENTO E RECOMPENSA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        reconhecimento
+Peso no ISO:   1.00
+Norma:         NR-01 1.5.3.2 + Maslach: Reward
+
+Descrição:
+  Valorização, feedback, justiça percebida em remuneração e desenvolvimento.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1.
+      Minha contribuição é reconhecida pela liderança.
+
+   2.
+      Sinto que meu salário/benefícios são justos para o que entrego.
+
+   3.
+      Recebo elogios e reconhecimento quando faço um bom trabalho.
+
+   4.
+      Tenho oportunidades reais de crescimento na empresa.
+
+   5. [REVERSA]
+      O que entrego é mais valorizado do que como me esforço.
+
+   6.
+      Critérios de promoção e desenvolvimento são claros e justos.
+
+   7. [REVERSA]
+      Sinto-me invisível para a alta liderança da empresa.
+
+   8.
+      Sinto orgulho do trabalho que faço e ele é reconhecido por isso.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 5/10 — RELAÇÕES INTERPESSOAIS (CLIMA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        relacoes_interpessoais
+Peso no ISO:   1.00
+Norma:         NR-01 1.5.3.2 + Maslach: Community
+
+Descrição:
+  Cooperação, suporte de pares, conflitos e comunicação na equipe.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1.
+      Posso contar com meus colegas de trabalho quando preciso.
+
+   2.
+      O ambiente entre colegas é cooperativo, não competitivo destrutivo.
+
+   3. [REVERSA]
+      Existem conflitos não resolvidos que afetam o trabalho.
+
+   4.
+      Sinto-me parte de um time, não isolado(a).
+
+   5.
+      A comunicação entre áreas funciona bem.
+
+   6.
+      Posso ser quem eu sou no trabalho sem medo de julgamento.
+
+   7. [REVERSA]
+      Existe fofoca e politicagem que prejudicam o ambiente.
+
+   8.
+      O respeito entre colegas é uma prática real, não apenas discurso.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 6/10 — SEGURANÇA E ESTABILIDADE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        estabilidade_seguranca
+Peso no ISO:   0.95
+Norma:         NR-01 1.5.3.2 + ILO PRIMA-EF
+
+Descrição:
+  Previsibilidade contratual, mudanças organizacionais, sensação de continuidade.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1.
+      Tenho confiança de que continuarei trabalhando aqui no próximo ano.
+
+   2.
+      Mudanças organizacionais são comunicadas com clareza e antecedência.
+
+   3. [REVERSA]
+      Vivo com preocupação constante de perder meu emprego.
+
+   4.
+      A empresa cumpre o que promete em relação a contratos e condições.
+
+   5.
+      Reestruturações recentes foram conduzidas de forma respeitosa.
+
+   6.
+      Sinto que posso planejar minha vida pessoal contando com este trabalho.
+
+   7.
+      Há transparência sobre o futuro da empresa e do meu setor.
+
+   8. [REVERSA]
+      O clima de instabilidade me tira o sono ou a concentração.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 7/10 — VIOLÊNCIA E ASSÉDIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        assedio_violencia
+Peso no ISO:   1.30
+Norma:         Lei 14.457/2022 + NR-01 1.5.3.2 — risco crítico
+
+Descrição:
+  Assédio moral, sexual, discriminação, retaliação e violência psicológica.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1. [REVERSA]
+      Já presenciei comportamentos abusivos por parte de líderes ou pares.
+
+   2.
+      Sinto-me seguro(a) para denunciar comportamentos inadequados.
+
+   3.
+      Existe canal de denúncia confiável e protegido contra retaliação.
+
+   4. [REVERSA]
+      Já sofri humilhações ou desrespeito intencional no trabalho.
+
+   5.
+      O respeito a diferenças (gênero, raça, orientação) é uma prática real.
+
+   6. [REVERSA]
+      Já recebi comentários ou avanços de natureza sexual indesejados.
+
+   7.
+      Quem denuncia é tratado com seriedade e proteção pela empresa.
+
+   8.
+      Conheço a política de prevenção a assédio da minha empresa.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 8/10 — ORGANIZAÇÃO DO TRABALHO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        organizacao_trabalho
+Peso no ISO:   1.00
+Norma:         NR-01 1.5.3.2 + Maslach: Fairness
+
+Descrição:
+  Clareza de processos, retrabalho, definição de papéis e responsabilidades.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1.
+      Os processos de trabalho são claros e bem definidos.
+
+   2. [REVERSA]
+      Tenho que refazer trabalho com frequência por falhas de comunicação.
+
+   3.
+      Sei a quem recorrer para tirar dúvidas sobre meu trabalho.
+
+   4.
+      Tenho ferramentas e recursos suficientes para fazer meu trabalho.
+
+   5. [REVERSA]
+      Mudanças de prioridade acontecem de forma desorganizada.
+
+   6.
+      Reuniões na empresa têm objetivo claro e produzem decisões.
+
+   7.
+      Existem regras claras sobre comunicação fora do horário de trabalho.
+
+   8.
+      Recebo informação suficiente para entender o impacto do meu trabalho.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 9/10 — LIDERANÇA E GESTÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        lideranca_gestao
+Peso no ISO:   1.10
+Norma:         NR-01 1.5.3.2 + Guia MTE Anexo I item 7
+
+Descrição:
+  Apoio do gestor, direcionamento, qualidade da supervisão e feedback técnico.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1.
+      Meu líder direto me dá apoio quando preciso.
+
+   2.
+      Confio nas decisões da minha liderança imediata.
+
+   3.
+      Recebo direcionamento técnico claro do meu gestor.
+
+   4.
+      Meu líder se importa com meu bem-estar pessoal e profissional.
+
+   5.
+      Meu líder reconhece quando erra e ajusta o curso.
+
+   6. [REVERSA]
+      A relação com meu líder é uma fonte de tensão.
+
+   7.
+      Meu líder distribui as tarefas de forma justa entre o time.
+
+   8.
+      Posso falar abertamente sobre problemas com meu líder.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIMENSÃO 10/10 — SAÚDE E BEM-ESTAR PERCEBIDOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Código:        saude_bem_estar
+Peso no ISO:   1.05
+Norma:         NR-01 1.5.3.2 + WHO HW Ind.
+
+Descrição:
+  Estado físico-mental geral, qualidade do sono, sintomas de desgaste.
+
+Questões (8):
+------------------------------------------------------------------------------
+   1.
+      Tenho dormido bem nos últimos 30 dias.
+
+   2.
+      Tenho energia suficiente para minhas atividades fora do trabalho.
+
+   3. [REVERSA]
+      Sinto sintomas físicos (dor de cabeça, gastrite, tensão) ligados ao trabalho.
+
+   4. [REVERSA]
+      Sinto-me ansioso(a) ou apreensivo(a) por causa do trabalho.
+
+   5.
+      Consigo desligar da rotina profissional nos meus dias de folga.
+
+   6. [REVERSA]
+      Penso em pedir afastamento por razões de saúde mental.
+
+   7.
+      No geral, classifico minha saúde mental atual como boa.
+
+   8.
+      A empresa oferece recursos efetivos de cuidado em saúde mental.
+
+
+==============================================================================
+FIM — 80 questões em 10 dimensões
+==============================================================================
