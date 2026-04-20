@@ -99,17 +99,27 @@ export async function processarResultados(formData: FormData) {
   if (!assessment) redirect('/nr01/dashboard')
   const a = assessment as { id: string; instrument_version: string; k_anonymity_min: number; linked_diagnostic_id: string | null }
 
-  // Carrega questões + respostas
-  const [{ data: questionsData }, { data: responsesData }] = await Promise.all([
+  // Carrega questões + respostas + pesos por dimensão (Patch 006)
+  const [{ data: questionsData }, { data: responsesData }, { data: dimsData }] = await Promise.all([
     supabase
       .from('nr01_questions')
       .select('*')
       .eq('instrument_version', a.instrument_version)
       .eq('is_active', true),
     supabase.from('nr01_responses').select('id').eq('assessment_id', id),
+    supabase.from('nr01_dimensions').select('code, weight'),
   ])
   const questions = (questionsData ?? []) as Nr01Question[]
   const responseIds = (responsesData ?? []).map((r) => (r as { id: string }).id)
+
+  // Patch 006: carregar pesos calibrados por dimensão (assédio = 1.30, demais = 1.00)
+  const dims = (dimsData ?? []) as Array<{ code: string; weight: number }>
+  if (dims.length === 0) {
+    redirect(`/nr01/avaliacao/${id}?error=${encodeURIComponent('Falha ao carregar pesos das dimensões NR-01')}`)
+  }
+  const dimensionWeights = Object.fromEntries(
+    dims.map((d) => [d.code, Number(d.weight ?? 1.0)]),
+  ) as Record<string, number>
 
   let answers: Nr01ResponseAnswer[] = []
   if (responseIds.length > 0) {
@@ -123,12 +133,14 @@ export async function processarResultados(formData: FormData) {
   // Atualiza status para PROCESSANDO
   await supabase.from('nr01_assessments').update({ status: 'PROCESSANDO' } as never).eq('id', id)
 
-  // Roda o motor
+  // Roda o motor (Patch 006: agora com pesos efetivos)
   const result = computeScoring({
     questions,
     answers,
     responseCount: responseIds.length,
     kAnonymityMin: a.k_anonymity_min,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dimensionWeights: dimensionWeights as any,
   })
 
   // Persiste dimension_scores (upsert)
@@ -222,6 +234,10 @@ export async function processarResultados(formData: FormData) {
       iso_risk_level: result.iso_risk_level,
       n_respondents: result.n_respondents,
       n_alerts: result.systemic_alerts.length,
+      // Patch 006: trilha auditável dos pesos efetivamente aplicados
+      weights_applied: dimensionWeights,
+      methodology_version: 'v1.0-patch006',
+      instrument_version: a.instrument_version,
     },
   } as never)
 
