@@ -16,7 +16,7 @@ import {
   type Nr01DimensionCode,
 } from '@/types/nr01'
 import {
-  METHODOLOGY_TEXT_V1_0,
+  METHODOLOGY_TEXT_V1_1,
 } from '@/lib/nr01/evidence'
 import { LIKERT_LABELS } from '@/lib/nr01/instrument'
 import { formatBrl } from '@/lib/nr01/economic'
@@ -49,7 +49,7 @@ function escapeHtml(s: string | null | undefined): string {
 
 function mdParaHtml(md: string): string {
   // Conversor minúsculo de markdown — só ##, ###, parágrafos e bold.
-  // Suficiente para METHODOLOGY_TEXT_V1_0; nada além.
+  // Suficiente para METHODOLOGY_TEXT_V1_1; nada além.
   return md
     .split('\n\n')
     .map((block) => {
@@ -303,7 +303,7 @@ function rendMetodologia(): string {
   return `
 <section class="principal">
   <h2>2. Metodologia</h2>
-  ${mdParaHtml(METHODOLOGY_TEXT_V1_0)}
+  ${mdParaHtml(METHODOLOGY_TEXT_V1_1)}
 </section>
 `
 }

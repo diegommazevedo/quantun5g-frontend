@@ -18,7 +18,7 @@ export interface DimensionWithQuestions {
   questions: Nr01Question[]
 }
 
-export async function loadInstrument(version = 'v1.0'): Promise<DimensionWithQuestions[]> {
+export async function loadInstrument(version = 'v1.1'): Promise<DimensionWithQuestions[]> {
   const supabase = await createClient()
   const [{ data: dims, error: dimsErr }, { data: qs, error: qsErr }] = await Promise.all([
     supabase.from('nr01_dimensions').select('*').order('ord'),

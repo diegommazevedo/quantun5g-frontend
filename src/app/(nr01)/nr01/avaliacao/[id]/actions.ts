@@ -18,7 +18,7 @@ import {
   hashInstrument,
   hashPack,
   hashResponse,
-  METHODOLOGY_TEXT_V1_0,
+  METHODOLOGY_TEXT_V1_1,
 } from '@/lib/nr01/evidence'
 import { buildBridge } from '@/lib/nr01/bridge-pentagrama'
 
@@ -234,9 +234,9 @@ export async function processarResultados(formData: FormData) {
       iso_risk_level: result.iso_risk_level,
       n_respondents: result.n_respondents,
       n_alerts: result.systemic_alerts.length,
-      // Patch 006: trilha auditável dos pesos efetivamente aplicados
+      // Patch 006/007: trilha auditável dos pesos + metodologia canônica v1.1
       weights_applied: dimensionWeights,
-      methodology_version: 'v1.0-patch006',
+      methodology_version: 'v1.1',
       instrument_version: a.instrument_version,
     },
   } as never)
@@ -313,8 +313,8 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     totalInvitesSent: ass.expected_respondents,
     totalResponsesComplete: responses.length,
     adherencePct,
-    methodologyText: METHODOLOGY_TEXT_V1_0,
-    methodologyVersion: 'v1.0',
+    methodologyText: METHODOLOGY_TEXT_V1_1,
+    methodologyVersion: 'v1.1',
     technicalLeadName: leadName,
     technicalLeadCrp: ass.technical_lead_crp,
     responseHashes,
@@ -328,8 +328,8 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     total_invites_sent: ass.expected_respondents,
     total_responses_complete: responses.length,
     adherence_pct: adherencePct,
-    methodology_text: METHODOLOGY_TEXT_V1_0,
-    methodology_version: 'v1.0',
+    methodology_text: METHODOLOGY_TEXT_V1_1,
+    methodology_version: 'v1.1',
     technical_lead_name: leadName,
     technical_lead_crp: ass.technical_lead_crp,
     pack_sha256: packSha,

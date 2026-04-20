@@ -62,7 +62,7 @@ export async function criarAvaliacaoNr01(formData: FormData) {
       consultant_id: user.id,
       name,
       reference_period: referencePeriod,
-      instrument_version: 'v1.0',
+      instrument_version: 'v1.1',
       modality,
       expected_respondents: expectedResp,
       k_anonymity_min: kAnonymityMin,
