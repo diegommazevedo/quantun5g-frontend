@@ -253,6 +253,8 @@ export interface Nr01EvidencePack {
   pdf_generated_at: string | null
   pdf_byte_size: number | null
   pdf_page_count: number | null
+  // patch_008
+  laudos_pack_sha256: string | null
 }
 
 export interface Nr01Intervention {

@@ -22,6 +22,11 @@ import type {
   Nr01PulseDispatch,
 } from '@/types/nr01'
 
+export interface LaudoTexto {
+  texto_principal: string
+  texto_recomendacao: string
+}
+
 export interface LaudoData {
   assessment: Nr01Assessment & {
     companies: { id: string; name: string; total_collaborators: number } | null
@@ -42,6 +47,9 @@ export interface LaudoData {
     weeksDispatched: number
     lastDispatch: Nr01PulseDispatch | null
   }
+  // Patch 008: laudos canônicos para renderização no PDF
+  laudoTextos: Map<string, LaudoTexto>          // key = `${dim}::${nivel}`
+  laudoMacrosByLevel: Map<string, LaudoTexto>   // key = nivel_risco
   generatedAt: string
 }
 
@@ -73,6 +81,7 @@ export async function loadLaudoData(
     if (leadRow) technical_lead = leadRow
   }
 
+  const instrumentVer = assessmentRow.instrument_version ?? 'v1.1'
   const [
     { data: result },
     { data: dimensions },
@@ -83,6 +92,8 @@ export async function loadLaudoData(
     { data: ecoProj },
     { data: pulseConfig },
     { data: lastDispatch },
+    { data: laudoMicros },
+    { data: laudoMacros },
   ] = await Promise.all([
     sb.from('nr01_assessment_results').select('*').eq('assessment_id', assessmentId).maybeSingle(),
     sb.from('nr01_dimensions').select('*').order('ord'),
@@ -98,7 +109,41 @@ export async function loadLaudoData(
       .order('week_number', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    sb.from('nr01_laudo_textos')
+      .select('dimension_code, nivel_risco, texto_principal, texto_recomendacao')
+      .eq('instrument_version', instrumentVer)
+      .eq('is_active', true),
+    sb.from('nr01_laudo_macros')
+      .select('nivel_risco, texto_principal, texto_recomendacao')
+      .eq('instrument_version', instrumentVer)
+      .eq('is_active', true),
   ])
+
+  // Constrói os Maps de laudos para lookup eficiente no template
+  const laudoTextos = new Map<string, LaudoTexto>()
+  for (const l of (laudoMicros ?? []) as Array<{
+    dimension_code: string
+    nivel_risco: string
+    texto_principal: string
+    texto_recomendacao: string
+  }>) {
+    laudoTextos.set(`${l.dimension_code}::${l.nivel_risco}`, {
+      texto_principal: l.texto_principal,
+      texto_recomendacao: l.texto_recomendacao,
+    })
+  }
+
+  const laudoMacrosByLevel = new Map<string, LaudoTexto>()
+  for (const l of (laudoMacros ?? []) as Array<{
+    nivel_risco: string
+    texto_principal: string
+    texto_recomendacao: string
+  }>) {
+    laudoMacrosByLevel.set(l.nivel_risco, {
+      texto_principal: l.texto_principal,
+      texto_recomendacao: l.texto_recomendacao,
+    })
+  }
 
   let actionItems: Nr01ActionItem[] = []
   if (planRow) {
@@ -123,6 +168,8 @@ export async function loadLaudoData(
       inputs: ecoInputs as Nr01EconomicInputs | null,
       projection: ecoProj as Nr01EconomicProjection | null,
     },
+    laudoTextos,
+    laudoMacrosByLevel,
     pulse: {
       config: pulseConfig as Nr01PulseConfig | null,
       weeksDispatched: (pulseConfig as Nr01PulseConfig | null)?.weeks_dispatched ?? 0,

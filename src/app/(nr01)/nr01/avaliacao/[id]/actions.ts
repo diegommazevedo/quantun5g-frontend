@@ -16,6 +16,7 @@ import {
 import { computeScoring } from '@/lib/nr01/scoring'
 import {
   hashInstrument,
+  hashLaudosCanonicos,
   hashPack,
   hashResponse,
   METHODOLOGY_TEXT_V1_1,
@@ -297,6 +298,8 @@ export async function gerarPacoteEvidencias(formData: FormData) {
   }
 
   const instrumentSha = hashInstrument(questions, ass.instrument_version)
+  // Patch 008: hash dos laudos canônicos vigentes na avaliação
+  const laudosSha = await hashLaudosCanonicos(supabase, ass.instrument_version)
   const responseHashes = responses.map((r) => hashResponse(r, answers))
   const adherencePct = ass.expected_respondents > 0
     ? (responses.length / ass.expected_respondents) * 100
@@ -333,6 +336,8 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     technical_lead_name: leadName,
     technical_lead_crp: ass.technical_lead_crp,
     pack_sha256: packSha,
+    // Patch 008: hash dos laudos canônicos vigentes
+    laudos_pack_sha256: laudosSha,
   } as never)
 
   await supabase.from('nr01_audit_log').insert({
@@ -343,6 +348,7 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     payload: {
       pack_sha256: packSha,
       instrument_sha256: instrumentSha,
+      laudos_pack_sha256: laudosSha,
       n_responses: responses.length,
     },
   } as never)

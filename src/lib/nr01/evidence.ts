@@ -73,6 +73,12 @@ evidências (instrumento aplicado, datas, adesão, hashes do instrumento e do
 pacote) imutável para fins de auditoria fiscal e de defesa em eventual
 contencioso. A trilha de auditoria das operações realizadas na plataforma é
 preservada em log append-only.
+
+Os textos interpretativos canônicos (50 micro-laudos por dimensão × nível
+e 5 macro-laudos por nível geral) aplicados nesta avaliação são rastreados
+pelo hash SHA-256 registrado no campo \`laudos_pack_sha256\` do pacote de
+evidências, garantindo prova de qual versão dos textos canônicos foi
+utilizada na emissão deste laudo.
 `.trim()
 
 // ============================================================
@@ -171,4 +177,58 @@ export function hashIp(
     ? `${assessmentId}|nr01-quantum5g`
     : 'global|nr01-quantum5g'
   return sha256(`${ip}|${salt}`)
+}
+
+// ============================================================
+// HASH DOS LAUDOS CANÔNICOS (Patch 008)
+// ============================================================
+
+/**
+ * Computa SHA-256 do conjunto canônico de laudos vigente para a versão
+ * de instrumento informada (default v1.1). Retorna o mesmo formato de
+ * hash gerado pelo extrator (scripts/_extract_laudos_v1.1.mjs), permitindo
+ * comparação direta com docs/audit/laudos_v1.1_hash.txt.
+ *
+ * Usado em gerarPacoteEvidencias para popular nr01_evidence_pack.laudos_pack_sha256
+ * — prova imutável de qual versão dos textos canônicos foi aplicada.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function hashLaudosCanonicos(supabase: any, instrumentVersion: string = 'v1.1'): Promise<string> {
+  const [{ data: micros, error: errM }, { data: macros, error: errMa }] = await Promise.all([
+    supabase
+      .from('nr01_laudo_textos')
+      .select('dimension_code, nivel_risco, texto_principal, texto_recomendacao')
+      .eq('instrument_version', instrumentVersion)
+      .eq('is_active', true)
+      .order('dimension_code')
+      .order('nivel_risco'),
+    supabase
+      .from('nr01_laudo_macros')
+      .select('nivel_risco, texto_principal, texto_recomendacao')
+      .eq('instrument_version', instrumentVersion)
+      .eq('is_active', true)
+      .order('nivel_risco'),
+  ])
+
+  if (errM || errMa || !micros || !macros) {
+    throw new Error('Falha ao carregar laudos canônicos para hash')
+  }
+
+  const microPayload = (micros as Array<{
+    dimension_code: string
+    nivel_risco: string
+    texto_principal: string
+    texto_recomendacao: string
+  }>)
+    .map((l) => `MICRO|${l.dimension_code}|${l.nivel_risco}|${l.texto_principal}|${l.texto_recomendacao}`)
+    .join('\n')
+  const macroPayload = (macros as Array<{
+    nivel_risco: string
+    texto_principal: string
+    texto_recomendacao: string
+  }>)
+    .map((l) => `MACRO|${l.nivel_risco}|${l.texto_principal}|${l.texto_recomendacao}`)
+    .join('\n')
+
+  return sha256(microPayload + '\n---\n' + macroPayload)
 }

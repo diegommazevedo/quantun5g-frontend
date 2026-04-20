@@ -216,6 +216,14 @@ table.compact th, table.compact td { padding: 3pt 5pt; font-size: 9pt; }
 
 .pulo-pagina { page-break-before: always; }
 .evite-quebra { page-break-inside: avoid; }
+
+/* Patch 008: laudos canônicos v1.1 */
+.laudo-canonico { margin: 8pt 0 12pt; padding-left: 10pt; border-left: 1.5pt solid #555; }
+.laudo-principal { margin-bottom: 6pt; text-align: justify; line-height: 1.45; }
+.laudo-recomendacao { color: #333; text-align: justify; line-height: 1.45; font-style: italic; }
+.laudo-macro-canonico { margin: 12pt 0; padding: 10pt 14pt; background: #f7f7f7; border-left: 2pt solid #000; }
+.laudo-macro-canonico p { text-align: justify; line-height: 1.45; margin: 0 0 6pt; }
+.laudo-fallback { font-size: 9pt; color: #999; margin-top: 4pt; }
 `
 
 // ============================================================
@@ -357,6 +365,19 @@ function rendDimensoes(d: LaudoData): string {
     <strong>Itens-âncora (3 piores avaliados):</strong>
     <ol class="bullets" style="font-size: 9pt;">${anchorList}</ol>
   </div>` : ''}
+  ${(() => {
+    // Patch 008: laudo canônico (texto_principal + texto_recomendacao) por (dim, nivel)
+    if (s.risk_level === 'sem_dados') return ''
+    const laudo = d.laudoTextos.get(`${s.dimension_code}::${s.risk_level}`)
+    if (!laudo) {
+      return `<div class="laudo-fallback"><em>Texto canônico v1.1 não encontrado para esta combinação.</em></div>`
+    }
+    return `
+  <div class="laudo-canonico evite-quebra">
+    <p class="laudo-principal">${escapeHtml(laudo.texto_principal)}</p>
+    <p class="laudo-recomendacao">${escapeHtml(laudo.texto_recomendacao)}</p>
+  </div>`
+  })()}
 </div>
 `
   }).join('')
@@ -364,7 +385,7 @@ function rendDimensoes(d: LaudoData): string {
   return `
 <section class="principal">
   <h2>4. Resultado por dimensão NR-01</h2>
-  <p class="muted">Score normalizado 0–100, onde 100 representa condição mais saudável. Classificação de risco em cinco faixas: muito baixo, baixo, atenção, elevado, crítico.</p>
+  <p class="muted">Score em escala Likert 1–5 (canônico v1.1). MAIOR valor = MAIOR risco. Classificação em cinco faixas: muito baixo (1.0–1.8), baixo (1.9–2.6), atenção (2.7–3.4), elevado (3.5–4.2), crítico (4.3–5.0). Cada laudo abaixo é o texto literal aprovado pelo responsável técnico.</p>
   ${blocos}
 </section>
 `
@@ -373,16 +394,22 @@ function rendDimensoes(d: LaudoData): string {
 function rendIso(d: LaudoData): string {
   const r = d.result
   if (!r) return ''
+  // Patch 008: laudo macro canônico para o nível geral do ISO
+  const macro = d.laudoMacrosByLevel.get(r.iso_risk_level)
   return `
 <section class="principal">
   <h2>5. Índice de Saúde Organizacional (ISO)</h2>
-  <p>O ISO consolida os scores das dimensões com dados suficientes em uma média ponderada,
-  com pesos calibrados conforme o Guia Técnico do MTE.</p>
+  <p>O ISO é a média aritmética das médias Likert de cada dimensão, com peso 1,30 para Violência e Assédio (Lei 14.457/2022) e 1,00 para as demais.</p>
   <table class="compact">
-    <tr><th>ISO global</th><td><strong>${r.iso_score.toFixed(1)} / 100</strong></td></tr>
+    <tr><th>ISO global</th><td><strong>${r.iso_score.toFixed(2)}</strong> (escala 1.0–5.0)</td></tr>
     <tr><th>Nível de risco</th><td>${RISK_LEVEL_LABEL[r.iso_risk_level]}</td></tr>
     <tr><th>Calculado em</th><td>${fmtDateTimeBR(r.calculated_at)}</td></tr>
   </table>
+  ${macro ? `
+  <div class="laudo-macro-canonico evite-quebra">
+    <p>${escapeHtml(macro.texto_principal)}</p>
+    <p><em>${escapeHtml(macro.texto_recomendacao)}</em></p>
+  </div>` : '<p><em>Laudo macro canônico não encontrado para o nível atual.</em></p>'}
 </section>
 `
 }
