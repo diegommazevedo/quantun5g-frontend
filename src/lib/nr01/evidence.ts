@@ -10,7 +10,7 @@
  * Este pacote é o que o auditor fiscal abre primeiro — tem que estar pronto em 3 cliques.
  */
 
-import { createHash } from 'crypto'
+import { createHash, createHmac } from 'crypto'
 import {
   Nr01Question,
   Nr01Response,
@@ -53,10 +53,19 @@ percebido. A média de cada dimensão é classificada nas seguintes faixas:
 - 3,5 – 4,2 → Risco elevado
 - 4,3 – 5,0 → Risco crítico
 
-### Confidencialidade
+### Confidencialidade e pseudonimização
 A coleta é anônima por construção: respostas individuais não são acessíveis pelo
-empregador; apenas agregados com k-anonymity ≥ 5 são divulgados, conforme
+empregador. Apenas agregados respeitando k-anonymity ≥ 5 são divulgados, conforme
 recomendação da ANPD para tratamento de dados sensíveis em saúde ocupacional.
+
+Para fins de trilha auditável (controle de duplicidade e detecção de abuso), o
+sistema mantém hashes pseudonimizados de identificadores técnicos (IP de origem
+e email de convite, quando aplicável). A pseudonimização emprega HMAC-SHA256 com
+chave secreta de 256 bits mantida exclusivamente em ambiente controlado de
+produção, separada do código-fonte e sob escopo "Sensitive" no provedor de
+hospedagem, em conformidade com o Art. 13 da LGPD. A reversão desses hashes para
+identificadores originais é computacionalmente inviável sem acesso simultâneo ao
+banco e à chave secreta.
 
 ### Análise
 O score por dimensão é a média aritmética das respostas Likert (escala 1-5).
@@ -160,23 +169,43 @@ export function sha256(value: string): string {
 }
 
 /**
- * Hash de IP com sal por-avaliação. O mesmo IP gera hashes diferentes em
- * avaliações diferentes — bloqueia correlação cruzada entre clientes
- * (pseudonimização forte exigida pela ANPD).
+ * Hash de IP para audit log com pseudonimização forte (HMAC-SHA256).
  *
- * Use SEMPRE com assessmentId. O fallback global existe apenas para audit
- * log de eventos que não estejam atrelados a um assessment (ex.: erros
- * de plataforma); ele NÃO deve ser usado para dados de respondente.
+ * Pseudonimização conforme Art. 13 LGPD: a chave (NR01_IP_HASH_SALT) é mantida
+ * separadamente do código-fonte, em ambiente controlado (variável de ambiente
+ * Vercel marcada como Sensitive, scope Production). Sem essa env var, a função
+ * lança erro em vez de cair em hash fraco.
+ *
+ * O assessmentId compõe o escopo do payload — o mesmo IP gera hashes diferentes
+ * em avaliações diferentes, bloqueando correlação cruzada entre clientes.
+ *
+ * @throws Error se NR01_IP_HASH_SALT ausente ou < 64 chars hex (32 bytes).
  */
 export function hashIp(
   ip: string | null | undefined,
   assessmentId?: string | null,
 ): string | null {
   if (!ip) return null
-  const salt = assessmentId
-    ? `${assessmentId}|nr01-quantum5g`
-    : 'global|nr01-quantum5g'
-  return sha256(`${ip}|${salt}`)
+
+  const key = process.env.NR01_IP_HASH_SALT
+  if (!key) {
+    throw new Error(
+      'NR01_IP_HASH_SALT não configurado. ' +
+      'Pseudonimização de IP exige chave HMAC em variável de ambiente. ' +
+      'Gerar com `openssl rand -hex 32` e adicionar em Vercel (Production, Sensitive).',
+    )
+  }
+  if (key.length < 64) {
+    throw new Error(
+      'NR01_IP_HASH_SALT muito curto. Esperado: ≥64 caracteres hex (32 bytes). ' +
+      'Gerar novo salt com `openssl rand -hex 32`.',
+    )
+  }
+
+  const scope = assessmentId ?? 'global'
+  return createHmac('sha256', key)
+    .update(`${ip}|${scope}`, 'utf-8')
+    .digest('hex')
 }
 
 // ============================================================

@@ -8,7 +8,7 @@
  * - normalizeEmails: parse/dedup/lower/sanity de uma lista bruta.
  */
 
-import { createHash } from 'crypto'
+import { createHmac } from 'crypto'
 import type { Nr01DimensionCode, Nr01Question } from '@/types/nr01'
 
 // ============================================================
@@ -65,13 +65,39 @@ export function selectQuestionsForWeek(args: SelectQuestionsArgs): Nr01Question[
 }
 
 // ============================================================
-// Hash de email — sal por avaliação
+// Hash de email — pseudonimização forte HMAC-SHA256
 // ============================================================
 
+/**
+ * Hash de email para tabela de convites de pulse (anti-deduplicação) com
+ * pseudonimização forte HMAC-SHA256.
+ *
+ * Mesmo princípio do hashIp: chave NR01_EMAIL_HASH_SALT em env var Sensitive
+ * de produção, fora do código. assessmentId compõe o escopo, evitando
+ * correlação cross-assessment.
+ *
+ * @throws Error se NR01_EMAIL_HASH_SALT ausente ou < 64 chars hex (32 bytes).
+ */
 export function hashEmail(email: string, assessmentId: string): string {
+  const key = process.env.NR01_EMAIL_HASH_SALT
+  if (!key) {
+    throw new Error(
+      'NR01_EMAIL_HASH_SALT não configurado. ' +
+      'Pseudonimização de email exige chave HMAC em variável de ambiente. ' +
+      'Gerar com `openssl rand -hex 32` e adicionar em Vercel (Production, Sensitive).',
+    )
+  }
+  if (key.length < 64) {
+    throw new Error(
+      'NR01_EMAIL_HASH_SALT muito curto. Esperado: ≥64 caracteres hex (32 bytes). ' +
+      'Gerar novo salt com `openssl rand -hex 32`.',
+    )
+  }
+
   const normalized = email.trim().toLowerCase()
-  const salt = `${assessmentId}|nr01-quantum5g-pulse`
-  return createHash('sha256').update(`${normalized}|${salt}`, 'utf-8').digest('hex')
+  return createHmac('sha256', key)
+    .update(`${normalized}|${assessmentId}`, 'utf-8')
+    .digest('hex')
 }
 
 // ============================================================
