@@ -26,8 +26,7 @@
 --  13. nr01_economic_inputs        (parâmetros econômicos do cliente)
 --  14. nr01_economic_projections   (saída do motor econômico)
 --  15. nr01_audit_log              (trilha imutável de eventos)
---  16. nr01_pentagrama_bridge      (cruzamento com diagnostics)
---  17. nr01_micro_pulses           (monitoramento contínuo)
+--  16. nr01_micro_pulses           (monitoramento contínuo)
 --  18. Triggers + funções auxiliares
 -- ============================================================
 
@@ -260,8 +259,6 @@ CREATE TABLE IF NOT EXISTS nr01_assessment_results (
   total_invites       int NOT NULL DEFAULT 0,
   total_responses     int NOT NULL DEFAULT 0,
   adherence_pct       numeric(5,2),
-  -- Alertas sistêmicos (jsonb com array de objetos {tipo, descricao, dimensoes, severidade})
-  systemic_alerts     jsonb NOT NULL DEFAULT '[]',
   -- Texto do laudo macro gerado pela IA (revisado pelo responsável técnico)
   macro_report_text   text,
   macro_report_status text NOT NULL DEFAULT 'rascunho' CHECK (macro_report_status IN (
@@ -475,32 +472,7 @@ CREATE INDEX IF NOT EXISTS idx_nr01_audit_created    ON nr01_audit_log(created_a
 
 
 -- ============================================================
--- 16. nr01_pentagrama_bridge — cruzamento opcional
---   Mapeia uma avaliação NR-01 a um diagnostic do Pentagrama
---   e armazena correlações inter-modelo já calculadas.
--- ============================================================
-CREATE TABLE IF NOT EXISTS nr01_pentagrama_bridge (
-  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  assessment_id       uuid NOT NULL REFERENCES nr01_assessments(id) ON DELETE CASCADE,
-  diagnostic_id       uuid NOT NULL REFERENCES diagnostics(id) ON DELETE CASCADE,
-  -- Matriz de correlação dimensional (jsonb com { nr01_dim → { pentagrama_dim → r } })
-  correlation_matrix  jsonb NOT NULL DEFAULT '{}',
-  -- Convergências e divergências (jsonb com lista de findings)
-  convergences        jsonb NOT NULL DEFAULT '[]',
-  divergences         jsonb NOT NULL DEFAULT '[]',
-  -- Score combinado (média ponderada NR-01 ISO + Pentagrama IC global)
-  combined_score      numeric(5,2),
-  combined_level      text CHECK (combined_level IN ('critico','vulneravel','saudavel','excelente','sem_dados')),
-  computed_at         timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT uq_bridge UNIQUE (assessment_id, diagnostic_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_nr01_bridge_diag       ON nr01_pentagrama_bridge(diagnostic_id);
-CREATE INDEX IF NOT EXISTS idx_nr01_bridge_assessment ON nr01_pentagrama_bridge(assessment_id);
-
-
--- ============================================================
--- 17. nr01_micro_pulses — monitoramento contínuo
+-- 16. nr01_micro_pulses — monitoramento contínuo
 -- ============================================================
 CREATE TABLE IF NOT EXISTS nr01_micro_pulses (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

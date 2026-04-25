@@ -346,44 +346,7 @@ CREATE POLICY "nr01_audit_insert" ON nr01_audit_log
 
 
 -- ============================================================
--- 16. nr01_pentagrama_bridge
--- ============================================================
-ALTER TABLE nr01_pentagrama_bridge ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "nr01_bridge_select" ON nr01_pentagrama_bridge;
-DROP POLICY IF EXISTS "nr01_bridge_write"  ON nr01_pentagrama_bridge;
-
-CREATE POLICY "nr01_bridge_select" ON nr01_pentagrama_bridge
-  FOR SELECT USING (
-    nr01_owns_assessment(assessment_id)
-    OR EXISTS (
-      SELECT 1 FROM diagnostics d
-      WHERE d.id = nr01_pentagrama_bridge.diagnostic_id
-        AND (d.consultant_id = auth.uid() OR get_my_role() = 'admin')
-    )
-  );
-
-CREATE POLICY "nr01_bridge_write" ON nr01_pentagrama_bridge
-  FOR ALL USING (
-    nr01_owns_assessment(assessment_id)
-    AND EXISTS (
-      SELECT 1 FROM diagnostics d
-      WHERE d.id = nr01_pentagrama_bridge.diagnostic_id
-        AND (d.consultant_id = auth.uid() OR get_my_role() = 'admin')
-    )
-  )
-  WITH CHECK (
-    nr01_owns_assessment(assessment_id)
-    AND EXISTS (
-      SELECT 1 FROM diagnostics d
-      WHERE d.id = nr01_pentagrama_bridge.diagnostic_id
-        AND (d.consultant_id = auth.uid() OR get_my_role() = 'admin')
-    )
-  );
-
-
--- ============================================================
--- 17. nr01_micro_pulses
+-- 16. nr01_micro_pulses
 -- ============================================================
 ALTER TABLE nr01_micro_pulses ENABLE ROW LEVEL SECURITY;
 

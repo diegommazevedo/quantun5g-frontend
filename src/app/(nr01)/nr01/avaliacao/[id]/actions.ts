@@ -21,7 +21,6 @@ import {
   hashResponse,
   METHODOLOGY_TEXT_V1_1,
 } from '@/lib/nr01/evidence'
-import { buildBridge } from '@/lib/nr01/bridge-pentagrama'
 
 async function ensureOwnership(assessmentId: string) {
   const supabase = await createClient()
@@ -94,11 +93,11 @@ export async function processarResultados(formData: FormData) {
   // Carrega avaliação completa
   const { data: assessment } = await supabase
     .from('nr01_assessments')
-    .select('id, instrument_version, k_anonymity_min, linked_diagnostic_id')
+    .select('id, instrument_version, k_anonymity_min')
     .eq('id', id)
     .single()
   if (!assessment) redirect('/nr01/dashboard')
-  const a = assessment as { id: string; instrument_version: string; k_anonymity_min: number; linked_diagnostic_id: string | null }
+  const a = assessment as { id: string; instrument_version: string; k_anonymity_min: number }
 
   // Carrega questões + respostas + pesos por dimensão (Patch 006)
   const [{ data: questionsData }, { data: responsesData }, { data: dimsData }] = await Promise.all([
@@ -179,48 +178,10 @@ export async function processarResultados(formData: FormData) {
         total_invites: 0,
         total_responses: responseIds.length,
         adherence_pct: adherencePct,
-        systemic_alerts: result.systemic_alerts,
         ic_weight: 1.00,
       } as never,
       { onConflict: 'assessment_id' },
     )
-
-  // Cruzamento com Pentagrama, se houver vínculo
-  if (a.linked_diagnostic_id) {
-    const { data: pentResult } = await supabase
-      .from('diagnostic_results')
-      .select('*')
-      .eq('diagnostic_id', a.linked_diagnostic_id)
-      .maybeSingle()
-    if (pentResult) {
-      const bridge = buildBridge({
-        assessmentId: id,
-        diagnosticId: a.linked_diagnostic_id,
-        nr01Scores: result.dimensions.map((d) => ({
-          id: '',
-          assessment_id: id,
-          dimension_code: d.dimension_code,
-          score_pct: d.score_pct ?? 0,
-          risk_level: d.risk_level,
-          mean_likert: d.mean_likert,
-          median_likert: d.median_likert,
-          stddev_likert: d.stddev_likert,
-          n_respondents: d.n_respondents,
-          anchor_items: d.anchor_items,
-          ai_summary: null,
-          ai_model_used: null,
-          ai_generated_at: null,
-          calculated_at: new Date().toISOString(),
-        })),
-        isoScore: result.iso_score,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pentagramaResult: pentResult as any,
-      })
-      await supabase
-        .from('nr01_pentagrama_bridge')
-        .upsert(bridge as never, { onConflict: 'assessment_id,diagnostic_id' })
-    }
-  }
 
   // Conclui
   await supabase.from('nr01_assessments').update({ status: 'CONCLUIDO' } as never).eq('id', id)
@@ -234,7 +195,6 @@ export async function processarResultados(formData: FormData) {
       iso_score: result.iso_score,
       iso_risk_level: result.iso_risk_level,
       n_respondents: result.n_respondents,
-      n_alerts: result.systemic_alerts.length,
       // Patch 006/007: trilha auditável dos pesos + metodologia canônica v1.1
       weights_applied: dimensionWeights,
       methodology_version: 'v1.1',

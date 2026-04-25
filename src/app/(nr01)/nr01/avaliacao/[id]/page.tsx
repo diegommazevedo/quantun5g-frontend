@@ -261,34 +261,6 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
         </section>
       )}
 
-      {/* Alertas sistêmicos */}
-      {r?.systemic_alerts && r.systemic_alerts.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-700">
-            Alertas sistêmicos
-          </h2>
-          <ul className="space-y-2">
-            {r.systemic_alerts.map((al, i) => (
-              <li
-                key={i}
-                className={`rounded-lg border p-3 text-sm ${
-                  al.severidade === 'critico'
-                    ? 'border-red-200 bg-red-50 text-red-900'
-                    : al.severidade === 'atencao'
-                      ? 'border-yellow-200 bg-yellow-50 text-yellow-900'
-                      : 'border-zinc-200 bg-zinc-50 text-zinc-800'
-                }`}
-              >
-                <strong>{al.tipo}.</strong> {al.descricao}
-                <div className="mt-1 text-xs text-zinc-500">
-                  Dimensões: {al.dimensoes.join(', ')}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       {/* Link público para o cliente */}
       {a.status === 'CONCLUIDO' && (
         <section className="rounded-xl border border-zinc-200 bg-white p-5">
@@ -361,22 +333,6 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
         </section>
       )}
 
-      {/* Bridge Pentagrama */}
-      {a.linked_diagnostic_id && (
-        <section className="rounded-xl border border-zinc-200 bg-white p-4">
-          <h3 className="text-sm font-semibold text-zinc-900">Pentagrama vinculado</h3>
-          <p className="mt-1 text-sm text-zinc-600">
-            Esta avaliação está vinculada a um diagnóstico Pentagrama. Após processar
-            resultados, a análise comparativa fica disponível em{' '}
-            <Link
-              href={`/nr01/avaliacao/${a.id}/bridge`}
-              className="text-orange-600 underline hover:text-orange-800"
-            >
-              análise cruzada
-            </Link>.
-          </p>
-        </section>
-      )}
     </div>
   )
 }

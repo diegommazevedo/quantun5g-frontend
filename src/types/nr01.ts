@@ -77,19 +77,6 @@ export interface Nr01AnchorItem {
   ord: number
 }
 
-export interface Nr01SystemicAlert {
-  tipo:
-    | 'PRE_BURNOUT'
-    | 'INTENCAO_SAIDA'
-    | 'FRAGMENTACAO_CULTURAL'
-    | 'RISCO_ASSEDIO'
-    | 'GAP_LIDERANCA'
-    | 'BOLHA_SISTEMICA'
-  descricao: string
-  severidade: 'info' | 'atencao' | 'critico'
-  dimensoes: Nr01DimensionCode[]
-}
-
 export interface Nr01InterventionRolloutStep {
   ord?: number
   descricao: string
@@ -220,7 +207,6 @@ export interface Nr01AssessmentResult {
   total_invites: number
   total_responses: number
   adherence_pct: number | null
-  systemic_alerts: Nr01SystemicAlert[]
   macro_report_text: string | null
   macro_report_status: 'rascunho' | 'revisado' | 'assinado'
   pentagrama_correlation: Record<string, unknown> | null
@@ -357,27 +343,6 @@ export interface Nr01EconomicProjection {
   assumptions: Nr01EconomicAssumptions
   calculated_at: string
 }
-
-export type Nr01BridgeConfidence = 'nominal' | 'statistical'
-
-export interface Nr01PentagramaBridge {
-  id: string
-  assessment_id: string
-  diagnostic_id: string
-  correlation_matrix: Record<string, Record<string, number>>
-  convergences: Array<{ descricao: string; nr01_dim: Nr01DimensionCode; pentagrama_dim: string }>
-  divergences: Array<{ descricao: string; nr01_dim: Nr01DimensionCode; pentagrama_dim: string; gap: number }>
-  combined_score: number | null
-  combined_level: 'critico' | 'vulneravel' | 'saudavel' | 'excelente' | 'sem_dados' | null
-  /** nominal = aproximação por delta (n < 200). statistical = correlação Pearson/Spearman (não implementado no MVP). */
-  confidence_level: Nr01BridgeConfidence
-  /** Menor n_respondents entre as dimensões usadas — define o nível de confiança. */
-  min_n_respondents: number | null
-  computed_at: string
-}
-
-/** Threshold de N a partir do qual a bridge usa estatística real (futuro). */
-export const NR01_BRIDGE_STATISTICAL_THRESHOLD = 200
 
 // ============================================================
 // MICRO-PULSOS (patch 002)
