@@ -58,8 +58,14 @@ function mdParaHtml(md: string): string {
       if (t.startsWith('### ')) return `<h3>${escapeHtml(t.slice(4))}</h3>`
       if (t.startsWith('## '))  return `<h2 class="metodologia-h2">${escapeHtml(t.slice(3))}</h2>`
       if (t.startsWith('# '))   return `<h3>${escapeHtml(t.slice(2))}</h3>`
-      const html = escapeHtml(t)
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // Escape mínimo (preserva * e ` para o markdown inline abaixo)
+      const html = t
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\n/g, '<br/>')
       return `<p>${html}</p>`
     })
@@ -110,13 +116,15 @@ const CRITERIOS_FAIXAS: Array<{ faixa: string; classificacao: string }> = [
 ]
 
 const CONCLUSAO_POR_NIVEL: Record<Nr01RiskLevel, string> = {
-  muito_baixo: 'Conclui-se que o ambiente organizacional apresenta risco psicossocial muito baixo. Os indicadores avaliados sustentam um cenário favorável à saúde ocupacional, devendo ser mantidos os mecanismos atuais de prevenção e monitoramento contínuo conforme NR-01.',
-  baixo: 'Conclui-se que o ambiente organizacional apresenta risco psicossocial baixo. Recomenda-se a manutenção das práticas vigentes e monitoramento periódico, com atenção a sinais precoces de deterioração nas dimensões avaliadas.',
-  atencao: 'Conclui-se que o ambiente organizacional apresenta sinais de atenção quanto a fatores psicossociais. Recomenda-se intervenção dirigida às dimensões classificadas em atenção ou superior, com reavaliação periódica conforme NR-01.',
-  elevado: 'Conclui-se que o ambiente organizacional apresenta risco psicossocial elevado, demandando intervenção estruturada com foco na reorganização do trabalho, melhoria das relações e redução das exigências sobre os colaboradores.',
-  critico: 'Conclui-se que o ambiente organizacional apresenta risco psicossocial crítico, demandando intervenção imediata e estruturada, com reorganização do trabalho, mitigação das exposições identificadas e reavaliação em prazo curto, conforme NR-01.',
-  sem_dados: 'A presente avaliação não dispõe de dados suficientes para emitir conclusão quantitativa. Recomenda-se nova coleta com adesão compatível com o critério de k-anonymity definido para esta avaliação.',
+  muito_baixo: 'o ambiente organizacional apresenta risco psicossocial muito baixo, em condição favorável. Recomenda-se a manutenção das práticas atuais com monitoramento periódico dos indicadores psicossociais.',
+  baixo: 'o ambiente organizacional apresenta risco psicossocial baixo, com fragilidades pontuais que requerem atenção preventiva e ajustes finos na condução das dimensões afetadas.',
+  atencao: 'o ambiente organizacional apresenta risco psicossocial em nível de atenção, demandando medidas preventivas estruturadas nas dimensões identificadas, sob pena de progressão para níveis mais críticos caso não haja intervenção tempestiva.',
+  elevado: 'o ambiente organizacional apresenta risco psicossocial elevado, demandando intervenção estruturada com foco na reorganização do trabalho, melhoria das relações e redução das exigências sobre os colaboradores.',
+  critico: 'o ambiente organizacional apresenta risco psicossocial crítico, demandando intervenção imediata com reavaliação urgente das condições de trabalho e implementação de medidas corretivas prioritárias.',
+  sem_dados: 'não foi possível concluir sobre o nível global de risco psicossocial devido a dados insuficientes. Recomenda-se nova avaliação com maior adesão.',
 }
+
+const CONCLUSAO_FECHAMENTO = 'As evidências coletadas subsidiam as recomendações técnicas apresentadas nesta avaliação, com plano de acompanhamento e monitoramento contínuo previstos conforme diretrizes da NR-01/GRO.'
 
 // ============================================================
 // CSS PRINT A4 — DOCUMENTO TÉCNICO
@@ -250,6 +258,16 @@ table.compact th, table.compact td { padding: 3pt 5pt; font-size: 9pt; }
   font-family: 'Courier New', monospace; font-size: 7.5pt;
   word-break: break-all; color: #333;
   background: #f8f8f8; padding: 2pt 4pt; border: 1px solid #ddd;
+}
+
+/* Markdown inline (renderizado em mdParaHtml) */
+strong { font-weight: 600; }
+code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.92em;
+  background: #f3f3f3;
+  padding: 1pt 4pt;
+  border-radius: 2pt;
 }
 
 .evite-quebra { page-break-inside: avoid; }
@@ -539,15 +557,48 @@ function renderSecao8_AnaliseGlobal(d: LaudoData): string {
   const dimMap = new Map<Nr01DimensionCode, string>(
     d.dimensions.map((dim) => [dim.code, dim.name]),
   )
-  const criticas = [...d.dimensionScores]
+
+  const dimComScore = d.dimensionScores.filter(
+    (s) => meanScore(s) != null && s.risk_level !== 'sem_dados',
+  )
+
+  const topElevadoOuCritico = dimComScore
     .filter((s) => s.risk_level === 'elevado' || s.risk_level === 'critico')
     .sort((a, b) => RISK_RANK[b.risk_level] - RISK_RANK[a.risk_level] || (meanScore(b) ?? 0) - (meanScore(a) ?? 0))
+    .slice(0, 3)
+
+  const topAtencao = dimComScore
+    .filter((s) => s.risk_level === 'atencao')
+    .sort((a, b) => (meanScore(b) ?? 0) - (meanScore(a) ?? 0))
+    .slice(0, 3)
 
   const macro = d.laudoMacrosByLevel.get(r.iso_risk_level)
 
-  const listaCriticas = criticas.length > 0
-    ? `<ul class="bullets">${criticas.map((c) => `<li>${escapeHtml(dimMap.get(c.dimension_code) ?? c.dimension_code)} (${fmtMean(meanScore(c))} · ${escapeHtml(RISK_LEVEL_LABEL[c.risk_level])})</li>`).join('')}</ul>`
-    : '<p>Nenhuma dimensão foi classificada em nível elevado ou crítico.</p>'
+  let blocoCriticas: string
+  if (topElevadoOuCritico.length > 0) {
+    // Cenário 1: há dimensões em elevado/crítico
+    blocoCriticas = `
+  <p><strong>Dimensões com maior risco identificado:</strong></p>
+  <ul class="bullets">
+    ${topElevadoOuCritico.map((s) =>
+      `<li>${escapeHtml(dimMap.get(s.dimension_code) ?? s.dimension_code)} (${fmtMean(meanScore(s))} · ${escapeHtml(RISK_LEVEL_LABEL[s.risk_level])})</li>`,
+    ).join('')}
+  </ul>`
+  } else if (topAtencao.length > 0) {
+    // Cenário 2: nenhuma em elevado/crítico, mas há em atenção
+    blocoCriticas = `
+  <p><strong>Dimensões com maior nível de atenção identificado:</strong></p>
+  <ul class="bullets">
+    ${topAtencao.map((s) =>
+      `<li>${escapeHtml(dimMap.get(s.dimension_code) ?? s.dimension_code)} (${fmtMean(meanScore(s))} · ${escapeHtml(RISK_LEVEL_LABEL[s.risk_level])})</li>`,
+    ).join('')}
+  </ul>
+  <p class="muted">Nenhuma dimensão atingiu níveis elevado ou crítico nesta avaliação. As dimensões acima representam os pontos de maior atenção identificados, recomendando-se medidas preventivas estruturadas conforme detalhado nas seções subsequentes.</p>`
+  } else {
+    // Cenário 3: tudo em risco baixo ou muito baixo
+    blocoCriticas = `
+  <p>Nenhuma dimensão apresentou risco em níveis de atenção, elevado ou crítico na presente avaliação. Recomenda-se manutenção das práticas atuais com monitoramento periódico dos indicadores psicossociais.</p>`
+  }
 
   return `
 <section class="principal">
@@ -559,7 +610,7 @@ function renderSecao8_AnaliseGlobal(d: LaudoData): string {
   </table>
 
   <h3>Dimensões mais críticas identificadas</h3>
-  ${listaCriticas}
+  ${blocoCriticas}
 
   ${macro ? `
   <div class="laudo-macro-canonico evite-quebra">
@@ -682,11 +733,11 @@ function renderSecao10_Recomendacoes(d: LaudoData): string {
 
 function renderSecao11_Conclusao(d: LaudoData): string {
   const nivel: Nr01RiskLevel = d.result?.iso_risk_level ?? 'sem_dados'
-  const texto = CONCLUSAO_POR_NIVEL[nivel]
+  const corpo = CONCLUSAO_POR_NIVEL[nivel]
   return `
 <section class="principal">
   <h2>11. Conclusão</h2>
-  <p>${escapeHtml(texto)}</p>
+  <p>Conclui-se que ${escapeHtml(corpo)} ${escapeHtml(CONCLUSAO_FECHAMENTO)}</p>
 </section>
 `
 }
