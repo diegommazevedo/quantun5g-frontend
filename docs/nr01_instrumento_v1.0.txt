@@ -260,7 +260,7 @@ Questões (8):
 DIMENSÃO 7/10 — VIOLÊNCIA E ASSÉDIO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Código:        assedio_violencia
-Peso no ISO:   1.30
+Peso no ISO:   1.00 (uniforme; P013 — criticidade nos laudos, não na fórmula)
 Norma:         Lei 14.457/2022 + NR-01 1.5.3.2 — risco crítico
 
 Descrição:

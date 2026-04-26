@@ -14,7 +14,9 @@
  *   1-5 ⊂ [0, 100].
  * - risk_level via thresholds em src/types/nr01.ts (NR01_RISK_THRESHOLDS_LIKERT).
  * - k-anonymity ≥ assessment.k_anonymity_min — abaixo disso retorna sem_dados.
- * - ISO global = média ponderada das médias Likert das dimensões com dados.
+ * - ISO global = média das médias Likert das dimensões com dados (P013: peso
+ *   uniforme 1,00 por dimensão; criticidade por assédio/violência nos laudos,
+ *   não na fórmula).
  */
 
 import {
@@ -26,6 +28,9 @@ import {
   Nr01RiskLevel,
   NR01_DIMENSION_CODES,
 } from '@/types/nr01'
+
+/** P013: peso canônico por dimensão no ISO (uniforme; fonte no DB `nr01_dimensions.weight`). */
+export const NR01_ISO_WEIGHT_PER_DIMENSION = 1.0 as const
 
 // ============================================================
 // TIPOS DE ENTRADA
@@ -168,7 +173,7 @@ export function computeIso(
   let weightedSum = 0
   let weightTotal = 0
   for (const d of valid) {
-    const w = weights[d.dimension_code] ?? 1.0
+    const w = weights[d.dimension_code] ?? NR01_ISO_WEIGHT_PER_DIMENSION
     weightedSum += (d.score_pct ?? 0) * w
     weightTotal += w
   }

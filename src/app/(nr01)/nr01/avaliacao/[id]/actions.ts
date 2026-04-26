@@ -99,7 +99,7 @@ export async function processarResultados(formData: FormData) {
   if (!assessment) redirect('/nr01/dashboard')
   const a = assessment as { id: string; instrument_version: string; k_anonymity_min: number }
 
-  // Carrega questões + respostas + pesos por dimensão (Patch 006)
+  // Carrega questões + respostas + pesos por dimensão (P013: uniformes 1.00 no DB)
   const [{ data: questionsData }, { data: responsesData }, { data: dimsData }] = await Promise.all([
     supabase
       .from('nr01_questions')
@@ -112,7 +112,7 @@ export async function processarResultados(formData: FormData) {
   const questions = (questionsData ?? []) as Nr01Question[]
   const responseIds = (responsesData ?? []).map((r) => (r as { id: string }).id)
 
-  // Patch 006: carregar pesos calibrados por dimensão (assédio = 1.30, demais = 1.00)
+  // P013: pesos por dimensão vêm do catálogo; metodologia canônica = 1.00 para todas
   const dims = (dimsData ?? []) as Array<{ code: string; weight: number }>
   if (dims.length === 0) {
     redirect(`/nr01/avaliacao/${id}?error=${encodeURIComponent('Falha ao carregar pesos das dimensões NR-01')}`)
@@ -133,7 +133,7 @@ export async function processarResultados(formData: FormData) {
   // Atualiza status para PROCESSANDO
   await supabase.from('nr01_assessments').update({ status: 'PROCESSANDO' } as never).eq('id', id)
 
-  // Roda o motor (Patch 006: agora com pesos efetivos)
+  // Roda o motor (ISO = média com pesos do DB; pós-P013 todos 1.00)
   const result = computeScoring({
     questions,
     answers,
@@ -195,7 +195,7 @@ export async function processarResultados(formData: FormData) {
       iso_score: result.iso_score,
       iso_risk_level: result.iso_risk_level,
       n_respondents: result.n_respondents,
-      // Patch 006/007: trilha auditável dos pesos + metodologia canônica v1.1
+      // P006/P007/P013: trilha auditável dos pesos + metodologia canônica v1.1
       weights_applied: dimensionWeights,
       methodology_version: 'v1.1',
       instrument_version: a.instrument_version,

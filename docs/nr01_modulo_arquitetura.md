@@ -96,7 +96,7 @@ A esta implementação, eu como fiscal abriria, em ordem:
 
 5. **Anonimato/LGPD** — quero ver que a empresa não acessa respostas individuais. RLS testado: `nr01_responses` só é visível para o consultor dono. `anon_id` sem FK. View `nr01_dim_scores_safe` filtra k-anonymity ≥ 5. Audit log com `ip_hash` (não IP cru). **Aprovado.**
 
-6. **Lei 14.457/2022 (assédio)** — quero ver protocolo formalizado. Dimensão `assedio_violencia` tem peso 1.30 (maior do conjunto), gera alerta `RISCO_ASSEDIO` quando elevado/crítico. Biblioteca de intervenções tem 3 itens específicos (canal externo, treinamento certificado, apuração formal). **Aprovado** se a empresa adotar.
+6. **Lei 14.457/2022 (assédio)** — quero ver protocolo formalizado. Dimensão `assedio_violencia` entra no ISO com o mesmo peso que as demais (1,00; P013); a diferenciação de criticidade está nos laudos canônicos. Gera alerta `RISCO_ASSEDIO` quando elevado/crítico. Biblioteca de intervenções tem 3 itens específicos (canal externo, treinamento certificado, apuração formal). **Aprovado** se a empresa adotar.
 
 **Veredito:** o módulo, **conforme implementado**, sustenta uma auditoria fiscal padrão NR-01/GRO **se** o cliente:
 - Rodar pelo menos uma avaliação completa antes de 26/05/2026;

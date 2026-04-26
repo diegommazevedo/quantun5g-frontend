@@ -70,11 +70,10 @@ banco e à chave secreta.
 ### Análise
 O score por dimensão é a média aritmética das respostas Likert (escala 1-5).
 O Índice de Saúde Organizacional (ISO) é a média aritmética das médias das
-10 dimensões, com peso diferenciado para a dimensão Violência e Assédio
-(fator 1,30) em função da Lei nº 14.457/2022. As demais dimensões têm peso
-uniforme (1,00). A justificativa do peso diferenciado para Violência e Assédio
-está fundamentada na responsabilização específica imposta pela legislação
-sobre prevenção e enfrentamento ao assédio no trabalho.
+10 dimensões, com peso uniforme (1,00) para todas as dimensões (P013, alinhado
+ao RT e ao NR01_GRO). A criticidade relativa a violência e assédio — inclusive
+no âmbito da Lei nº 14.457/2022 — é refletida nos textos canônicos do laudo,
+não por meio de ponderação extra na fórmula do ISO.
 
 ### Validade técnica
 Esta avaliação é assinada pelo responsável técnico abaixo e mantém pacote de

@@ -1,8 +1,9 @@
 /**
- * Patch 006 — testes de aceitação (6 verificações).
- * 1. Pesos no banco: assedio = 1.30, demais = 1.00.
+ * NR-01 pesos / ISO — testes de aceitação (6 verificações).
+ * P013: pesos uniformes 1.00 (todas as dimensões).
+ * 1. Pesos no banco: todas as dimensões = 1.00.
  * 2. computeScoring sendo chamado com pesos (verificação textual em actions.ts).
- * 3. ISO ponderado vs simples — diferença numérica em fixture sintético.
+ * 3. Com pesos uniformes, ISO ponderado === média simples (fixture sintético).
  * 4. BioBloco realmente excluída em todas as tabelas.
  * 5. Audit log preservado: snapshot do ASSESSMENT_DELETED registra contagem.
  * 6. Audit RESULTS_PROCESSED enriquecido (verificação textual).
@@ -46,11 +47,9 @@ const BIOBLOCO_ID = '2bb338a5-4f57-4995-abe2-a03302fcc625'
   const r = await client.query(`
     SELECT code, weight FROM nr01_dimensions ORDER BY code
   `)
-  const assedio = r.rows.find((x) => x.code === 'assedio_violencia')
-  const others = r.rows.filter((x) => x.code !== 'assedio_violencia')
-  const allOthers1 = others.every((x) => Number(x.weight) === 1.0)
-  if (assedio && Number(assedio.weight) === 1.30 && allOthers1) {
-    pass(1, 'Pesos no banco: assedio=1.30, demais=1.00')
+  const allUniform = r.rows.length === 10 && r.rows.every((x) => Number(x.weight) === 1.0)
+  if (allUniform) {
+    pass(1, 'Pesos no banco: todas as 10 dimensões = 1.00 (P013)')
   } else {
     fail(1, 'Pesos', JSON.stringify(r.rows))
   }
@@ -71,25 +70,19 @@ const BIOBLOCO_ID = '2bb338a5-4f57-4995-abe2-a03302fcc625'
 }
 
 // ============================================================
-// TEST 3 — ISO ponderado != simples (simulação numérica)
+// TEST 3 — P013: pesos uniformes → ISO ponderado === média simples
 // ============================================================
 {
-  // Cenário: 10 dimensões, scores fictícios (mean Likert 1-5)
-  // assedio = 4.5 (alto), demais = 2.0
-  // Simples: (4.5 + 2.0*9)/10 = 22.5/10 = 2.25
-  // Ponderado: (4.5*1.30 + 2.0*9*1.00) / (1.30 + 9*1.00) = (5.85 + 18) / 10.30 = 23.85/10.30 = 2.315
-  // Diferença: 0.065 (não é zero, comprova que peso 1.30 puxa o ISO pra cima quando assédio é o pior)
   const scoresAssedio = 4.5
   const scoresOthers = 2.0
-  const wAssedio = 1.30
-  const wOther = 1.00
+  const w = 1.0
   const isoSimple = (scoresAssedio + scoresOthers * 9) / 10
-  const isoWeighted = (scoresAssedio * wAssedio + scoresOthers * 9 * wOther) / (wAssedio + 9 * wOther)
+  const isoWeighted = (scoresAssedio * w + scoresOthers * 9 * w) / (10 * w)
   const diff = Math.abs(isoWeighted - isoSimple)
-  if (diff > 0.01) {
-    pass(3, `ISO ponderado != simples (simples=${isoSimple.toFixed(3)} vs ponderado=${isoWeighted.toFixed(3)}, diff=${diff.toFixed(4)})`)
+  if (diff < 1e-9) {
+    pass(3, `ISO com pesos 1.00 coincide com média simples (${isoSimple.toFixed(3)})`)
   } else {
-    fail(3, 'ISO diff', `diferenca insuficiente: ${diff}`)
+    fail(3, 'ISO uniforme', `esperado diff≈0, obtido ${diff}`)
   }
 }
 
@@ -151,7 +144,7 @@ const BIOBLOCO_ID = '2bb338a5-4f57-4995-abe2-a03302fcc625'
   )
   // Espera-se que o INSERT no audit log inclua weights_applied e methodology_version
   const hasWeights = /weights_applied:\s*dimensionWeights/.test(f)
-  const hasMethVer = /methodology_version:\s*['"]v1\.0-patch006['"]/.test(f)
+  const hasMethVer = /methodology_version:\s*['"]v1\.1['"]/.test(f)
   if (hasWeights && hasMethVer) {
     pass(6, 'Audit RESULTS_PROCESSED enriquecido (weights_applied + methodology_version)')
   } else {
@@ -164,7 +157,7 @@ await client.end()
 // ============================================================
 // REPORT
 // ============================================================
-console.log('\n=== Patch 006 — testes de aceitacao ===\n')
+console.log('\n=== NR-01 pesos/ISO (P013 + integracao) — testes de aceitacao ===\n')
 for (const r of results) {
   const icon = r.status === 'PASS' ? '✓' : '✗'
   console.log(`  ${icon} Test ${r.n} [${r.status}] ${r.label}`)
