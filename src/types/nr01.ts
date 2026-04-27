@@ -473,7 +473,7 @@ export const NR01_RISK_THRESHOLDS_LIKERT = {
 
 /**
  * Recebe média Likert (1.0 a 5.0) e devolve nível de risco conforme
- * fronteiras canônicas do NR01_GRO.docx. Maior média = maior risco.
+ * fronteiras oficiais do NR01_GRO.docx. Maior média = maior risco.
  */
 export function classifyRisk(meanLikert: number | null | undefined, n: number): Nr01RiskLevel {
   if (n <= 0 || meanLikert == null || Number.isNaN(meanLikert)) return 'sem_dados'

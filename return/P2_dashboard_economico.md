@@ -4,7 +4,7 @@ Rota /nr01/avaliacao/[id]/economico no ar. Build webpack passou (Turbopack bloqu
 
 O que entregou:
 
-- Bloco 1 (inputs editáveis): N° colab, folha mensal/colab, afastamentos CID-F/ano, dias médios, turnover %, RAT %, FAP, custo do programa. Defaults canônicos pré-preenchidos do Diego (DIEESE/ISMA-BR/INSS) carregados de DEFAULT_CLIENT_INPUTS em economic.ts. Recalcular dispara Server Action que salva inputs + roda computeFullProjection + persiste projeção + audita.
+- Bloco 1 (inputs editáveis): N° colab, folha mensal/colab, afastamentos CID-F/ano, dias médios, turnover %, RAT %, FAP, custo do programa. Defaults oficiais pré-preenchidos do Diego (DIEESE/ISMA-BR/INSS) carregados de DEFAULT_CLIENT_INPUTS em economic.ts. Recalcular dispara Server Action que salva inputs + roda computeFullProjection + persiste projeção + audita.
 
 - Bloco 2 (exposição atual, número grande em serif vermelho): total + breakdown por vetor. V1 multas, V2 afastamentos, V3 turnover, V4 produtividade marcados como `production`. V5 FAP, V6 contencioso, V7 reputação marcados como `roadmap` e renderizam "em roadmap" em vez de número falso (constante VECTOR_CONFIDENCE em economic.ts).
 
@@ -16,7 +16,7 @@ O que entregou:
 
 - Em roadmap explicitado no rodapé: cálculo INSS oficial do FAP, provisões reais de contencioso, proxy reputacional Glassdoor, benchmark setorial.
 
-Defaults canônicos aplicados em economic.ts:
+Defaults oficiais aplicados em economic.ts:
 - absence_cost_per_day_brl: 302 (4500 × 1,68 encargos × 1,20 retrabalho ÷ 30)
 - productivity_gain_pct: 25 (alinhado com "redução 25%")
 - expected_absence_reduction_pct e expected_turnover_reduction_pct: 25%

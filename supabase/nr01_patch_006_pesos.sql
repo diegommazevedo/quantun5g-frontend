@@ -1,10 +1,10 @@
 -- ============================================================
 -- QUANTUM5G — Módulo NR-01 | Patch 006 (pesos do ISO)
 -- Versão: 0.6.0 | Data: 2026-04-19
--- Aplicar APÓS nr01_patch_005 (alinhamento canônico).
+-- Aplicar APÓS nr01_patch_005 (alinhamento oficial).
 --
 -- Alinhamento com decisão do responsável técnico (Jovane Borlini):
--- - NR01_GRO.docx canônico NÃO menciona pesos por dimensão
+-- - NR01_GRO.docx oficial NÃO menciona pesos por dimensão
 -- - Única exceção mantida: peso 1.30 para Violência e Assédio,
 --   por força da Lei 14.457/2022 (risco crítico explícito)
 -- - Demais 9 dimensões: peso uniforme 1.00 (média aritmética simples)

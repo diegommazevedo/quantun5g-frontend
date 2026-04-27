@@ -34,7 +34,7 @@ GROUP BY pd.assessment_id, pd.week_number, pd.dispatched_at, q.dimension_code
 HAVING COUNT(DISTINCT pr.anon_id) >= 3;
 
 COMMENT ON VIEW nr01_pulse_weekly_scores IS
-  'Score 1-5 (mean Likert) por semana × dimensão. k-anonymist ≥ 3. Patch 007b: realinhado escala canônica.';
+  'Score 1-5 (mean Likert) por semana × dimensão. k-anonymist ≥ 3. Patch 007b: realinhado escala oficial.';
 
 -- Verificação
 SELECT

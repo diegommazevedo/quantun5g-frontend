@@ -17,7 +17,7 @@
 -- ============================================================
 -- AJUSTE 1 — Rate-limit no endpoint público
 --
--- Tabela canônica de throttle por (assessment_id, ip_hash).
+-- Tabela de referência de throttle por (assessment_id, ip_hash).
 -- INSERT/SELECT públicos via anon (com filtro RLS por escopo).
 -- Atualizada via UPSERT pelo route handler de submissão.
 -- ============================================================

@@ -40,7 +40,7 @@ function fail(n, label, detail) { results.push({ n, label, status: 'FAIL', detai
 // ============================================================
 {
   try {
-    const sqlExists = await readFile(resolve(root, 'supabase/nr01_patch_007_questoes_canonicas.sql'), 'utf-8')
+    const sqlExists = await readFile(resolve(root, 'supabase/nr01_patch_007_questoes_v1.1.sql'), 'utf-8')
     const hashExists = await readFile(resolve(root, 'docs/audit/instrument_v1.1_hash.txt'), 'utf-8')
     if (sqlExists.length > 1000 && /^[a-f0-9]{64}\s*$/i.test(hashExists.trim())) {
       pass(1, 'Script extração: SQL + hash gerados')
@@ -179,7 +179,7 @@ function fail(n, label, detail) { results.push({ n, label, status: 'FAIL', detai
   // Carrega o doc + extrai questões com mesmo método do extrator
   const docContent = await readFile(resolve(root, 'docs/audit/NR01_GRO.md'), 'utf-8')
 
-  // Reusa lógica simplificada de extração (espelho do _extract_canonical_v1.1.mjs)
+  // Reusa lógica simplificada de extração (espelho do _extract_oficial_v1.1.mjs)
   const BLOCO_TO_DIMENSION = {
     2: 'carga_trabalho', 3: 'controle_autonomia', 4: 'exigencias_emocionais',
     5: 'reconhecimento', 6: 'relacoes_interpessoais', 7: 'estabilidade_seguranca',

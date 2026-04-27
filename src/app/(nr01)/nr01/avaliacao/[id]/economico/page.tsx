@@ -94,7 +94,7 @@ export default async function DashboardEconomicoPage({ params, searchParams }: P
   const savedInputs = inputsData as Nr01EconomicInputs | null
   const savedProj = projData as Nr01EconomicProjection | null
 
-  // Defaults para o form (canônicos do Diego, ver economic.ts)
+  // Defaults para o form (oficiais, ver economic.ts)
   const totalCol = a.companies?.total_collaborators ?? 0
   const inputDefaults = {
     total_workers:           savedInputs?.total_workers           ?? totalCol,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Patch 007 — Extrai as 80 questões canônicas de docs/audit/NR01_GRO.md
+ * Patch 007 — Extrai as 80 questões oficiais de docs/audit/NR01_GRO.md
  * e gera SQL de seed para instrument_version = 'v1.1'.
  *
  * Formato do markdown:
@@ -15,12 +15,12 @@
  * outro marcador. Aborta se total ≠ 80 ou se qualquer dimensão ≠ 8.
  *
  * Saídas:
- *   - supabase/nr01_patch_007_questoes_canonicas.sql
+ *   - supabase/nr01_patch_007_questoes_v1.1.sql
  *   - docs/audit/instrument_v1.1_hash.txt
  *
  * Todas as 80 questões do doc são em sentido negativo (maior = pior).
  * Logo reverse_scored = false em todas (sem inversão no motor, alinhado
- * com orientação canônica).
+ * com orientação oficial).
  */
 
 import fs from 'node:fs'
@@ -33,7 +33,7 @@ const __dirname  = dirname(__filename)
 const root       = resolve(__dirname, '..')
 
 const DOC_PATH    = resolve(root, 'docs/audit/NR01_GRO.md')
-const OUT_SQL     = resolve(root, 'supabase/nr01_patch_007_questoes_canonicas.sql')
+const OUT_SQL     = resolve(root, 'supabase/nr01_patch_007_questoes_v1.1.sql')
 const OUT_HASH    = resolve(root, 'docs/audit/instrument_v1.1_hash.txt')
 
 // Bloco do doc → dimension_code do banco
@@ -135,9 +135,9 @@ function buildSQL(questions, hash) {
     .join(',\n')
 
   return `-- ============================================================
--- QUANTUM5G — Patch 007: Questões canônicas v1.1
+-- QUANTUM5G — Patch 007: Questões oficiais v1.1
 -- Versão: 0.7.0 | Data: ${new Date().toISOString().split('T')[0]}
--- Gerado por: scripts/_extract_canonical_v1.1.mjs
+-- Gerado por: scripts/_extract_oficial_v1.1.mjs
 --
 -- Fonte literal: docs/audit/NR01_GRO.md (= NR01_GRO.docx)
 -- Total: ${questions.length} questões (10 dimensões × 8 questões).
@@ -157,7 +157,7 @@ UPDATE nr01_questions
    SET is_active = false
  WHERE instrument_version = 'v1.0';
 
--- 2. Inserir 80 questões canônicas v1.1
+-- 2. Inserir 80 questões oficiais v1.1
 INSERT INTO nr01_questions
   (dimension_code, ord, text, reverse_scored, instrument_version, is_active)
 VALUES

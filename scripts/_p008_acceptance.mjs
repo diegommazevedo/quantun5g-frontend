@@ -117,7 +117,7 @@ function fail(n, label, detail) { results.push({ n, label, status: 'FAIL', detai
 }
 
 // ============================================================
-// TEST 5 — Função hashLaudosCanonicos (compute via mesmo método em código)
+// TEST 5 — Função hashLaudosOficiais (compute via mesmo método em código)
 // ============================================================
 {
   // Recomputa em JavaScript usando service-role; deve dar o mesmo hash do test 4
@@ -140,9 +140,9 @@ function fail(n, label, detail) { results.push({ n, label, status: 'FAIL', detai
   const computed = crypto.createHash('sha256').update(microPayload + '\n---\n' + macroPayload, 'utf-8').digest('hex')
 
   if (computed === refHash) {
-    pass(5, 'hashLaudosCanonicos (simulação JS) reproduz hash de referência')
+    pass(5, 'hashLaudosOficiais (simulação JS) reproduz hash de referência')
   } else {
-    fail(5, 'hashLaudosCanonicos', `${computed.slice(0, 16)} != ${refHash.slice(0, 16)}`)
+    fail(5, 'hashLaudosOficiais', `${computed.slice(0, 16)} != ${refHash.slice(0, 16)}`)
   }
 }
 
@@ -153,9 +153,9 @@ function fail(n, label, detail) { results.push({ n, label, status: 'FAIL', detai
   const tpl = await readFile(resolve(root, 'src/lib/nr01/pdf-template.ts'), 'utf-8')
   const usesLaudoTextos = /d\.laudoTextos\.get\(`\$\{s\.dimension_code\}::\$\{s\.risk_level\}`\)/.test(tpl)
   const usesLaudoMacros = /d\.laudoMacrosByLevel\.get\(r\.iso_risk_level\)/.test(tpl)
-  const hasCss = /\.laudo-canonico\b|\.laudo-macro-canonico\b/.test(tpl)
+  const hasCss = /\.laudo-oficial\b|\.laudo-macro-oficial\b/.test(tpl)
   if (usesLaudoTextos && usesLaudoMacros && hasCss) {
-    pass(6, 'pdf-template: usa laudoTextos.get + laudoMacrosByLevel.get + CSS canônico')
+    pass(6, 'pdf-template: usa laudoTextos.get + laudoMacrosByLevel.get + CSS laudo-oficial')
   } else {
     fail(6, 'pdf-template', `txt=${usesLaudoTextos} macro=${usesLaudoMacros} css=${hasCss}`)
   }
@@ -227,11 +227,11 @@ function fail(n, label, detail) { results.push({ n, label, status: 'FAIL', detai
 // ============================================================
 {
   const f = await readFile(resolve(root, 'src/app/(nr01)/nr01/avaliacao/[id]/actions.ts'), 'utf-8')
-  const callsHash = /hashLaudosCanonicos\(supabase,\s*ass\.instrument_version\)/.test(f)
+  const callsHash = /hashLaudosOficiais\(supabase,\s*ass\.instrument_version\)/.test(f)
   const setsCol = /laudos_pack_sha256:\s*laudosSha/.test(f)
   const auditPayload = /laudos_pack_sha256:\s*laudosSha/.test(f) // mesma string, em payload do audit
   if (callsHash && setsCol && auditPayload) {
-    pass(8, 'gerarPacote: chama hashLaudosCanonicos + popula coluna + payload audit')
+    pass(8, 'gerarPacote: chama hashLaudosOficiais + popula coluna + payload audit')
   } else {
     fail(8, 'gerarPacote integration',
       `chama=${callsHash} coluna=${setsCol} audit=${auditPayload}`)

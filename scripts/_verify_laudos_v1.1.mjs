@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Patch 008 — Verificação pós-aplicação dos laudos canônicos.
+ * Patch 008 — Verificação pós-aplicação dos laudos oficiais.
  * Lê 50 micros + 5 macros do banco, recalcula hash com mesma fórmula
  * do extrator, compara com docs/audit/laudos_v1.1_hash.txt.
  */

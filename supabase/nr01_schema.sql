@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS nr01_evidence_pack (
   total_invites_sent       int NOT NULL,
   total_responses_complete int NOT NULL,
   adherence_pct            numeric(5,2) NOT NULL,
-  -- Metodologia declarada (texto canônico — anexado ao PGR)
+  -- Metodologia declarada (texto oficial — anexado ao PGR)
   methodology_text         text NOT NULL,
   methodology_version      text NOT NULL DEFAULT 'v1.0',
   -- Assinaturas

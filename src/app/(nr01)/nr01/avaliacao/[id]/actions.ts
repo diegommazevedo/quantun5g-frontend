@@ -16,7 +16,7 @@ import {
 import { computeScoring } from '@/lib/nr01/scoring'
 import {
   hashInstrument,
-  hashLaudosCanonicos,
+  hashLaudosOficiais,
   hashPack,
   hashResponse,
   METHODOLOGY_TEXT_V1_1,
@@ -112,7 +112,7 @@ export async function processarResultados(formData: FormData) {
   const questions = (questionsData ?? []) as Nr01Question[]
   const responseIds = (responsesData ?? []).map((r) => (r as { id: string }).id)
 
-  // P013: pesos por dimensão vêm do catálogo; metodologia canônica = 1.00 para todas
+  // P013: pesos por dimensão vêm do catálogo; metodologia oficial = 1.00 para todas
   const dims = (dimsData ?? []) as Array<{ code: string; weight: number }>
   if (dims.length === 0) {
     redirect(`/nr01/avaliacao/${id}?error=${encodeURIComponent('Falha ao carregar pesos das dimensões NR-01')}`)
@@ -195,7 +195,7 @@ export async function processarResultados(formData: FormData) {
       iso_score: result.iso_score,
       iso_risk_level: result.iso_risk_level,
       n_respondents: result.n_respondents,
-      // P006/P007/P013: trilha auditável dos pesos + metodologia canônica v1.1
+      // P006/P007/P013: trilha auditável dos pesos + metodologia oficial v1.1
       weights_applied: dimensionWeights,
       methodology_version: 'v1.1',
       instrument_version: a.instrument_version,
@@ -258,8 +258,8 @@ export async function gerarPacoteEvidencias(formData: FormData) {
   }
 
   const instrumentSha = hashInstrument(questions, ass.instrument_version)
-  // Patch 008: hash dos laudos canônicos vigentes na avaliação
-  const laudosSha = await hashLaudosCanonicos(supabase, ass.instrument_version)
+  // Patch 008: hash dos laudos oficiais vigentes na avaliação
+  const laudosSha = await hashLaudosOficiais(supabase, ass.instrument_version)
   const responseHashes = responses.map((r) => hashResponse(r, answers))
   const adherencePct = ass.expected_respondents > 0
     ? (responses.length / ass.expected_respondents) * 100
@@ -296,7 +296,7 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     technical_lead_name: leadName,
     technical_lead_crp: ass.technical_lead_crp,
     pack_sha256: packSha,
-    // Patch 008: hash dos laudos canônicos vigentes
+    // Patch 008: hash dos laudos oficiais vigentes
     laudos_pack_sha256: laudosSha,
   } as never)
 

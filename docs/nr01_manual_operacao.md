@@ -12,7 +12,7 @@
 2. [Interpretação dos resultados e construção do plano](#2-interpretação-dos-resultados-e-construção-do-plano)
 3. [Configuração de micro-pulsos sem quebrar](#3-configuração-de-micro-pulsos-sem-quebrar)
 4. [Protocolo de fiscalização: o que entregar e em que ordem](#4-protocolo-de-fiscalização)
-5. [Manutenção evolutiva do sistema](#5-manutenção-evolutiva-do-sistema)
+5. [Manutenção evolutiva do sistema](#5-manutenção-evolutiva-do-sistema) (incl. [5.5 grep e migrations P7](#55-grep-e-migrations-de-léxico-p7))
 6. [Operações privilegiadas (LGPD, revogações, regenerações)](#6-operações-privilegiadas)
 7. [Ambientes e deploy](#7-ambientes-e-deploy)
 8. [Riscos conhecidos e mitigações](#8-riscos-conhecidos-e-mitigações)
@@ -176,7 +176,7 @@ Cinco frases ensaiadas valem mais que 200 páginas de documentação quando o fi
 
 Adendos curtos para situações específicas:
 - Se o fiscal apontar que faltou alguma coisa: *"Posso gerar essa evidência agora ou trazer no formato que o(a) senhor(a) preferir — PDF assinado, planilha de respostas agregadas, ou print das telas do sistema."*
-- Se questionar metodologia: *"A metodologia está documentada de forma canônica e hasheada junto com o instrumento aplicado, anexada ao laudo na seção 2 do PDF."*
+- Se questionar metodologia: *"A metodologia está documentada de forma oficial e hasheada junto com o instrumento aplicado, anexada ao laudo na seção 2 do PDF."*
 - Se questionar anonimato dos respondentes: *"Coleta anônima por construção. Nenhuma resposta individual é acessível pelo empregador, e agregações respeitam k-anonymity mínimo de 5 respondentes por corte. Tem fundamento técnico no instrumento."*
 
 **Princípio:** confiança calma. Nunca dizer "não sei" sobre o sistema; dizer "deixe-me confirmar e volto em 5 minutos" se necessário. O sistema tem todas as respostas — você só precisa abrir a tela certa.
@@ -192,7 +192,7 @@ Mostra ao fiscal:
 - Hash SHA-256 do pacote (prova de integridade global)
 - Datas de abertura/fechamento da coleta
 - Convites enviados vs respostas completas (adesão)
-- Metodologia canônica (texto literal, anexável ao PGR)
+- Metodologia oficial (texto literal, anexável ao PGR)
 - Assinatura do responsável técnico com CRP
 
 **Se gerar PDF do laudo no botão "Baixar laudo técnico", todos esses elementos vão automaticamente para a capa + seção 10 do documento.**
@@ -217,7 +217,7 @@ Cada uma com referência normativa específica registrada na tabela `nr01_dimens
 
 ### Passo 3 — "Qual a metodologia?"
 
-`METHODOLOGY_TEXT_V1_0` em [`src/lib/nr01/evidence.ts`](../src/lib/nr01/evidence.ts) — texto canônico anexado ao laudo, hasheado junto com o instrumento. Reproduz integralmente:
+`METHODOLOGY_TEXT_V1_0` em [`src/lib/nr01/evidence.ts`](../src/lib/nr01/evidence.ts) — texto oficial anexado ao laudo, hasheado junto com o instrumento. Reproduz integralmente:
 - Norma de referência (NR-01 + Portarias 1.419/2024 e 765/2025 + Guia MTE/SIT 2024)
 - Instrumento aplicado (Pentagrama NR-01 v1.0, 80 questões, 10 dimensões, Likert 5)
 - Pontes com modelo de Maslach (Carga, Controle, Recompensa, Comunidade, Justiça, Valores)
@@ -289,7 +289,7 @@ A NR-01 e seu Guia Técnico são revisados pelo MTE periodicamente. Quando isso 
 | Texto de uma questão | `nr01_seed.sql` (UPDATE com `WHERE id = ...`) |
 | Adicionar dimensão | `nr01_seed.sql` (INSERT) + `src/types/nr01.ts` (`NR01_DIMENSION_CODES`) + `src/lib/nr01/bridge-pentagrama.ts` (mapeamento) |
 | Alterar threshold de risco | `src/types/nr01.ts` (`NR01_RISK_THRESHOLDS`) |
-| Texto canônico da metodologia | `src/lib/nr01/evidence.ts` (`METHODOLOGY_TEXT_V1_0`) — após editar, bump da versão |
+| Texto oficial da metodologia | `src/lib/nr01/evidence.ts` (`METHODOLOGY_TEXT_V1_0`) — após editar, bump da versão |
 | Premissas econômicas | `src/lib/nr01/economic.ts` (`DEFAULT_ASSUMPTIONS`, `DEFAULT_CLIENT_INPUTS`) |
 | Biblioteca de intervenções | `nr01_seed.sql` seção `nr01_intervention_library` |
 
@@ -336,6 +336,19 @@ Para mostrar o sistema funcionando para um prospect, **nunca** abra a tela de um
 - "Os números econômicos refletem premissas de mercado (DIEESE/ISMA-BR/INSS); ao rodar
   na sua empresa, vamos ajustar com seus dados reais (folha, RAT, FAP)."
 - "O fluxo é exatamente este — só os dados mudam."
+
+### 5.5 Grep e migrations de léxico (P7)
+
+Migrations de substituição lexical contêm o termo banido como argumento de `REPLACE()` — é inevitável para aplicar a troca no banco. **Esses ficheiros devem ser excluídos** de greps de validação futura, por exemplo:
+
+```text
+--glob '!nr01_patch_014*'
+-- ou, genérico por patch: --glob '!nr01_patch_NNN*'
+```
+
+Exemplo com `rg`: `rg "padrão" supabase/ --glob '!nr01_patch_014*'`. Assim o repositório continua auditável (a migration prova o que foi substituído) sem falso negativo no “zero ocorrências” do código e da documentação.
+
+**Pós-substituições lexicais que afetem textos persistidos:** rodar `scripts/_verify_laudos_v1.1.mjs` para validar o hash dos laudos (referência em `docs/audit/laudos_v1.1_hash.txt`). Para validar o hash do **instrumento** (questões v1.1), usar `scripts/_verify_oficial_v1.1.mjs` (ou o nome equivalente da versão vigente) — compara com `docs/audit/instrument_v1.1_hash.txt`. **Confundir os dois** leva a falso positivo de validação (pensa que validou laudos e só correu o script do instrumento, ou o contrário).
 
 ---
 

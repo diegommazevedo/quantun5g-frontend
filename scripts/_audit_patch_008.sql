@@ -11,9 +11,9 @@ VALUES (
       'evidence_pack_laudos_pack_sha256_added',
       '50_laudos_micro_v1_1_seeded',
       '5_laudos_macro_v1_1_seeded',
-      'evidence_ts_hashLaudosCanonicos_added',
+      'evidence_ts_hashLaudosOficiais_added',
       'pdf_data_loads_laudos_maps',
-      'pdf_template_renders_canonical_laudos',
+      'pdf_template_renders_official_laudos',
       'gerarPacote_populates_laudos_pack_sha256',
       'methodology_v1_1_references_laudos_hash'
     ),

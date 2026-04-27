@@ -84,7 +84,7 @@ export function parseAnswersFromFormData(
 
 // ============================================================
 // LIKERT LABELS — literais do NR01_GRO.docx, linhas 17-25.
-// Patch 005 (2026-04-19): atualizado para texto canônico do doc.
+// Patch 005 (2026-04-19): atualizado para texto oficial do doc.
 // ============================================================
 
 export const LIKERT_LABELS = [

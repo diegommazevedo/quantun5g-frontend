@@ -1,6 +1,6 @@
 -- Patch 009 — registro de aplicação no audit log NR-01.
 -- Reestrutura PDF do laudo técnico para conter EXATAMENTE as 12 seções
--- canônicas do NR01_GRO.docx (seção "MODELO DE LAUDO ROBUSTO"),
+-- oficiais do NR01_GRO.docx (seção "MODELO DE LAUDO ROBUSTO"),
 -- removendo do PDF os creeps regulatórios.
 
 INSERT INTO nr01_audit_log (event_type, payload, actor_role)
@@ -9,17 +9,17 @@ VALUES (
   jsonb_build_object(
     'patch', '009',
     'changes', jsonb_build_array(
-      'pdf_template_rewritten_12_canonical_sections',
+      'pdf_template_rewritten_12_official_sections',
       'pdf_section_1_identificacao',
-      'pdf_section_2_finalidade_canonical_text',
-      'pdf_section_3_fundamentacao_canonical_text',
-      'pdf_section_4_metodologia_canonical_plus_v1_1',
+      'pdf_section_2_finalidade_official_text',
+      'pdf_section_3_fundamentacao_official_text',
+      'pdf_section_4_metodologia_official_plus_v1_1',
       'pdf_section_5_populacao_avaliada',
       'pdf_section_6_criterios_classificacao_5_faixas_likert',
-      'pdf_section_7_resultados_por_dimensao_with_micro_canonical',
-      'pdf_section_8_analise_global_with_macro_canonical',
+      'pdf_section_7_resultados_por_dimensao_with_micro_official',
+      'pdf_section_8_analise_global_with_macro_official',
       'pdf_section_9_identificacao_riscos_psicossociais',
-      'pdf_section_10_recomendacoes_plan_or_canonical',
+      'pdf_section_10_recomendacoes_plan_or_official',
       'pdf_section_11_conclusao_adapted_iso_level',
       'pdf_section_12_responsabilidade_tecnica_signature',
       'pdf_apendice_likert_scale_plus_4_hashes',
@@ -30,9 +30,9 @@ VALUES (
       'css_rewritten_technical_document_format',
       'fmtMean_uses_pt_br_decimal_comma',
       'mean_likert_preferred_over_score_pct',
-      'action_plan_status_canonical_lowercase'
+      'action_plan_status_official_lowercase'
     ),
-    'canonical_source', 'docs/audit/NR01_GRO.md (linhas 621-805)',
+    'official_source', 'docs/audit/NR01_GRO.md (linhas 621-805)',
     'creeps_removed_from_pdf', jsonb_build_array(
       'alertas_sistemicos',
       'projecao_economica',

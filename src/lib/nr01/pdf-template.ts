@@ -1,7 +1,7 @@
 /**
  * QUANTUM5G — Template HTML do laudo NR-01 para PDF (e visualização print)
  *
- * Patch 009 — reestruturado para conter EXATAMENTE as 12 seções canônicas do
+ * Patch 009 — reestruturado para conter EXATAMENTE as 12 seções oficiais do
  * NR01_GRO.docx (seção "MODELO DE LAUDO ROBUSTO"), nesta ordem, sem mais, sem
  * menos. Apêndice contém escala Likert aplicada + hashes do pacote de evidências.
  *
@@ -279,18 +279,18 @@ code {
   font-family: 'Inter', sans-serif; font-size: 9pt; color: #444;
   margin-bottom: 4pt;
 }
-.dim-bloco .laudo-canonico { margin: 4pt 0 0; }
+.dim-bloco .laudo-oficial { margin: 4pt 0 0; }
 .dim-bloco .laudo-principal { margin-bottom: 5pt; line-height: 1.5; }
 .dim-bloco .laudo-recomendacao { color: #333; line-height: 1.5; font-style: italic; }
 .dim-bloco .laudo-fallback { font-size: 9pt; color: #999; margin-top: 4pt; }
 
-/* Macro canônico */
-.laudo-macro-canonico {
+/* Macro oficial */
+.laudo-macro-oficial {
   margin: 12pt 0; padding: 10pt 14pt;
   background: #f7f7f7; border-left: 2pt solid #000;
 }
-.laudo-macro-canonico p { margin: 0 0 6pt; line-height: 1.5; }
-.laudo-macro-canonico p.recomendacao { font-style: italic; color: #333; margin-bottom: 0; }
+.laudo-macro-oficial p { margin: 0 0 6pt; line-height: 1.5; }
+.laudo-macro-oficial p.recomendacao { font-style: italic; color: #333; margin-bottom: 0; }
 `
 
 // ============================================================
@@ -461,12 +461,12 @@ function renderSecao6_Criterios(): string {
   return `
 <section class="principal">
   <h2>6. Critérios de classificação</h2>
-  <p>A classificação do nível de risco por dimensão e do índice global utiliza as seguintes faixas, na escala Likert 1,0–5,0 (canônico v1.1):</p>
+  <p>A classificação do nível de risco por dimensão e do índice global utiliza as seguintes faixas, na escala Likert 1,0–5,0 (oficial v1.1):</p>
   <table class="compact">
     <thead><tr><th style="width: 40mm;">Faixa (média Likert)</th><th>Classificação de risco</th></tr></thead>
     <tbody>${linhas}</tbody>
   </table>
-  <p class="muted">Nota: maior valor na escala Likert corresponde a maior percepção de risco. Questões com enunciado direcionado já são tratadas no extrator canônico, sem necessidade de inversão posterior.</p>
+  <p class="muted">Nota: maior valor na escala Likert corresponde a maior percepção de risco. Questões com enunciado direcionado já são tratadas no extrator oficial, sem necessidade de inversão posterior.</p>
 </section>
 `
 }
@@ -500,12 +500,12 @@ function renderSecao7_Resultados(d: LaudoData): string {
       const laudo = d.laudoTextos.get(`${s.dimension_code}::${s.risk_level}`)
       if (laudo) {
         laudoBlock = `
-  <div class="laudo-canonico">
+  <div class="laudo-oficial">
     <p class="laudo-principal">${escapeHtml(laudo.texto_principal)}</p>
     <p class="laudo-recomendacao">${escapeHtml(laudo.texto_recomendacao)}</p>
   </div>`
       } else {
-        laudoBlock = `<p class="laudo-fallback"><em>Texto canônico v1.1 não encontrado para esta combinação dimensão × nível.</em></p>`
+        laudoBlock = `<p class="laudo-fallback"><em>Texto oficial v1.1 não encontrado para esta combinação dimensão × nível.</em></p>`
       }
     } else {
       laudoBlock = `<p class="laudo-fallback"><em>Sem dados suficientes nesta dimensão para emissão de laudo (n &lt; k-anonymity).</em></p>`
@@ -533,7 +533,7 @@ function renderSecao7_Resultados(d: LaudoData): string {
   return `
 <section class="principal">
   <h2>7. Resultados por dimensão</h2>
-  <p>Os resultados a seguir apresentam a média Likert (1,0–5,0) por dimensão, sua classificação de risco conforme os critérios da seção 6, e o laudo técnico canônico v1.1 correspondente.</p>
+  <p>Os resultados a seguir apresentam a média Likert (1,0–5,0) por dimensão, sua classificação de risco conforme os critérios da seção 6, e o laudo técnico oficial v1.1 correspondente.</p>
   ${blocos}
 </section>
 `
@@ -613,11 +613,11 @@ function renderSecao8_AnaliseGlobal(d: LaudoData): string {
   ${blocoCriticas}
 
   ${macro ? `
-  <div class="laudo-macro-canonico evite-quebra">
+  <div class="laudo-macro-oficial evite-quebra">
     <p>${escapeHtml(macro.texto_principal)}</p>
     <p class="recomendacao">${escapeHtml(macro.texto_recomendacao)}</p>
   </div>
-  ` : '<p><em>Texto macro canônico v1.1 não encontrado para o nível atual.</em></p>'}
+  ` : '<p><em>Texto macro oficial v1.1 não encontrado para o nível atual.</em></p>'}
 </section>
 `
 }
@@ -693,7 +693,7 @@ function renderSecao10_Recomendacoes(d: LaudoData): string {
 `
   }
 
-  // Sem plano aprovado: recomendações canônicas extraídas dos textos micro das dimensões em risco
+  // Sem plano aprovado: recomendações oficiais extraídas dos textos micro das dimensões em risco
   const dimMap = new Map<Nr01DimensionCode, string>(
     d.dimensions.map((dim) => [dim.code, dim.name]),
   )
@@ -713,14 +713,14 @@ function renderSecao10_Recomendacoes(d: LaudoData): string {
   const itens = emRisco.map((s) => {
     const nome = dimMap.get(s.dimension_code) ?? s.dimension_code
     const laudo = d.laudoTextos.get(`${s.dimension_code}::${s.risk_level}`)
-    if (!laudo) return `<li><strong>${escapeHtml(nome)}</strong> — recomendação canônica indisponível.</li>`
+    if (!laudo) return `<li><strong>${escapeHtml(nome)}</strong> — recomendação oficial indisponível.</li>`
     return `<li><strong>${escapeHtml(nome)}</strong> — ${escapeHtml(laudo.texto_recomendacao)}</li>`
   }).join('')
 
   return `
 <section class="principal">
   <h2>10. Recomendações</h2>
-  <p>Com base nos riscos identificados na seção 9, recomendam-se as seguintes intervenções (textos canônicos v1.1, ordenados por severidade):</p>
+  <p>Com base nos riscos identificados na seção 9, recomendam-se as seguintes intervenções (textos oficiais v1.1, ordenados por severidade):</p>
   <ol class="bullets">${itens}</ol>
   <p class="muted">A formalização destas recomendações em plano de ação aprovado, com responsáveis nomeados, prazos e indicadores, integra a próxima etapa do ciclo de gerenciamento conforme NR-01.</p>
 </section>
@@ -753,7 +753,7 @@ function renderSecao12_Responsabilidade(d: LaudoData): string {
   return `
 <section class="principal">
   <h2>12. Responsabilidade técnica</h2>
-  <p>O abaixo-assinado declara, sob as penas da lei, que esta avaliação foi conduzida conforme a metodologia descrita na seção 4 deste documento, com instrumento canônico v1.1 cuja integridade pode ser auditada via hash SHA-256 declarado no apêndice (pacote de evidências). Assume-se responsabilidade técnica pelos resultados aqui apresentados, permanecendo este laudo válido até a próxima reavaliação periódica conforme NR-01.</p>
+  <p>O abaixo-assinado declara, sob as penas da lei, que esta avaliação foi conduzida conforme a metodologia descrita na seção 4 deste documento, com instrumento oficial v1.1 cuja integridade pode ser auditada via hash SHA-256 declarado no apêndice (pacote de evidências). Assume-se responsabilidade técnica pelos resultados aqui apresentados, permanecendo este laudo válido até a próxima reavaliação periódica conforme NR-01.</p>
 
   <div class="assinatura-bloco evite-quebra">
     <div class="local-data">
@@ -784,7 +784,7 @@ function renderApendice(d: LaudoData): string {
   const hashesTabela = p ? `
   <table class="compact">
     <tr><th style="width: 60mm;">Hash do instrumento (SHA-256)</th><td><span class="evidencia-hash">${escapeHtml(p.instrument_sha256)}</span></td></tr>
-    <tr><th>Hash dos laudos canônicos (SHA-256)</th><td><span class="evidencia-hash">${escapeHtml(p.laudos_pack_sha256 ?? '—')}</span></td></tr>
+    <tr><th>Hash dos laudos oficiais (SHA-256)</th><td><span class="evidencia-hash">${escapeHtml(p.laudos_pack_sha256 ?? '—')}</span></td></tr>
     <tr><th>Hash do pacote (SHA-256)</th><td><span class="evidencia-hash">${escapeHtml(p.pack_sha256)}</span></td></tr>
     <tr><th>Hash do PDF (SHA-256)</th><td><span class="evidencia-hash">${escapeHtml(p.pdf_sha256 ?? '— (gerado após emissão)')}</span></td></tr>
     <tr><th>Metodologia (versão)</th><td>${escapeHtml(p.methodology_version)}</td></tr>
@@ -798,10 +798,10 @@ function renderApendice(d: LaudoData): string {
 
   <h3>Escala Likert aplicada</h3>
   <ol class="bullets">${escala}</ol>
-  <p class="muted">Escala canônica v1.1: 1 = menor percepção de risco; 5 = maior percepção de risco.</p>
+  <p class="muted">Escala oficial v1.1: 1 = menor percepção de risco; 5 = maior percepção de risco.</p>
 
   <h3>Pacote de evidências (trilha de auditoria)</h3>
-  <p>Hashes SHA-256 que asseguram a integridade do instrumento, dos laudos canônicos, do pacote consolidado e do PDF emitido. Apresentar este conteúdo em fiscalização para comprovar metodologia, instrumento aplicado e adesão.</p>
+  <p>Hashes SHA-256 que asseguram a integridade do instrumento, dos laudos oficiais, do pacote consolidado e do PDF emitido. Apresentar este conteúdo em fiscalização para comprovar metodologia, instrumento aplicado e adesão.</p>
   ${hashesTabela}
 </section>
 `

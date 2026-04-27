@@ -1,14 +1,14 @@
 -- ============================================================
--- QUANTUM5G — Patch 008: Laudos canônicos (estrutura)
+-- QUANTUM5G — Patch 008: Laudos oficiais (estrutura)
 -- Versão: 0.8.0 | Data: 2026-04-19
 -- Aplicar APÓS nr01_patch_007.
 --
--- Cria duas tabelas para textos canônicos (50 micros + 5 macros)
+-- Cria duas tabelas para textos oficiais (50 micros + 5 macros)
 -- + coluna laudos_pack_sha256 em nr01_evidence_pack.
 -- O seed dos textos é aplicado via patch 008b (gerado pelo script
 -- _extract_laudos_v1.1.mjs após validação visual).
 --
--- RLS: laudos são conteúdo editorial canônico, leitura livre para
+-- RLS: laudos são conteúdo editorial oficial, leitura livre para
 -- authenticated. Mutação só via service_role (sem policy).
 -- ============================================================
 
@@ -59,17 +59,17 @@ CREATE POLICY "nr01_laudo_macros_select" ON nr01_laudo_macros
   FOR SELECT TO authenticated USING (is_active = true);
 
 COMMENT ON TABLE nr01_laudo_textos IS
-  'Textos canônicos de laudo micro por (dimensão × nível). Derivado literal de NR01_GRO.docx. Hash do conjunto: ver docs/audit/laudos_v1.1_hash.txt.';
+  'Textos oficiais de laudo micro por (dimensão × nível). Derivado literal de NR01_GRO.docx. Hash do conjunto: ver docs/audit/laudos_v1.1_hash.txt.';
 
 COMMENT ON TABLE nr01_laudo_macros IS
-  'Textos canônicos de laudo macro (ISO global) por nível. Derivado literal de NR01_GRO.docx.';
+  'Textos oficiais de laudo macro (ISO global) por nível. Derivado literal de NR01_GRO.docx.';
 
 -- Coluna nova: hash do pacote de laudos vigente na avaliação
 ALTER TABLE nr01_evidence_pack
   ADD COLUMN IF NOT EXISTS laudos_pack_sha256 text;
 
 COMMENT ON COLUMN nr01_evidence_pack.laudos_pack_sha256 IS
-  'Hash SHA-256 do conjunto canônico de laudos micro+macro vigente na data desta avaliação. Imutável após emissão.';
+  'Hash SHA-256 do conjunto oficial de laudos micro+macro vigente na data desta avaliação. Imutável após emissão.';
 
 -- Verificação
 SELECT

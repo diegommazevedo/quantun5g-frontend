@@ -2,7 +2,7 @@
  * Patch 009 — testes de aceitação (10).
  *
  * Tests 9 e 10 são OBRIGATÓRIOS:
- *   9 — todas as 12 seções canônicas + apêndice presentes com títulos literais;
+ *   9 — todas as 12 seções oficiais + apêndice presentes com títulos literais;
  *  10 — telas internas (/economico, /plano, /monitoramento) intocadas.
  */
 
@@ -134,7 +134,7 @@ const tpl = await readFile(TPL_PATH, 'utf-8')
 }
 
 // ============================================================
-// TEST 6 — Textos canônicos fixos presentes
+// TEST 6 — Textos oficiais fixos presentes
 // ============================================================
 {
   const constsRequired = [
@@ -149,9 +149,9 @@ const tpl = await readFile(TPL_PATH, 'utf-8')
   ]
   const missing = constsRequired.filter((c) => !new RegExp(`\\b${c}\\b`).test(tpl))
   if (missing.length === 0) {
-    pass(6, '8 constantes de texto canônico presentes')
+    pass(6, '8 constantes de texto oficial presentes')
   } else {
-    fail(6, 'constantes canônicas ausentes', missing.join(', '))
+    fail(6, 'constantes oficiais ausentes', missing.join(', '))
   }
 }
 
@@ -179,23 +179,23 @@ const tpl = await readFile(TPL_PATH, 'utf-8')
 {
   // CSS antigo tinha .alert; já não deve mais
   const hasAlertClass = /\.alert\s*\{/.test(tpl)
-  // Deve ter classe principal de seção e laudo canônico
+  // Deve ter classe principal de seção e laudo oficial
   const hasSection = /section\.principal/.test(tpl)
-  const hasLaudoCanonico = /\.laudo-canonico/.test(tpl)
-  const hasLaudoMacro = /\.laudo-macro-canonico/.test(tpl)
-  if (!hasAlertClass && hasSection && hasLaudoCanonico && hasLaudoMacro) {
-    pass(8, 'CSS técnico: section.principal + laudo-canonico + laudo-macro-canonico; .alert removido')
+  const hasLaudoOficial = /\.laudo-oficial/.test(tpl)
+  const hasLaudoMacro = /\.laudo-macro-oficial/.test(tpl)
+  if (!hasAlertClass && hasSection && hasLaudoOficial && hasLaudoMacro) {
+    pass(8, 'CSS técnico: section.principal + laudo-oficial + laudo-macro-oficial; .alert removido')
   } else {
-    fail(8, 'CSS técnico', `alertRemoved=${!hasAlertClass} section=${hasSection} laudo=${hasLaudoCanonico} macro=${hasLaudoMacro}`)
+    fail(8, 'CSS técnico', `alertRemoved=${!hasAlertClass} section=${hasSection} laudo=${hasLaudoOficial} macro=${hasLaudoMacro}`)
   }
 }
 
 // ============================================================
-// TEST 9 — OBRIGATÓRIO: 12 títulos H2 canônicos LITERAIS presentes
+// TEST 9 — OBRIGATÓRIO: 12 títulos H2 oficiais LITERAIS presentes
 // ============================================================
 {
   // Confronta direto com NR01_GRO.docx — títulos literais (case-insensitive)
-  const titulosCanonicos = [
+  const titulosOficiais = [
     /<h2>\s*1\.\s*Identifica[çc][ãa]o\s*<\/h2>/i,
     /<h2>\s*2\.\s*Finalidade\s*<\/h2>/i,
     /<h2>\s*3\.\s*Fundamenta[çc][ãa]o\s+t[ée]cnica\s*<\/h2>/i,
@@ -216,15 +216,15 @@ const tpl = await readFile(TPL_PATH, 'utf-8')
     '11.Conclusão','12.Responsabilidade técnica',
   ]
   const missing = []
-  titulosCanonicos.forEach((rx, i) => {
+  titulosOficiais.forEach((rx, i) => {
     if (!rx.test(tpl)) missing.push(labels[i])
   })
   // Apêndice também
   const apendiceOk = /<h2>\s*Ap[êe]ndice\b/i.test(tpl)
   if (missing.length === 0 && apendiceOk) {
-    pass(9, '[OBRIGATÓRIO] 12 títulos canônicos literais + apêndice presentes')
+    pass(9, '[OBRIGATÓRIO] 12 títulos oficiais literais + apêndice presentes')
   } else {
-    fail(9, '[OBRIGATÓRIO] títulos canônicos ausentes',
+    fail(9, '[OBRIGATÓRIO] títulos oficiais ausentes',
       `missing=${missing.join('; ') || 'nenhum'} apendice=${apendiceOk}`)
   }
 }

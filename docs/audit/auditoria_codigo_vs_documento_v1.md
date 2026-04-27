@@ -36,7 +36,7 @@ VEREDICTO GLOBAL:  ⚠ NÃO CONFORME (LITERAL)
 
 **Tradução em linguagem direta:**
 - Sistema **funciona** e **defende** o cliente em fiscalização do MTE.
-- Sistema **NÃO entrega** o documento exatamente como o instrumento canônico do Jovane prometeu — questões reescritas, laudos textuais ausentes, escala numérica diferente.
+- Sistema **NÃO entrega** o documento exatamente como o instrumento oficial do Jovane prometeu — questões reescritas, laudos textuais ausentes, escala numérica diferente.
 - Em fiscalização rápida (verificação documental), passa: o fiscal vê 80 questões em 10 dimensões + scores + plano + monitoramento.
 - Em fiscalização técnica aprofundada (perita psicóloga compara contra instrumento de referência), trava: as questões não são as do documento.
 
@@ -81,7 +81,7 @@ VEREDICTO GLOBAL:  ⚠ NÃO CONFORME (LITERAL)
 - Várias questões do doc **não têm correspondente** (ex: doc#3 "pressão constante por resultados", doc#6 "acúmulo de funções")
 - Várias questões do código **não estão no doc** (ex: código#6 "energia para vida pessoal", código#7 "interromper pausas e refeições")
 
-**Esse padrão se repete nas 10 dimensões.** Não auditei uma a uma porque o achado estrutural é o mesmo: **o autor do código (eu, Claude, em P1) reescreveu o instrumento em vez de transcrever o canônico.**
+**Esse padrão se repete nas 10 dimensões.** Não auditei uma a uma porque o achado estrutural é o mesmo: **o autor do código (eu, Claude, em P1) reescreveu o instrumento em vez de transcrever a versão oficial.**
 
 **Impacto regulatório:**
 - Fiscalização documental: passa.
@@ -91,9 +91,9 @@ VEREDICTO GLOBAL:  ⚠ NÃO CONFORME (LITERAL)
 **Severidade:** **CRÍTICA** — afeta defensibilidade regulatória.
 
 **Recomendação de correção:**
-1. Patch SQL `nr01_patch_006_questoes_canonicas.sql`: UPDATE em `nr01_questions` substituindo o texto das 80 questões pelos textos LITERAIS do doc + `reverse_scored = true` em todas (já que doc é 100% negativa).
-2. Bumpar `instrument_version = 'v1.1'` para que avaliações novas usem o canônico e avaliações em `COLETANDO` sigam em v1.0 (trigger `nr01_assessment_version_guard` já protege).
-3. Atualizar METHODOLOGY_TEXT_V1_0 → v1.1 declarando que o instrumento é canônico.
+1. Patch SQL `nr01_patch_007_questoes_v1.1.sql`: UPDATE em `nr01_questions` substituindo o texto das 80 questões pelos textos LITERAIS do doc + `reverse_scored = true` em todas (já que doc é 100% negativa).
+2. Bumpar `instrument_version = 'v1.1'` para que avaliações novas usem a versão oficial e avaliações em `COLETANDO` sigam em v1.0 (trigger `nr01_assessment_version_guard` já protege).
+3. Atualizar METHODOLOGY_TEXT_V1_0 → v1.1 declarando que o instrumento é a versão oficial.
 4. Tempo: 1-2 horas.
 
 ---
@@ -101,7 +101,7 @@ VEREDICTO GLOBAL:  ⚠ NÃO CONFORME (LITERAL)
 ### CRÍTICO 2 — Laudos micro padronizados (50) não existem no código.
 
 **Evidência:**
-- Doc define 50 textos canônicos (10 dim × 5 níveis), seção "O QUE SIGNIFICA CADA NÍVEL DE RISCO" (doc:265-587). Cada um com 2 parágrafos: análise + recomendação.
+- Doc define 50 textos oficiais (10 dim × 5 níveis), seção "O QUE SIGNIFICA CADA NÍVEL DE RISCO" (doc:265-587). Cada um com 2 parágrafos: análise + recomendação.
 - Doc define 5 laudos macros (níveis do índice geral), seção "LAUDO MACRO (MÉDIA GERAL)" (doc:589-619).
 - **Banco de produção**: query confirmou `tem_tbl_nr01_laudos = false`. Não existe `nr01_laudo_textos` nem `nr01_laudo_macros`.
 - **Código** ([`pdf-template.ts`](../../src/lib/nr01/pdf-template.ts)): seção 4 do PDF renderiza score + nivel + barra cinza, **sem nenhum dos 50 textos**.
@@ -113,7 +113,7 @@ VEREDICTO GLOBAL:  ⚠ NÃO CONFORME (LITERAL)
 **Severidade:** **CRÍTICA** — promessa de produto não cumprida + risco de questionamento técnico.
 
 **Recomendação de correção:**
-1. Patch SQL `nr01_patch_005_laudos_canonicos.sql` (especificação completa em [`docs/audit/correções/`](#) — a criar): tabelas `nr01_laudo_textos` + `nr01_laudo_macros` + seed dos 50+5 textos extraídos LITERAIS do doc.
+1. Patch SQL `nr01_patch_008_laudos_struct.sql` (especificação completa em [`docs/audit/correções/`](#) — a criar): tabelas `nr01_laudo_textos` + `nr01_laudo_macros` + seed dos 50+5 textos extraídos LITERAIS do doc.
 2. Update `pdf-template.ts` seção 4: incluir `texto_principal` + `texto_recomendacao` por dimensão.
 3. Update `pdf-template.ts` seção 5 (ISO): incluir laudo macro correspondente.
 4. Update `pdf-data.ts`: carregar laudos no loader.
@@ -164,9 +164,9 @@ Fronteiras concretas — exemplo: avaliação com mean Likert = 2.5 (questões i
 
 **Impacto regulatório:**
 - Cliente vê classificação "elevado" para mean Likert 2.5. Doc do Jovane diz que isso é "baixo". Discrepância textual no PDF se ambas as referências forem mostradas.
-- Fiscal que tenha familiaridade com o instrumento canônico: pergunta justificativa.
+- Fiscal que tenha familiaridade com o instrumento oficial: pergunta justificativa.
 
-**Severidade:** **CRÍTICA** — método de classificação numericamente divergente do canônico.
+**Severidade:** **CRÍTICA** — método de classificação numericamente divergente do instrumento de referência.
 
 **Recomendação de correção:**
 
@@ -231,7 +231,7 @@ LIKERT_LABELS = [
 ]
 ```
 
-**Impacto:** O respondente vê opções diferentes do que o doc canônico oferece. Em particular, "Indiferente" (código) ≠ "Nem concordo, nem discordo" (doc) — são conceitos próximos mas não equivalentes psicometricamente. "Indiferente" sugere desinteresse; "Nem concordo, nem discordo" sugere posição neutra explícita.
+**Impacto:** O respondente vê opções diferentes do que o doc oficial oferece. Em particular, "Indiferente" (código) ≠ "Nem concordo, nem discordo" (doc) — são conceitos próximos mas não equivalentes psicometricamente. "Indiferente" sugere desinteresse; "Nem concordo, nem discordo" sugere posição neutra explícita.
 
 **Severidade:** **MATERIAL** — afeta como o respondente interpreta a escala, mas não compromete o cálculo.
 
@@ -255,7 +255,7 @@ LIKERT_LABELS = [
 - Vínculo: `CLT | PJ | estagio | terceirizado` ← **DIVERGE** (doc usa "efetivo/temporário", código usa "CLT/PJ")
 - Sou liderança: ✓ sim/não
 
-**Impacto:** Em coleta para empresa pública (cartório), "efetivo" do doc faz sentido; "CLT" do código não bate. Discrepância de vocabulário entre doc canônico e formulário aplicado.
+**Impacto:** Em coleta para empresa pública (cartório), "efetivo" do doc faz sentido; "CLT" do código não bate. Discrepância de vocabulário entre doc oficial e formulário aplicado.
 
 **Severidade:** **MATERIAL** — afeta vocabulário visto pelo cliente.
 
@@ -322,14 +322,14 @@ LIKERT_LABELS = [
 | 12 | Termo responsabilidade | doc 12 ✓ |
 
 **AUSENTES no PDF:**
-- doc 2 — FINALIDADE (texto canônico curto)
-- doc 3 — FUNDAMENTAÇÃO TÉCNICA (texto canônico)
+- doc 2 — FINALIDADE (texto oficial curto)
+- doc 3 — FUNDAMENTAÇÃO TÉCNICA (texto oficial)
 - doc 6 — CRITÉRIOS DE CLASSIFICAÇÃO (como seção própria; está no apêndice)
 - doc 9 — IDENTIFICAÇÃO DOS RISCOS PSICOSSOCIAIS (lista interpretativa)
 - doc 10 — RECOMENDAÇÕES (texto interpretativo geral)
 - doc 11 — CONCLUSÃO (parágrafo final)
 
-**Severidade:** **MATERIAL** — fiscal técnico que conhece o template canônico vai notar.
+**Severidade:** **MATERIAL** — fiscal técnico que conhece o template oficial vai notar.
 
 **Correção (1-2h):** adicionar as 6 seções faltantes no `pdf-template.ts`. Textos das seções 2, 3, 9, 10, 11 podem ser parametrizados (carregam do banco) ou hardcoded com base no exemplo do doc.
 
@@ -372,8 +372,8 @@ Sistema implementa pulsos semanais. Doc não menciona.
 
 Sistema detecta `PRE_BURNOUT`, `INTENCAO_SAIDA`, `RISCO_ASSEDIO`, `GAP_LIDERANCA`, `BOLHA_SISTEMICA` ([`scoring.ts:185-265`](../../src/lib/nr01/scoring.ts)).
 Doc não menciona alertas dessa natureza.
-**Avaliação:** suspeito — extrapola o instrumento canônico. As regras de detecção foram inventadas pelo autor do código.
-**Recomendação:** ou Jovane referenda os alertas (entrando no canônico v1.1 + METHODOLOGY), ou removem-se até validação clínica.
+**Avaliação:** suspeito — extrapola o instrumento oficial. As regras de detecção foram inventadas pelo autor do código.
+**Recomendação:** ou Jovane referenda os alertas (entrando no oficial v1.1 + METHODOLOGY), ou removem-se até validação clínica.
 
 ### Creep SUSPEITO 2 — Bridge Pentagrama ↔ NR-01
 
@@ -424,7 +424,7 @@ Reproduzidos literal em CRÍTICO 3.
 
 Extraídos completos do doc. **Ausentes do código** (CRÍTICO 2). Lista índice:
 
-| Dimensão | 5 níveis com texto canônico no doc |
+| Dimensão | 5 níveis com texto oficial no doc no doc |
 |---|---|
 | Carga de Trabalho e Pressão | doc:269-300 |
 | Controle e Autonomia sobre as Tarefas | doc:301-332 |
@@ -489,7 +489,7 @@ Reproduzidas em MATERIAL 4.
 
 ### O que é bloqueador para 1º cliente pago
 
-**CRÍTICO 1** (questões reescritas) — risco de impugnação técnica em fiscalização aprofundada. Cliente pode pedir cópia do instrumento e mostrar a um psicólogo, que vai notar discrepância vs canônico do Jovane. Resolve em 1-2h.
+**CRÍTICO 1** (questões reescritas) — risco de impugnação técnica em fiscalização aprofundada. Cliente pode pedir cópia do instrumento e mostrar a um psicólogo, que vai notar discrepância vs a versão aprovada do Jovane. Resolve em 1-2h.
 
 **CRÍTICO 2** (50 laudos ausentes) — promessa de produto não entregue. Resolve em 3-4h.
 
@@ -526,16 +526,16 @@ Em ordem de prioridade:
 - Recomputar avaliações concluídas existentes (script Node).
 - Tempo: 30min.
 
-### Patch 007 — Questões canônicas v1.1 (CRÍTICO 1)
-- `supabase/nr01_patch_007_questoes_canonicas.sql`: novo `instrument_version='v1.1'` com 80 questões LITERAIS do doc + todas `reverse_scored=true`
-- Update `METHODOLOGY_TEXT_V1_0` → V1_1 declarando canônico
+### Patch 007 — Questões oficiais v1.1 (CRÍTICO 1)
+- `supabase/nr01_patch_007_questoes_v1.1.sql`: novo `instrument_version='v1.1'` com 80 questões LITERAIS do doc + todas `reverse_scored=true`
+- Update `METHODOLOGY_TEXT_V1_0` → V1_1 declarando oficial
 - Avaliações em `COLETANDO` permanecem em v1.0 (trigger garante)
 - Novas avaliações usam v1.1
 - Update Bloco 1 (faixas tempo + vínculo)
 - Update perguntas abertas (4 textos literais)
 - Tempo: 1-2h.
 
-### Patch 008 — Laudos canônicos v1.0 (CRÍTICO 2)
+### Patch 008 — Laudos oficiais v1.0 (CRÍTICO 2)
 - `supabase/nr01_patch_008_laudos.sql`: tabelas `nr01_laudo_textos` + `nr01_laudo_macros` + seed dos 55 textos literais do doc.
 - Update `pdf-data.ts` + `pdf-template.ts` para carregar e renderizar.
 - Tempo: 3-4h (a maior parte é digitar/colar os 55 textos).

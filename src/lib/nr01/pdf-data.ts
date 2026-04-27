@@ -47,7 +47,7 @@ export interface LaudoData {
     weeksDispatched: number
     lastDispatch: Nr01PulseDispatch | null
   }
-  // Patch 008: laudos canônicos para renderização no PDF
+  // Patch 008: laudos oficiais para renderização no PDF
   laudoTextos: Map<string, LaudoTexto>          // key = `${dim}::${nivel}`
   laudoMacrosByLevel: Map<string, LaudoTexto>   // key = nivel_risco
   generatedAt: string

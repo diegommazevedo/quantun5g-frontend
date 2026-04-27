@@ -23,7 +23,7 @@ import {
 // ============================================================
 
 /**
- * Premissas econômicas canônicas (DIESEE / ISMA-BR / INSS, médias 2024-2025).
+ * Premissas econômicas oficiais (DIESEE / ISMA-BR / INSS, médias 2024-2025).
  * Arredondadas — não fingem precisão que não existe.
  */
 export const DEFAULT_ASSUMPTIONS: Nr01EconomicAssumptions = {
@@ -38,7 +38,7 @@ export const DEFAULT_ASSUMPTIONS: Nr01EconomicAssumptions = {
 }
 
 /**
- * Defaults canônicos para INPUTS do cliente quando não há histórico declarado.
+ * Defaults oficiais para INPUTS do cliente quando não há histórico declarado.
  * Usados pelo dashboard /economico para pré-preencher o form.
  */
 export const DEFAULT_CLIENT_INPUTS = {

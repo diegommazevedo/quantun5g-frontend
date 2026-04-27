@@ -2,7 +2,7 @@
 -- ⚠ AVISO PATCH 005 (2026-04-19)
 -- Este fixture foi calibrado para o instrumento v1.0 com orientação
 -- mista (4 questões positivas + 4 negativas reverse_scored por dimensão).
--- Após o Patch 007 (questões canônicas v1.1, 100% negativas conforme
+-- Após o Patch 007 (questões oficiais v1.1, 100% negativas conforme
 -- NR01_GRO.docx), este fixture precisa ser regenerado para refletir
 -- a nova orientação. NÃO executar em avaliação v1.1 sem atualizar.
 -- ============================================================

@@ -3,7 +3,7 @@
  *
  * Gera o pacote auditável imutável que:
  *   1. Prova qual instrumento foi aplicado (hash SHA-256)
- *   2. Documenta a metodologia (texto canônico anexado ao PGR)
+ *   2. Documenta a metodologia (texto oficial anexado ao PGR)
  *   3. Registra adesão e janela de coleta
  *   4. Calcula hash global do pacote (todos os campos + lista ordenada de hashes de respostas)
  *
@@ -18,9 +18,9 @@ import {
 } from '@/types/nr01'
 
 // ============================================================
-// METODOLOGIA CANÔNICA v1.1 — Patch 007 (2026-04-19)
+// METODOLOGIA OFICIAL v1.1 — Patch 007 (2026-04-19); P014: léxico
 // Texto literal anexado ao PGR. Reflete fidedignidade ao
-// instrumento canônico NR01_GRO.docx.
+// instrumento oficial NR01_GRO.docx.
 // Hash SHA-256 das 80 questões: ver docs/audit/instrument_v1.1_hash.txt
 // ============================================================
 
@@ -41,10 +41,10 @@ Saúde e Bem-Estar Relacionados ao Trabalho), em escala Likert de 5 pontos.
 A integridade do conjunto de questões aplicado é atestada pelo hash SHA-256
 registrado no pacote de evidências (campo \`instrument_sha256\`), permitindo
 verificar a qualquer momento que o instrumento aplicado corresponde
-literalmente à versão canônica autorizada pelo responsável técnico.
+literalmente à versão oficial autorizada pelo responsável técnico.
 
 ### Escala e classificação
-Conforme o instrumento canônico, MAIOR valor na escala Likert indica MAIOR risco
+Conforme o instrumento oficial, MAIOR valor na escala Likert indica MAIOR risco
 percebido. A média de cada dimensão é classificada nas seguintes faixas:
 
 - 1,0 – 1,8 → Risco muito baixo / condição favorável
@@ -72,7 +72,7 @@ O score por dimensão é a média aritmética das respostas Likert (escala 1-5).
 O Índice de Saúde Organizacional (ISO) é a média aritmética das médias das
 10 dimensões, com peso uniforme (1,00) para todas as dimensões (P013, alinhado
 ao RT e ao NR01_GRO). A criticidade relativa a violência e assédio — inclusive
-no âmbito da Lei nº 14.457/2022 — é refletida nos textos canônicos do laudo,
+no âmbito da Lei nº 14.457/2022 — é refletida nos textos oficiais do laudo,
 não por meio de ponderação extra na fórmula do ISO.
 
 ### Validade técnica
@@ -82,10 +82,10 @@ pacote) imutável para fins de auditoria fiscal e de defesa em eventual
 contencioso. A trilha de auditoria das operações realizadas na plataforma é
 preservada em log append-only.
 
-Os textos interpretativos canônicos (50 micro-laudos por dimensão × nível
+Os textos interpretativos oficiais (50 micro-laudos por dimensão × nível
 e 5 macro-laudos por nível geral) aplicados nesta avaliação são rastreados
 pelo hash SHA-256 registrado no campo \`laudos_pack_sha256\` do pacote de
-evidências, garantindo prova de qual versão dos textos canônicos foi
+evidências, garantindo prova de qual versão dos textos oficiais foi
 utilizada na emissão deste laudo.
 `.trim()
 
@@ -208,20 +208,20 @@ export function hashIp(
 }
 
 // ============================================================
-// HASH DOS LAUDOS CANÔNICOS (Patch 008)
+// HASH DOS LAUDOS OFICIAIS (Patch 008; P014: léxico)
 // ============================================================
 
 /**
- * Computa SHA-256 do conjunto canônico de laudos vigente para a versão
+ * Computa SHA-256 do conjunto oficial de laudos vigente para a versão
  * de instrumento informada (default v1.1). Retorna o mesmo formato de
  * hash gerado pelo extrator (scripts/_extract_laudos_v1.1.mjs), permitindo
  * comparação direta com docs/audit/laudos_v1.1_hash.txt.
  *
  * Usado em gerarPacoteEvidencias para popular nr01_evidence_pack.laudos_pack_sha256
- * — prova imutável de qual versão dos textos canônicos foi aplicada.
+ * — prova imutável de qual versão dos textos oficiais foi aplicada.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function hashLaudosCanonicos(supabase: any, instrumentVersion: string = 'v1.1'): Promise<string> {
+export async function hashLaudosOficiais(supabase: any, instrumentVersion: string = 'v1.1'): Promise<string> {
   const [{ data: micros, error: errM }, { data: macros, error: errMa }] = await Promise.all([
     supabase
       .from('nr01_laudo_textos')
@@ -239,7 +239,7 @@ export async function hashLaudosCanonicos(supabase: any, instrumentVersion: stri
   ])
 
   if (errM || errMa || !micros || !macros) {
-    throw new Error('Falha ao carregar laudos canônicos para hash')
+    throw new Error('Falha ao carregar laudos oficiais para hash')
   }
 
   const microPayload = (micros as Array<{

@@ -4,7 +4,7 @@
 --
 -- Metodologia (RT Jovane Borlini, 25/04/2026): todas as dimensões
 -- NR-01/GRO têm peso 1,00 no cálculo do ISO. Diferenciação de
--- violência/assédio permanece nos textos canônicos do laudo (P008),
+-- violência/assédio permanece nos textos oficiais do laudo (P008),
 -- não na fórmula.
 --
 -- Aplicar APÓS nr01_patch_006_pesos.sql (ou qualquer estado anterior).

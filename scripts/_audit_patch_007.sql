@@ -6,7 +6,7 @@ VALUES (
   jsonb_build_object(
     'patch', '007',
     'changes', jsonb_build_array(
-      'instrument_v1_1_canonical_inserted',
+      'instrument_v1_1_official_inserted',
       'instrument_v1_0_deactivated',
       'methodology_v1_1_published',
       'pulse_view_rebuilt_likert_scale',
@@ -16,8 +16,8 @@ VALUES (
     'n_questions_v1_1', 80,
     'n_questions_v1_0_deactivated', 80,
     'reverse_scored_v1_1', 0,
-    'extraction_method', 'scripts/_extract_canonical_v1.1.mjs',
-    'verification_method', 'scripts/_verify_canonical_v1.1.mjs',
+    'extraction_method', 'scripts/_extract_oficial_v1.1.mjs',
+    'verification_method', 'scripts/_verify_oficial_v1.1.mjs',
     'visual_inspection_samples_passed', 5,
     'view_renamed_likert', 'nr01_pulse_weekly_scores rebuilt to mean Likert (1-5)',
     'applied_at', now()

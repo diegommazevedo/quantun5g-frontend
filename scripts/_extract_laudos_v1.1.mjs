@@ -242,7 +242,7 @@ function buildSQL(micros, macros, hash) {
     .join(',\n')
 
   return `-- ============================================================
--- QUANTUM5G — Patch 008b: Seed dos 55 laudos canônicos v1.1
+-- QUANTUM5G — Patch 008b: Seed dos 55 laudos oficiais v1.1
 -- Versão: 0.8.0 | Data: ${new Date().toISOString().split('T')[0]}
 -- Gerado por: scripts/_extract_laudos_v1.1.mjs
 --

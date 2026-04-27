@@ -1,7 +1,7 @@
 -- ============================================================
--- QUANTUM5G — Patch 007: Questões canônicas v1.1
+-- QUANTUM5G — Patch 007: Questões oficiais v1.1
 -- Versão: 0.7.0 | Data: 2026-04-20
--- Gerado por: scripts/_extract_canonical_v1.1.mjs
+-- Gerado por: scripts/_extract_oficial_v1.1.mjs
 --
 -- Fonte literal: docs/audit/NR01_GRO.md (= NR01_GRO.docx)
 -- Total: 80 questões (10 dimensões × 8 questões).
@@ -21,7 +21,7 @@ UPDATE nr01_questions
    SET is_active = false
  WHERE instrument_version = 'v1.0';
 
--- 2. Inserir 80 questões canônicas v1.1
+-- 2. Inserir 80 questões oficiais v1.1
 INSERT INTO nr01_questions
   (dimension_code, ord, text, reverse_scored, instrument_version, is_active)
 VALUES

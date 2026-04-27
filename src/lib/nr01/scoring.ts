@@ -7,7 +7,7 @@
  * - Escala nativa: Likert 1-5. MAIOR valor = MAIOR risco (doc:27).
  * - reverse_scored: questões em sentido positivo são invertidas (6 - v)
  *   ANTES da agregação para que o eixo do score fique consistente
- *   com a orientação canônica do doc.
+ *   com a orientação oficial do doc.
  * - score_pct (no DB) passa a armazenar a média Likert (1.0 a 5.0),
  *   NÃO escala 0-100. Compatibilidade preservada: a constraint
  *   `CHECK (score_pct BETWEEN 0 AND 100)` continua válida porque
@@ -29,7 +29,7 @@ import {
   NR01_DIMENSION_CODES,
 } from '@/types/nr01'
 
-/** P013: peso canônico por dimensão no ISO (uniforme; fonte no DB `nr01_dimensions.weight`). */
+/** P013: peso oficial por dimensão no ISO (uniforme; fonte no DB `nr01_dimensions.weight`). */
 export const NR01_ISO_WEIGHT_PER_DIMENSION = 1.0 as const
 
 // ============================================================
