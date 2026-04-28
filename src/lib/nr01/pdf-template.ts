@@ -92,7 +92,7 @@ const RISK_RANK: Record<Nr01RiskLevel, number> = {
 }
 
 // ============================================================
-// TEXTOS CANÔNICOS FIXOS (NR01_GRO.docx — MODELO DE LAUDO ROBUSTO)
+// TEXTOS OFICIAIS FIXOS (NR01_GRO.docx — MODELO DE LAUDO ROBUSTO) — P015: léxico
 // ============================================================
 
 const TEXTO_FINALIDADE = `O presente laudo técnico tem por finalidade avaliar os fatores de risco psicossociais relacionados ao trabalho, conforme diretrizes estabelecidas pela NR-01, identificando condições que possam impactar a saúde dos colaboradores, a organização do trabalho e o funcionamento institucional, bem como subsidiar a elaboração de estratégias de prevenção e intervenção.`

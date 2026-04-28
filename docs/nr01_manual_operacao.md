@@ -287,9 +287,9 @@ A NR-01 e seu Guia Técnico são revisados pelo MTE periodicamente. Quando isso 
 | Mudança | Arquivo |
 |---|---|
 | Texto de uma questão | `nr01_seed.sql` (UPDATE com `WHERE id = ...`) |
-| Adicionar dimensão | `nr01_seed.sql` (INSERT) + `src/types/nr01.ts` (`NR01_DIMENSION_CODES`) + `src/lib/nr01/bridge-pentagrama.ts` (mapeamento) |
+| Adicionar dimensão | `nr01_seed.sql` (INSERT) + `src/types/nr01.ts` (`NR01_DIMENSION_CODES`) + `scoring.ts` (se a nova dimensão entra no conjunto de cálculo) — **não** há ficheiro de *bridge* (removido no P010) |
 | Alterar threshold de risco | `src/types/nr01.ts` (`NR01_RISK_THRESHOLDS`) |
-| Texto oficial da metodologia | `src/lib/nr01/evidence.ts` (`METHODOLOGY_TEXT_V1_0`) — após editar, bump da versão |
+| Texto oficial da metodologia | `src/lib/nr01/evidence.ts` (`METHODOLOGY_TEXT_V1_1`) — após editar, bump da versão do instrumento |
 | Premissas econômicas | `src/lib/nr01/economic.ts` (`DEFAULT_ASSUMPTIONS`, `DEFAULT_CLIENT_INPUTS`) |
 | Biblioteca de intervenções | `nr01_seed.sql` seção `nr01_intervention_library` |
 

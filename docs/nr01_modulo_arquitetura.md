@@ -1,7 +1,9 @@
 # Módulo NR-01 — Arquitetura e Análise Sênior (v0.1)
 
-**Data:** 2026-04-18 · **Status:** primeira implementação — esqueleto operacional
-**Autor:** equipe Quantum5G (análise tripla: analista de sistemas, engenheiro de software, fiscal-auditor NR-01 — todos sênior)
+**Última atualização: 2026-04-27 (pós-P014)** — realinhamento de documento ao código após P010 (remoção de bridge/alertas no módulo NR-01), P013 (pesos uniformes do ISO) e P014 (léxico oficial). Tabela `nr01_audit_log`: `PATCH_015_APPLIED`.
+
+**Data (baseline):** 2026-04-18 · **Status:** operacional; documentação evolui com patches.  
+**Autor:** equipe Quantum5G (análise tripla: analista de sistemas, engenheiro de software, fiscal-auditor NR-01 — todos sênior)  
 **Janela regulatória:** vigência punitiva NR-01/FRPRT em **26/05/2026** (38 dias úteis a partir desta data).
 
 ---
@@ -12,13 +14,11 @@ O Pentagrama de Ginger é um **modelo fenomenológico**: lê o campo vivido (fí
 
 A NR-01 é uma **norma regulatória**: exige identificação, avaliação, registro, plano de ação e monitoramento contínuo dos FRPRT, com trilha auditável. Ela responde a "estamos em conformidade".
 
-**As duas leituras se complementam, não se substituem.** Por isso o módulo NR-01 foi construído como **paralelo independente**, com bridge opcional para os diagnósticos do Pentagrama:
+**As duas leituras se complementam, não se substituem.** O módulo NR-01 é **paralelo independente** (mesma auth, `companies`, RLS) ao Pentagrama clássico, sem dependência de código de cruzamento *dentro* do repositório NR-01. **O antigo módulo de *bridge* NR-01 ↔ Pentagrama foi removido de produto (P010)** — não existem `bridge-pentagrama.ts` nem tela de análise cruzada no módulo atual.
 
 - O consultor pode rodar **só NR-01** (cliente que precisa fechar conformidade até 26/05).
 - O consultor pode rodar **só Pentagrama** (intervenção clínica organizacional).
-- O consultor pode **combinar os dois** (ISO regulatório + IC vivido = blindagem completa).
-
-O cruzamento NR-01 ↔ Pentagrama é feito em [src/lib/nr01/bridge-pentagrama.ts](../src/lib/nr01/bridge-pentagrama.ts) e gera convergências (ambos sinalizam o mesmo padrão) e divergências (uma das leituras está adiantada à outra — material de devolutiva).
+- O consultor pode **usar as duas leituras** na devolutiva com o cliente; a articulação é de **negócio/processos**, não via um ficheiro de ponte no código NR-01.
 
 ---
 
@@ -54,10 +54,10 @@ Multi-tenancy permanece **garantida por RLS** na tabela `nr01_assessments` (cons
 2. **Política de k-anonymity** não estava explícita. Implementamos `k_anonymity_min` por avaliação (default 5, mínimo 3) com a view `nr01_dim_scores_safe` para qualquer export que saia para liderança.
 3. **Versionamento do instrumento** ficava por inferir — implementamos `instrument_version` tanto na questão quanto na resposta, com hash SHA-256 do conjunto ativo guardado no pacote de evidências (chave do argumento "qual instrumento foi aplicado").
 4. **Trilha de auditoria** estava no princípio "auditável por design" mas sem tabela. Criada `nr01_audit_log` append-only, com `ip_hash` (LGPD-friendly) e `event_type` indexado.
-5. **Bridge com Pentagrama** estava fora do escopo. Criada `nr01_pentagrama_bridge` + lógica de correlação aproximada (`bridge-pentagrama.ts`).
+5. **(Histórico)** *Bridge* e correlação automática Pentagrama: existiu em fase de protótipo; **removidos no P010** do *frontend* e lógica associada no âmbito NR-01. Eventuais tabelas legadas no Postgres não entram no caminho de renderização do laudo ou PDF pós-P009.
 
-**Riscos sistêmicos remanescentes (não-bloqueadores):**
-- A correlação NR-01 ↔ Pentagrama é por **coerência nominal de delta**, não estatística. Para 200+ respondentes vale a pena migrar para Pearson/Spearman real.
+**Riscos de escala remanescentes (não-bloqueadores):**
+- Qualquer *benchmark* orgânico entre leituras NR-01 e outras ferramentas permanece processo de consultor — **não** há motor de correlação estatística *cross-product* no código actual.
 - Não há **rate-limiting** no endpoint público de coleta. Em escala real, adicionar middleware de IP-throttle (ou Edge Function com Upstash/Redis) antes de abrir para um cliente grande.
 - Os **micro-pulsos** (`nr01_micro_pulses`) estão modelados mas sem rota/UI. Próxima entrega.
 
@@ -96,7 +96,7 @@ A esta implementação, eu como fiscal abriria, em ordem:
 
 5. **Anonimato/LGPD** — quero ver que a empresa não acessa respostas individuais. RLS testado: `nr01_responses` só é visível para o consultor dono. `anon_id` sem FK. View `nr01_dim_scores_safe` filtra k-anonymity ≥ 5. Audit log com `ip_hash` (não IP cru). **Aprovado.**
 
-6. **Lei 14.457/2022 (assédio)** — quero ver protocolo formalizado. Dimensão `assedio_violencia` entra no ISO com o mesmo peso que as demais (1,00; P013); a diferenciação de criticidade está nos laudos oficiais. Gera alerta `RISCO_ASSEDIO` quando elevado/crítico. Biblioteca de intervenções tem 3 itens específicos (canal externo, treinamento certificado, apuração formal). **Aprovado** se a empresa adotar.
+6. **Lei 14.457/2022 (assédio)** — quero ver protocolo formalizado. Dimensão `assedio_violencia` entra no ISO com o **mesmo peso** que as demais (**1,00** por dimensão, **P013**; antes do P013 havia regra experimental de peso 1,30, **revertida**). A criticidade *relativa* a assédio e violência reflete-se nos **textos oficiais** do laudo, não em ponderação extra na fórmula do ISO. **Não** há geração de *alerta sistémico* dedicado no PDF regulatório (removido no P010; laudo pós-P009 concentra-se no texto e nas dimensões). Biblioteca de intervenções mantém itens orientados a canal/treinamento/apuração quando aplicável. **Aprovado** se a empresa adotar.
 
 **Veredito:** o módulo, **conforme implementado**, sustenta uma auditoria fiscal padrão NR-01/GRO **se** o cliente:
 - Rodar pelo menos uma avaliação completa antes de 26/05/2026;
@@ -118,10 +118,10 @@ src/types/nr01.ts                       Tipos + thresholds + classifyRisk()
 
 src/lib/nr01/
   instrument.ts                         loadInstrument(), parseAnswersFromFormData(), LIKERT_LABELS
-  scoring.ts                            computeScoring(), detectSystemicAlerts()
-  economic.ts                           computeFullProjection() — 7 vetores, 3 cenários, ROI/payback/3 anos
-  evidence.ts                           hashInstrument(), hashResponse(), hashPack(), METHODOLOGY_TEXT_V1_0
-  bridge-pentagrama.ts                  buildBridge() — convergências/divergências + score combinado
+  scoring.ts                            computeScoring(), computeIso()
+  economic.ts                           (projeções — telas e PDF regulatório seguem o escopo do módulo)
+  evidence.ts                           hashInstrument(), hashResponse(), hashPack(), hashLaudosOficiais(), METHODOLOGY_TEXT_V1_1
+  pdf-template.ts, pdf-data.ts          laudo 12+apêndice (P009, P012)
 
 src/app/(nr01)/
   layout.tsx                            Header NR-01 + auth guard
@@ -184,10 +184,7 @@ mudanças em [src/lib/nr01/](../src/lib/nr01/) e [src/app/(questionario)/nr01/co
 2. **`hashIp` com sal por-avaliação** — `HMAC(ip, assessment_id || APP_SECRET)`.
    Bloqueia correlação cruzada do mesmo IP entre clientes diferentes
    (pseudonimização forte exigida pela ANPD).
-3. **`confidence_level` no bridge Pentagrama** — campo `nominal | statistical`
-   na `nr01_pentagrama_bridge`. Threshold: `min N ≥ 200` libera `statistical`
-   (placeholder até implementar Pearson/Spearman real); abaixo disso `nominal`
-   sinaliza ao consultor que está lendo aproximação.
+3. **(Histórico — P001 / pré-P010)** *Confidence level* em tabelas de *bridge* / Pentagrama: a integração de correlação automática com Pentagrama **não** faz parte do produto actual (removida no P010). Se ainda existir coluna `confidence_level` em algum artefacto de schema legado, tratar como inativa para o *runtime* do laudo NR-01 pós-P009.
 4. **Audit log append-only com defesa em profundidade** — REVOKE explícito de
    UPDATE/DELETE para `authenticated` + `anon` no nível SQL, mais trigger
    `nr01_audit_log_immutable()` que rejeita mutações exceto pela role
@@ -213,7 +210,7 @@ mudanças em [src/lib/nr01/](../src/lib/nr01/) e [src/app/(questionario)/nr01/co
 
 ## 7. O que NÃO foi feito de propósito
 
-- Sem rate-limiting no endpoint público (modelo de risco aceita; adicionar antes de cliente >500 respondentes).
+- **Correção (P001):** existe *rate limit* vía `nr01_collection_throttle` na coleta pública (1 submissão / 24h por `assessment_id` + HMAC de IP) — a linha abaixo está **obsoleta**: ~~Sem rate-limiting no endpoint público.~~
 - Sem cron job automático para micro-pulsos (depende da escolha de scheduler — Vercel Cron, Supabase Cron, etc.).
 - Sem geração de PDF — UI imprime via browser por enquanto; PDF formal é entrega 3.
 - Sem IA conectada — ganchos prontos, plug em entrega 4.
