@@ -19,7 +19,7 @@ export default async function Nr01Layout({ children }: { children: React.ReactNo
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-6">
             <Link href="/nr01/dashboard" className="text-sm font-semibold text-zinc-900">
-              Quantum5G · <span className="text-orange-600">NR-01</span>
+              Quantum5G · <span className="text-blue-800">NR-01</span>
             </Link>
             <nav className="flex items-center gap-4 text-sm">
               <Link href="/nr01/dashboard" className="text-zinc-600 hover:text-zinc-900">

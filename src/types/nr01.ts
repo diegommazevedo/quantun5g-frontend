@@ -66,6 +66,23 @@ export type Nr01CompanySize = 'qualquer' | 'pequena' | 'media' | 'grande'
 
 export type Nr01CostBand = 'baixo' | 'medio' | 'alto'
 
+/**
+ * Labels oficiais (NR01_GRO v1.1) para exibição em UI/PDF.
+ * Mantém os códigos internos em snake_case apenas para persistência.
+ */
+export const NR01_DIMENSION_LABEL: Record<Nr01DimensionCode, string> = {
+  carga_trabalho: 'Carga de Trabalho e Pressão',
+  controle_autonomia: 'Controle e Autonomia sobre as Tarefas',
+  exigencias_emocionais: 'Exigências Emocionais e Equilíbrio Trabalho-Vida',
+  reconhecimento: 'Reconhecimento e Recompensa',
+  relacoes_interpessoais: 'Relações Interpessoais e Clima Organizacional',
+  estabilidade_seguranca: 'Segurança e Estabilidade',
+  assedio_violencia: 'Violência e Assédio',
+  organizacao_trabalho: 'Organização do Trabalho',
+  lideranca_gestao: 'Liderança e Gestão',
+  saude_bem_estar: 'Saúde e Bem-Estar Relacionados ao Trabalho',
+}
+
 // ============================================================
 // JSONB STRUCTURES
 // ============================================================
@@ -494,10 +511,28 @@ export const RISK_LEVEL_LABEL: Record<Nr01RiskLevel, string> = {
 }
 
 export const RISK_LEVEL_COLOR: Record<Nr01RiskLevel, string> = {
-  muito_baixo: 'bg-emerald-500 text-white',
-  baixo:       'bg-green-500 text-white',
-  atencao:     'bg-yellow-500 text-zinc-900',
-  elevado:     'bg-orange-500 text-white',
-  critico:     'bg-red-600 text-white',
-  sem_dados:   'bg-zinc-300 text-zinc-700',
+  muito_baixo: 'bg-green-100 text-green-800',
+  baixo:       'bg-green-100 text-green-800',
+  atencao:     'bg-amber-100 text-amber-800',
+  elevado:     'bg-red-100 text-red-800',
+  critico:     'bg-red-100 text-red-800',
+  sem_dados:   'bg-zinc-100 text-zinc-700',
+}
+
+export const ASSESSMENT_STATUS_LABEL: Record<Nr01AssessmentStatus, string> = {
+  CRIADO: 'Criado',
+  COLETANDO: 'Coletando',
+  COLETA_ENCERRADA: 'Coleta encerrada',
+  PROCESSANDO: 'Processando',
+  CONCLUIDO: 'Concluído',
+  ARQUIVADO: 'Arquivado',
+}
+
+export const ASSESSMENT_STATUS_COLOR: Record<Nr01AssessmentStatus, string> = {
+  CRIADO: 'bg-zinc-100 text-zinc-700',
+  COLETANDO: 'bg-amber-100 text-amber-800',
+  COLETA_ENCERRADA: 'bg-amber-100 text-amber-800',
+  PROCESSANDO: 'bg-blue-100 text-blue-800',
+  CONCLUIDO: 'bg-green-100 text-green-800',
+  ARQUIVADO: 'bg-zinc-100 text-zinc-700',
 }

@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveDriver } from '@/lib/nr01/email'
+import { ASSESSMENT_STATUS_LABEL, NR01_DIMENSION_LABEL } from '@/types/nr01'
 import type {
   Nr01Assessment,
   Nr01PulseConfig,
@@ -64,16 +65,16 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
           <p className="text-xs uppercase tracking-wide text-zinc-500">{a.companies?.name ?? '—'}</p>
           <h1 className="text-2xl font-bold text-zinc-900">Monitoramento contínuo</h1>
         </div>
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-6">
-          <p className="text-sm text-yellow-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
+          <p className="text-sm text-amber-900">
             Micro-pulsos disponíveis após o processamento dos resultados da avaliação.
           </p>
-          <p className="mt-2 text-sm text-yellow-800">
-            Status atual: <code className="rounded bg-yellow-100 px-1.5 py-0.5">{a.status}</code>.
+          <p className="mt-2 text-sm text-amber-800">
+            Status atual: <code className="rounded bg-amber-100 px-1.5 py-0.5">{ASSESSMENT_STATUS_LABEL[a.status]}</code>.
           </p>
           <Link
             href={`/nr01/avaliacao/${a.id}`}
-            className="mt-4 inline-block text-sm font-medium text-yellow-900 underline"
+            className="mt-4 inline-block text-sm font-medium text-amber-900 underline"
           >
             ← Voltar à avaliação
           </Link>
@@ -179,7 +180,7 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
         </div>
       )}
       {lowAdherence && (
-        <div className="rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           ⚠ Adesão abaixo de 40% nas 2 últimas semanas. Considere revisar horário, frequência
           ou conversar com a liderança da empresa sobre o canal.
         </div>
@@ -276,11 +277,11 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
       {/* DISPARO                                                      */}
       {/* ============================================================ */}
       {config?.enabled && (
-        <section className="rounded-xl border border-orange-200 bg-orange-50 p-5">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-orange-900">
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-amber-900">
             Disparar pulso desta semana
           </h2>
-          <p className="mb-3 text-xs text-orange-800">
+          <p className="mb-3 text-xs text-amber-800">
             Cron automático entra em segunda onda. Por enquanto, manual: clique toda segunda-feira.
             Última semana: {config.last_dispatched_at
               ? new Date(config.last_dispatched_at).toLocaleString('pt-BR')
@@ -290,7 +291,7 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
             <input type="hidden" name="assessment_id" value={id} />
             <button
               type="submit"
-              className="rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-700"
+              className="rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-900"
             >
               Disparar pulso ({(config.recipient_emails?.length ?? 0)} destinatários)
             </button>
@@ -334,7 +335,7 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
                       <td className="px-4 py-2 text-zinc-700">{m.invites}</td>
                       <td className="px-4 py-2 text-zinc-700">{m.respondents}</td>
                       <td className="px-4 py-2">
-                        <span className={`font-mono text-xs ${pct < 40 ? 'text-red-700' : pct < 60 ? 'text-yellow-700' : 'text-emerald-700'}`}>
+                        <span className={`font-mono text-xs ${pct < 40 ? 'text-red-700' : pct < 60 ? 'text-amber-700' : 'text-emerald-700'}`}>
                           {pct.toFixed(0)}%
                         </span>
                       </td>
@@ -369,7 +370,7 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
                 {/* lista as 10 dimensões */}
                 {Array.from(new Set(weeklyScores.map((s) => s.dimension_code))).sort().map((dim) => (
                   <tr key={dim} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2 text-zinc-900">{dim}</td>
+                    <td className="px-4 py-2 text-zinc-900">{NR01_DIMENSION_LABEL[dim]}</td>
                     {dispatches.slice().reverse().map((d) => {
                       const s = weeklyScores.find((x) => x.week_number === d.week_number && x.dimension_code === dim)
                       return (

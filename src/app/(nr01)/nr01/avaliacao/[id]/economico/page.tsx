@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
+  ASSESSMENT_STATUS_LABEL,
   Nr01Assessment,
   Nr01AssessmentResult,
   Nr01EconomicInputs,
@@ -65,16 +66,16 @@ export default async function DashboardEconomicoPage({ params, searchParams }: P
           <p className="text-xs uppercase tracking-wide text-zinc-500">{a.companies?.name ?? '—'}</p>
           <h1 className="text-2xl font-bold text-zinc-900">Dashboard econômico</h1>
         </div>
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-6">
-          <p className="text-sm text-yellow-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
+          <p className="text-sm text-amber-900">
             Dashboard econômico disponível apenas após o processamento dos resultados.
           </p>
-          <p className="mt-2 text-sm text-yellow-800">
-            Status atual: <code className="rounded bg-yellow-100 px-1.5 py-0.5">{a.status}</code>.
+          <p className="mt-2 text-sm text-amber-800">
+            Status atual: <code className="rounded bg-amber-100 px-1.5 py-0.5">{ASSESSMENT_STATUS_LABEL[a.status]}</code>.
           </p>
           <Link
             href={`/nr01/avaliacao/${a.id}`}
-            className="mt-4 inline-block text-sm font-medium text-yellow-900 underline hover:text-yellow-950"
+            className="mt-4 inline-block text-sm font-medium text-amber-900 underline hover:text-amber-950"
           >
             ← Voltar à avaliação
           </Link>

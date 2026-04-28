@@ -7,6 +7,9 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
+  ASSESSMENT_STATUS_COLOR,
+  ASSESSMENT_STATUS_LABEL,
+  NR01_DIMENSION_LABEL,
   Nr01Assessment,
   Nr01AssessmentResult,
   Nr01DimensionScore,
@@ -62,6 +65,10 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const publicStatusUrl = activeToken ? `${appUrl}/nr01/status/${activeToken.token}` : null
 
+  const pctFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
+  const oneDecFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  const twoDecFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
@@ -69,7 +76,10 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
           <p className="text-xs uppercase tracking-wide text-zinc-500">{a.companies?.name ?? '—'}</p>
           <h1 className="text-2xl font-bold text-zinc-900">{a.name}</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Status <code className="rounded bg-zinc-100 px-1.5 py-0.5">{a.status}</code> ·
+            Status{' '}
+            <span className={`rounded-full px-2 py-0.5 text-xs ${ASSESSMENT_STATUS_COLOR[a.status]}`}>
+              {ASSESSMENT_STATUS_LABEL[a.status]}
+            </span>{' '}·
             Modalidade <code className="ml-1 rounded bg-zinc-100 px-1.5 py-0.5">{a.modality}</code> ·
             Instrumento <code className="ml-1 rounded bg-zinc-100 px-1.5 py-0.5">{a.instrument_version}</code>
           </p>
@@ -89,14 +99,14 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
           </div>
           {a.expected_respondents > 0 && (
             <div className="mt-1 text-xs text-zinc-500">
-              {((totalResponses / a.expected_respondents) * 100).toFixed(0)}% dos esperados
+              {pctFmt.format((totalResponses / a.expected_respondents) * 100)}% dos esperados
             </div>
           )}
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4">
           <div className="text-xs uppercase tracking-wide text-zinc-500">ISO global</div>
           <div className="mt-1 text-3xl font-semibold text-zinc-900">
-            {r?.iso_score?.toFixed(1) ?? '—'}
+            {r?.iso_score != null ? oneDecFmt.format(r.iso_score) : '—'}
           </div>
           {r?.iso_risk_level && (
             <span className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${RISK_LEVEL_COLOR[r.iso_risk_level]}`}>
@@ -123,14 +133,14 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
 
       {/* Link de coleta */}
       {(a.status === 'CRIADO' || a.status === 'COLETANDO') && (
-        <section className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-start justify-between gap-4">
-            <div className="text-sm text-orange-900">
+            <div className="text-sm text-amber-900">
               <strong>Link público de coleta</strong>
-              <div className="mt-1 break-all font-mono text-xs text-orange-700">
+              <div className="mt-1 break-all font-mono text-xs text-amber-700">
                 {collectionUrl}
               </div>
-              <div className="mt-2 text-xs text-orange-800">
+              <div className="mt-2 text-xs text-amber-800">
                 Anônimo. Compartilhe com os trabalhadores via e-mail, QR code ou WhatsApp.
               </div>
             </div>
@@ -139,7 +149,7 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
                 <input type="hidden" name="assessment_id" value={a.id} />
                 <button
                   type="submit"
-                  className="rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+                  className="rounded-lg bg-blue-800 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-900"
                 >
                   Abrir coleta
                 </button>
@@ -150,7 +160,7 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
                 <input type="hidden" name="assessment_id" value={a.id} />
                 <button
                   type="submit"
-                  className="rounded-lg border border-orange-600 px-3 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100"
+                  className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100"
                 >
                   Encerrar coleta
                 </button>
@@ -240,12 +250,12 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
               <tbody className="divide-y divide-zinc-100">
                 {ds.map((d) => (
                   <tr key={d.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3 text-zinc-900">{d.dimension_code}</td>
+                    <td className="px-4 py-3 text-zinc-900">{NR01_DIMENSION_LABEL[d.dimension_code]}</td>
                     <td className="px-4 py-3 font-mono text-zinc-900">
-                      {d.score_pct?.toFixed(1) ?? '—'}
+                      {d.score_pct != null ? oneDecFmt.format(d.score_pct) : '—'}
                     </td>
                     <td className="px-4 py-3 font-mono text-zinc-700">
-                      {d.mean_likert?.toFixed(2) ?? '—'}
+                      {d.mean_likert != null ? twoDecFmt.format(d.mean_likert) : '—'}
                     </td>
                     <td className="px-4 py-3 text-zinc-700">{d.n_respondents}</td>
                     <td className="px-4 py-3">

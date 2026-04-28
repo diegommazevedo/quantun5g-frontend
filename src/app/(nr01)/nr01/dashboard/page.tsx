@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
+  ASSESSMENT_STATUS_COLOR,
+  ASSESSMENT_STATUS_LABEL,
   Nr01Assessment,
   Nr01AssessmentResult,
   RISK_LEVEL_LABEL,
@@ -37,6 +39,9 @@ export default async function Nr01DashboardPage() {
 
   const rows = (data ?? []) as unknown as Row[]
 
+  const pctFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
+  const oneDecFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
   return (
     <div className="space-y-8">
       <div className="flex items-end justify-between">
@@ -48,7 +53,7 @@ export default async function Nr01DashboardPage() {
         </div>
         <Link
           href="/nr01/avaliacao/nova"
-          className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+          className="rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
         >
           + Nova avaliação
         </Link>
@@ -95,15 +100,15 @@ export default async function Nr01DashboardPage() {
                     </td>
                     <td className="px-4 py-3 text-zinc-700">{r.companies?.name ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700">
-                        {r.status}
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${ASSESSMENT_STATUS_COLOR[r.status]}`}>
+                        {ASSESSMENT_STATUS_LABEL[r.status]}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
-                      {adh != null ? `${adh.toFixed(0)}%` : '—'}
+                      {adh != null ? `${pctFmt.format(adh)}%` : '—'}
                     </td>
                     <td className="px-4 py-3 font-mono text-zinc-900">
-                      {iso != null ? iso.toFixed(1) : '—'}
+                      {iso != null ? oneDecFmt.format(iso) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${RISK_LEVEL_COLOR[level]}`}>
@@ -125,7 +130,7 @@ export default async function Nr01DashboardPage() {
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/nr01/avaliacao/${r.id}`}
-                        className="text-orange-600 hover:text-orange-800"
+                        className="text-blue-800 hover:text-blue-900"
                       >
                         Abrir →
                       </Link>
@@ -138,7 +143,7 @@ export default async function Nr01DashboardPage() {
         </div>
       )}
 
-      <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
         <strong>Janela regulatória.</strong> A vigência punitiva da exigência de avaliação
         de FRPRT começa em 26/05/2026. Empresas sem PGR atualizado com FRPRT estão sujeitas
         a multa por trabalhador exposto (R$ 1.610,12 a R$ 6.708,08).

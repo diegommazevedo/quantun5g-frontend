@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
+  NR01_DIMENSION_LABEL,
   Nr01ActionItem,
   Nr01ActionPlan,
   Nr01ActionStatus,
@@ -48,7 +49,7 @@ const STATUS_COLOR: Record<Nr01ActionStatus, string> = {
 
 const PRIORITY_COLOR: Record<'P1' | 'P2' | 'P3', string> = {
   P1: 'bg-red-600 text-white',
-  P2: 'bg-yellow-500 text-zinc-900',
+  P2: 'bg-amber-100 text-amber-800',
   P3: 'bg-zinc-400 text-white',
 }
 
@@ -180,7 +181,7 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
       {/* Ações de plano */}
       <section className="flex flex-wrap gap-3">
         {scores.length === 0 ? (
-          <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Processe os resultados antes de construir o plano de ação.
           </div>
         ) : (
@@ -233,7 +234,7 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
               >
                 <option value="">— escolha —</option>
                 {NR01_DIMENSION_CODES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>{NR01_DIMENSION_LABEL[c]}</option>
                 ))}
               </select>
             </div>
@@ -308,7 +309,7 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
             <div className="md:col-span-2">
               <button
                 type="submit"
-                className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+                className="rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
               >
                 Adicionar
               </button>
@@ -334,7 +335,7 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
             return (
               <section key={dimCode} className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
                 <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-4 py-3">
-                  <h2 className="text-sm font-semibold text-zinc-900">{dimCode}</h2>
+                  <h2 className="text-sm font-semibold text-zinc-900">{NR01_DIMENSION_LABEL[dimCode]}</h2>
                   {score && (
                     <div className="flex items-center gap-2 text-xs">
                       <span className="text-zinc-500">

@@ -253,7 +253,7 @@ export default async function NovaAvaliacaoNr01Page({ searchParams }: Props) {
         <div className="flex items-center gap-4 pt-2">
           <button
             type="submit"
-            className="rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-700"
+            className="rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-900"
           >
             Criar avaliação
           </button>
