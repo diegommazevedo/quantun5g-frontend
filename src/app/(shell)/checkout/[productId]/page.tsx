@@ -3,15 +3,16 @@
  * Rota: /checkout/[productId]
  *
  * Server component que:
- *  - Valida o productId via registry
- *  - Lista os planos ativos do produto (do banco)
- *  - Renderiza o formulário de checkout (client) com os dados do user
+ *  - Valida o productId via banco (tabela `products`) — não usa o
+ *    registry para suportar produtos sem subdomínio dedicado, como
+ *    `livro_pentagrama`.
+ *  - Lista os planos ativos do produto.
+ *  - Renderiza o formulário de checkout (client) com os dados do user.
  */
 
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getProductById } from '@/lib/products/registry'
-import type { ProductPlan } from '@/types/database'
+import type { Product, ProductPlan } from '@/types/database'
 import { CheckoutForm } from './checkout-form'
 
 export const dynamic = 'force-dynamic'
@@ -25,10 +26,19 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
   const { productId } = await params
   const { plan: planQuery } = await searchParams
 
-  const product = getProductById(productId)
-  if (!product) notFound()
-
   const supabase = await createClient()
+
+  // Valida o produto via banco — fonte de verdade.
+  const { data: productRow } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', productId)
+    .eq('active', true)
+    .maybeSingle()
+
+  if (!productRow) notFound()
+  const product = productRow as Product
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=/checkout/${productId}`)
 

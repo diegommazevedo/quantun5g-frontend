@@ -32,7 +32,9 @@ export const PRODUCTS: Record<ProductId, Product> = {
     subdomain: 'nr01',
     description: 'Avaliação técnica de fatores psicossociais conforme NR-01.',
     paywallPath: '/paywall/nr01',
-    appPath: '/nr01/dashboard',
+    // appPath é o que o user vê na URL no subdomínio nr01.
+    // O rewrite em next.config.ts traduz para o path real /nr01/dashboard.
+    appPath: '/dashboard',
   },
 }
 

@@ -19,21 +19,50 @@ const nextConfig: NextConfig = {
     ]
   },
   /**
-   * P021 — extensão futura para rewrites por subdomínio.
+   * P021 — rewrites por subdomínio (UX limpa de URL).
    *
-   * A arquitetura dual usa um único deploy Vercel servindo
-   * quantum5g.app + pentagrama.quantum5g.app + nr01.quantum5g.app.
-   * Atualmente o gating é 100% feito pelo proxy (src/proxy.ts) e os
-   * caminhos das rotas continuam logicamente separados (`/diagnostico`
-   * para Pentagrama, `/nr01/dashboard` para NR-01).
+   * Para NR-01 (`nr01.quantum5g.app`), rewrita os paths visíveis ao
+   * usuário (`/dashboard`, `/avaliacao/...`, etc.) para os paths reais
+   * do app (`/nr01/dashboard`, `/nr01/avaliacao/...`).
    *
-   * Quando a equipe decidir uniformizar URLs (ex.: `nr01./dashboard`
-   * → `/nr01/dashboard`), adicionar regras aqui usando `has` matcher
-   * com `host`. Mantido vazio por ora para evitar acoplamento de URL
-   * antes da decisão de produto.
+   * Para Pentagrama (`pentagrama.quantum5g.app`), os paths reais já
+   * vivem na raiz (`/dashboard`, `/diagnostico/...`) — sem rewrite.
+   *
+   * Importante:
+   *   - Rewrites NÃO se aplicam a paths compartilhados do shell
+   *     (`/checkout`, `/paywall`, `/login`, `/institucional`,
+   *     `/api/billing`, `/api/auth`) porque os `source` abaixo são
+   *     explícitos e não casam com esses prefixos.
+   *   - O proxy (src/proxy.ts) faz o gating por assinatura ANTES do
+   *     rewrite, então a verificação acontece no path original visto
+   *     pelo browser.
+   *   - Em dev (localhost), rewrites não disparam porque `has: host`
+   *     exige hostname literal — usar `/nr01/...` direto em dev.
    */
   async rewrites() {
-    return []
+    const NR01_HOST = 'nr01.quantum5g.app'
+    return [
+      {
+        source: '/dashboard',
+        has: [{ type: 'host', value: NR01_HOST }],
+        destination: '/nr01/dashboard',
+      },
+      {
+        source: '/avaliacao/:path*',
+        has: [{ type: 'host', value: NR01_HOST }],
+        destination: '/nr01/avaliacao/:path*',
+      },
+      {
+        source: '/coleta/:path*',
+        has: [{ type: 'host', value: NR01_HOST }],
+        destination: '/nr01/coleta/:path*',
+      },
+      {
+        source: '/status/:path*',
+        has: [{ type: 'host', value: NR01_HOST }],
+        destination: '/nr01/status/:path*',
+      },
+    ]
   },
 };
 

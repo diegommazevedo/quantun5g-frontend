@@ -18,6 +18,10 @@ import { PRODUCTS } from '@/lib/products/registry'
 import { hasActiveSubscriptionForRequest } from '@/lib/billing/subscription'
 
 // Rotas públicas dentro de qualquer subdomínio (não exigem assinatura).
+//   /coleta e /status: questionário público anônimo do NR-01 (token-based).
+//     Note: o proxy roda ANTES do rewrite do next.config, então o
+//     path comparado aqui é o que o browser vê (`/coleta/Y` no
+//     subdomínio nr01), não o path interno (`/nr01/coleta/Y`).
 const SUBDOMAIN_PUBLIC_PREFIXES = [
   '/lp',
   '/checkout',
@@ -26,6 +30,8 @@ const SUBDOMAIN_PUBLIC_PREFIXES = [
   '/institucional',
   '/api/billing',
   '/api/auth',
+  '/coleta',
+  '/status',
 ]
 
 export async function proxy(request: NextRequest) {
