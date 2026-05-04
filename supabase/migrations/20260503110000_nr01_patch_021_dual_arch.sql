@@ -33,11 +33,17 @@ CREATE TABLE IF NOT EXISTS products (
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 
+-- subdomain do livro: 'livro' é placeholder (não há DNS dedicado).
+-- O livro é vendido via CTA na landing institucional, não via subdomínio
+-- próprio. O registry em src/lib/products/registry.ts NÃO inclui o livro
+-- por isso (não aparece como card no apex shell).
 INSERT INTO products (id, name, subdomain, description) VALUES
   ('pentagrama', 'Pentagrama de Ginger', 'pentagrama',
    'Diagnóstico organizacional via método Pentagrama de Ginger.'),
   ('nr01', 'Quantum5G NR-01', 'nr01',
-   'Avaliação técnica de fatores psicossociais conforme NR-01.')
+   'Avaliação técnica de fatores psicossociais conforme NR-01.'),
+  ('livro_pentagrama', 'Livro · O Pentagrama de Ginger', 'livro',
+   'Livro físico/digital do método Pentagrama de Ginger por Jovane Borlini.')
 ON CONFLICT (id) DO NOTHING;
 
 
@@ -68,6 +74,27 @@ VALUES
   ('nr01_corporativo', 'nr01', 'Corporativo', 500, NULL,  6000000, 'annual',  4, true)
 ON CONFLICT (id) DO NOTHING;
 
+-- ============================================================
+-- TODO_RT_PENTAGRAMA: validar preços/modalidade/assessments antes
+-- de virar active=true. Três decisões pendentes para Diego + Jovane
+-- em call dedicada:
+--
+--   (1) PREÇOS: os valores abaixo (R$ 2.400 / 4.800 / 16.800 / 48.000)
+--       são especulação inicial sem fundamento metodológico.
+--       Pentagrama pode ter ticket maior, menor ou modelo diferente
+--       do NR-01.
+--
+--   (2) MODALIDADE: Pentagrama é venda transacional (uma vez,
+--       diagnóstico finito) ou recorrente (consultoria contínua de
+--       cultura)? Resposta muda o produto inteiro.
+--
+--   (3) ASSESSMENTS_PER_PERIOD: três modelos possíveis —
+--       (a) 1/2/4 igual ao NR-01;
+--       (b) 1 diagnóstico inicial + N pulsos contínuos;
+--       (c) diagnósticos ilimitados em janela.
+--
+-- Após validação, fazer UPDATE manual no banco (NÃO precisa novo patch).
+-- ============================================================
 -- Seed: 4 tiers do Pentagrama — PROPOSTA, AGUARDA VALIDAÇÃO RT (Jovane).
 -- Inativos por padrão (active=false) até confirmação dos preços/limites.
 INSERT INTO product_plans
@@ -78,6 +105,19 @@ VALUES
   ('pent_operacional', 'pentagrama', 'Operacional',  20,   99,   480000, 'one_off', 1, false),
   ('pent_estruturado', 'pentagrama', 'Estruturado', 100,  499,  1680000, 'annual',  2, false),
   ('pent_corporativo', 'pentagrama', 'Corporativo', 500, NULL,  4800000, 'annual',  4, false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed: livro do Pentagrama — preço VALIDADO por Diego (R$ 67), entra
+-- ativo direto. collaborators_min=1 / max=null pois não se aplica.
+-- assessments_per_period=0 (livro não inclui diagnóstico).
+-- Pós-compra: o webhook ativa subscription; o fluxo de download/envio
+-- do livro é responsabilidade futura (não escopo do P021).
+INSERT INTO product_plans
+  (id, product_id, name, collaborators_min, collaborators_max,
+   price_cents, modality, assessments_per_period, active)
+VALUES
+  ('livro_unico', 'livro_pentagrama', 'Livro O Pentagrama de Ginger',
+   1, NULL, 6700, 'one_off', 0, true)
 ON CONFLICT (id) DO NOTHING;
 
 
