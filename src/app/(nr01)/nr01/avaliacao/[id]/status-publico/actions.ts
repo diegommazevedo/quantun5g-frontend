@@ -14,7 +14,6 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { randomBytes } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
-import type { Nr01PublicStatusToken } from '@/types/nr01'
 
 async function ensureOwnership(assessmentId: string) {
   const supabase = await createClient()
@@ -96,6 +95,3 @@ export async function revogarTokenStatusPublico(formData: FormData) {
   revalidatePath(`/nr01/avaliacao/${assessmentId}`)
   redirect(`/nr01/avaliacao/${assessmentId}?status=link_revogado`)
 }
-
-// Tipo exportado para uso na UI sem importar diretamente do types
-export type { Nr01PublicStatusToken }
