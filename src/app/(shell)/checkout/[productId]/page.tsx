@@ -11,8 +11,10 @@
  */
 
 import { notFound, redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import type { Product, ProductPlan } from '@/types/database'
+import { getActivePlansForProduct, getProductForCheckout } from '@/lib/billing/catalog'
+import type { ProductPlan } from '@/types/database'
 import { CheckoutForm } from './checkout-form'
 
 export const dynamic = 'force-dynamic'
@@ -26,30 +28,14 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
   const { productId } = await params
   const { plan: planQuery } = await searchParams
 
+  const product = await getProductForCheckout(productId)
+  if (!product) notFound()
+
   const supabase = await createClient()
-
-  // Valida o produto via banco — fonte de verdade.
-  const { data: productRow } = await supabase
-    .from('products')
-    .select('*')
-    .eq('id', productId)
-    .eq('active', true)
-    .maybeSingle()
-
-  if (!productRow) notFound()
-  const product = productRow as Product
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=/checkout/${productId}`)
 
-  const { data: plansData } = await supabase
-    .from('product_plans')
-    .select('*')
-    .eq('product_id', productId)
-    .eq('active', true)
-    .order('price_cents', { ascending: true })
-
-  const plans = (plansData ?? []) as ProductPlan[]
+  const plans = await getActivePlansForProduct(productId)
 
   if (plans.length === 0) {
     return (
@@ -59,9 +45,15 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
             {product.name}
           </h1>
           <p className="mt-4 text-sm text-slate-600">
-            Não há planos disponíveis no momento. Entre em contato para
-            uma proposta personalizada.
+            Não há planos disponíveis para contratação online neste momento. Entre em
+            contacto para uma proposta personalizada.
           </p>
+          <Link
+            href="mailto:contato@quantum5g.com.br?subject=Proposta%20Quantum5G"
+            className="mt-6 inline-flex rounded-md border border-slate-900 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-100"
+          >
+            Pedir proposta
+          </Link>
         </div>
       </main>
     )

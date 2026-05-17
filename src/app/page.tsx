@@ -26,7 +26,7 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic'
 
-const APP_DOMAIN = 'quantum5g.app'
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN?.trim() || 'quantun5g.app'
 
 export default async function ApexShell() {
   const supabase = await createClient()
@@ -77,7 +77,9 @@ function ProductCard({
 }) {
   const productUrl =
     process.env.NODE_ENV === 'production'
-      ? `https://${product.subdomain}.${APP_DOMAIN}${product.appPath}`
+      ? product.appPath.startsWith('http')
+        ? product.appPath
+        : `https://${product.subdomain}.${APP_DOMAIN}${product.appPath}`
       : `${product.appPath}?subdomain=${product.subdomain}`
 
   return (

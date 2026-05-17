@@ -10,7 +10,7 @@
 import type { NextRequest } from 'next/server'
 import { type ProductId, getProductBySubdomain } from '@/lib/products/registry'
 
-export const APP_DOMAIN = 'quantum5g.app'
+export const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN?.trim() || 'quantun5g.app'
 
 export function detectSubdomainFromHost(
   host: string | null | undefined,

@@ -9,7 +9,7 @@
 
 import type { CookieOptions } from '@supabase/ssr'
 
-export const COOKIE_DOMAIN = '.quantum5g.app'
+export const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN?.trim() || '.quantun5g.app'
 
 /**
  * Aplica domain=.quantum5g.app apenas em produção.
