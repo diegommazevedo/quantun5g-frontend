@@ -3,7 +3,7 @@
 export const LP_NR01_TARGET_DATE = new Date('2026-05-26T23:59:59-03:00')
 
 export const JOVANE_CRP_LABEL =
-  process.env.NEXT_PUBLIC_JOVANE_CRP?.trim() || 'CRP em divulgação — número oficial a confirmar'
+  process.env.NEXT_PUBLIC_JOVANE_CRP?.trim() || 'CRP 16/4948'
 
 export type LpContentItem = {
   id: string
