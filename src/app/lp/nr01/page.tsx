@@ -5,7 +5,7 @@ import { FAQ } from '@/components/lp/FAQ'
 import { FinalCTA } from '@/components/lp/FinalCTA'
 import { Hero } from '@/components/lp/Hero'
 import { JovaneManifesto } from '@/components/lp/JovaneManifesto'
-import { LeadCaptureForm } from '@/components/lp/LeadCaptureForm'
+import { QualificationWizard } from '@/components/lp/QualificationWizard'
 import { Methodology5Pillars } from '@/components/lp/Methodology5Pillars'
 import { PackageTrino } from '@/components/lp/PackageTrino'
 import { PricingTiers } from '@/components/lp/PricingTiers'
@@ -28,7 +28,7 @@ export default function LpNr01Page() {
       <ContentLibrary />
       <PricingTiers />
       <Calculator />
-      <LeadCaptureForm />
+      <QualificationWizard />
       <FAQ />
       <FinalCTA />
       <footer className="border-t border-white/10 px-4 py-10 text-center text-xs sm:text-sm" style={{ backgroundColor: BG, color: TEXT }}>
