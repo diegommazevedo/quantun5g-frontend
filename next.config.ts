@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['recharts', 'groq-sdk', 'openai'],
   },
+  async redirects() {
+    return [{ source: "/lgpd", destination: "/privacidade", permanent: true }];
+  },
 };
 
 export default nextConfig;
