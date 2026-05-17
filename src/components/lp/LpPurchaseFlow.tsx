@@ -37,7 +37,12 @@ export function LpPurchaseFlow() {
 
   return (
     <>
-      <ScaleCalculator onScaleChange={handleScaleChange} />
+      <ScaleCalculator
+        onScaleChange={handleScaleChange}
+        onContinue={() => {
+          document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }}
+      />
       <PlanPicker
         recommendedTier={scale?.tier ?? null}
         collaborators={scale?.collaborators ?? null}
