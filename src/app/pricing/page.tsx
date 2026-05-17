@@ -86,7 +86,7 @@ const PLANOS = [
       'SLA garantido',
     ],
     cta: 'Falar com especialista',
-    href: 'mailto:contato@quantum5g.com.br',
+    href: 'mailto:contato@quantun5g.com',
   },
 ]
 
@@ -217,8 +217,8 @@ export default function PricingPage() {
           <p>Metodologia desenvolvida por Jovane Borlini da Silva</p>
           <div className="flex items-center gap-4">
             <Link href="/login" className="hover:text-zinc-300 transition-colors">Entrar</Link>
-            <a href="mailto:contato@quantum5g.com.br" className="hover:text-zinc-300 transition-colors">
-              contato@quantum5g.com.br
+            <a href="mailto:contato@quantun5g.com" className="hover:text-zinc-300 transition-colors">
+              contato@quantun5g.com
             </a>
           </div>
         </div>
