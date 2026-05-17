@@ -1,108 +1,98 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 
 const BG = '#0B1A2F'
 const ACCENT = '#B8945A'
 const TEXT = '#F5F1EA'
 const ALERT = '#B8423E'
 
-type Step = 1 | 2 | 3 | 4 | 'result'
+type Step = 1 | 2
 
 type HeadcountBand = 'up_to_20' | '20_99' | '100_499' | '500_plus'
-type BudgetExpectation =
-  | 'up_to_3000'
-  | '3000_6000'
-  | '6000_25000'
-  | 'above_25000'
-  | 'prefer_proposal'
-
 type WizardTier = 'Essencial' | 'Operacional' | 'Estruturado' | 'Corporativo'
 
-type ResultMode = 'low_ticket' | 'high_ticket' | 'incompatible'
-
-const HEADCOUNT_OPTIONS: { id: HeadcountBand; label: string; collaborators: number }[] = [
-  { id: 'up_to_20', label: 'Até 20 colaboradores', collaborators: 15 },
-  { id: '20_99', label: '20 a 99 colaboradores', collaborators: 60 },
-  { id: '100_499', label: '100 a 499 colaboradores', collaborators: 250 },
-  { id: '500_plus', label: '500 ou mais colaboradores', collaborators: 500 },
+const HEADCOUNT_OPTIONS: {
+  id: HeadcountBand
+  label: string
+  collaborators: number
+  tier: WizardTier
+}[] = [
+  { id: 'up_to_20', label: 'Até 20 colaboradores', collaborators: 15, tier: 'Essencial' },
+  { id: '20_99', label: '20 a 99 colaboradores', collaborators: 60, tier: 'Operacional' },
+  { id: '100_499', label: '100 a 499 colaboradores', collaborators: 250, tier: 'Estruturado' },
+  { id: '500_plus', label: '500 ou mais colaboradores', collaborators: 500, tier: 'Corporativo' },
 ]
 
-const URGENCY_OPTIONS: { id: string; label: string }[] = [
-  { id: 'not_started', label: 'Ainda não começámos — precisamos agir antes de 26/05' },
-  { id: 'started_incomplete', label: 'Já temos algo iniciado mas não está completo' },
-  { id: 'understand_needs', label: 'Queremos entender o que precisamos fazer' },
-  { id: 'evaluating_vendors', label: 'Estamos a avaliar fornecedores' },
-]
-
-const BUDGET_OPTIONS: { id: BudgetExpectation; label: string }[] = [
-  { id: 'up_to_3000', label: 'Até R$ 3.000' },
-  { id: '3000_6000', label: 'Entre R$ 3.000 e R$ 6.000' },
-  { id: '6000_25000', label: 'Entre R$ 6.000 e R$ 25.000' },
-  { id: 'above_25000', label: 'Acima de R$ 25.000' },
-  { id: 'prefer_proposal', label: 'Prefiro receber uma proposta antes de decidir' },
-]
-
-const TIER_META: Record<WizardTier, { price: string; period: string; priceValue: number }> = {
-  Essencial: { price: 'R$ 2.800', period: 'pagamento único', priceValue: 2800 },
-  Operacional: { price: 'R$ 5.500', period: 'pagamento único', priceValue: 5500 },
-  Estruturado: { price: 'R$ 19.600', period: '/ano', priceValue: 19600 },
-  Corporativo: { price: 'R$ 60.000', period: '/ano', priceValue: 60000 },
+const TIER_OFFERS: Record<
+  WizardTier,
+  {
+    planId: string
+    price: string
+    period: string
+    modality: string
+    includes: string[]
+  }
+> = {
+  Essencial: {
+    planId: 'nr01_essencial',
+    price: 'R$ 2.800',
+    period: 'pagamento único',
+    modality: 'Projeto fechado · 1 ciclo de avaliação',
+    includes: [
+      'Coleta anônima NR-01 (fatores psicossociais)',
+      'Laudo técnico em PDF',
+      'Plano de ação PDCA base',
+      'Dashboard do consultor',
+    ],
+  },
+  Operacional: {
+    planId: 'nr01_operacional',
+    price: 'R$ 5.500',
+    period: 'pagamento único',
+    modality: 'Projeto fechado · 1 ciclo de avaliação',
+    includes: [
+      'Tudo do Essencial',
+      'Pacote de evidências com hashes SHA-256',
+      'Audit log imutável para fiscalização',
+      'Suporte na implantação',
+    ],
+  },
+  Estruturado: {
+    planId: 'nr01_estruturado',
+    price: 'R$ 19.600',
+    period: 'por ano',
+    modality: 'Assinatura anual · 2 ciclos de avaliação',
+    includes: [
+      'Tudo do Operacional',
+      'Monitoramento contínuo (pulsos)',
+      'Relatórios periódicos para SST',
+      'k-anonymity configurável por avaliação',
+    ],
+  },
+  Corporativo: {
+    planId: 'nr01_corporativo',
+    price: 'R$ 60.000',
+    period: 'por ano',
+    modality: 'Assinatura anual · 4 ciclos de avaliação',
+    includes: [
+      'Tudo do Estruturado',
+      'Volume elevado e multi-equipe',
+      'Prioridade na fila de implantação',
+      'Evidências prontas para auditoria',
+    ],
+  },
 }
-
-const JOVANE_MAILTO =
-  'mailto:contato@quantun5g.com?subject=NR-01%20%E2%80%94%20proposta%20personalizada'
 
 const STEP_ANIMATION =
   'mt-8 motion-safe:animate-[wizardFade_0.35s_ease-out] motion-reduce:transition-none'
 
 function tierFromBand(band: HeadcountBand): WizardTier {
-  switch (band) {
-    case 'up_to_20':
-      return 'Essencial'
-    case '20_99':
-      return 'Operacional'
-    case '100_499':
-      return 'Estruturado'
-    case '500_plus':
-      return 'Corporativo'
-  }
+  return HEADCOUNT_OPTIONS.find((o) => o.id === band)!.tier
 }
 
-function budgetCeiling(budget: BudgetExpectation): number {
-  switch (budget) {
-    case 'up_to_3000':
-      return 3000
-    case '3000_6000':
-      return 6000
-    case '6000_25000':
-      return 25000
-    case 'above_25000':
-      return Infinity
-    case 'prefer_proposal':
-      return 0
-  }
-}
-
-function resolveResultMode(
-  band: HeadcountBand,
-  tier: WizardTier,
-  budget: BudgetExpectation,
-): ResultMode {
-  if (band === '500_plus' && budget === 'up_to_3000') return 'incompatible'
-  if (budget === 'prefer_proposal' || tier === 'Estruturado' || tier === 'Corporativo') {
-    return 'high_ticket'
-  }
-  const ceiling = budgetCeiling(budget)
-  if (TIER_META[tier].priceValue <= ceiling) return 'low_ticket'
-  return 'high_ticket'
-}
-
-function buildUtmContent(urgency: string, budget: BudgetExpectation): string {
-  return JSON.stringify({
-    wizard_urgency: urgency,
-    wizard_budget_expectation: budget,
-  })
+function buildUtmContent(band: HeadcountBand, tier: WizardTier): string {
+  return JSON.stringify({ wizard_band: band, wizard_tier: tier })
 }
 
 function readUtmsFromUrl(): {
@@ -123,21 +113,16 @@ function readUtmsFromUrl(): {
 export function QualificationWizard() {
   const [step, setStep] = useState<Step>(1)
   const [transitionKey, setTransitionKey] = useState(0)
-
   const [headcount, setHeadcount] = useState<HeadcountBand | null>(null)
-  const [urgency, setUrgency] = useState<string | null>(null)
-  const [budget, setBudget] = useState<BudgetExpectation | null>(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [company, setCompany] = useState('')
-  const [phone, setPhone] = useState('')
   const [consent, setConsent] = useState(false)
+  const [acceptedOffer, setAcceptedOffer] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [submitted, setSubmitted] = useState(false)
-
   const [utms, setUtms] = useState<ReturnType<typeof readUtmsFromUrl>>({})
 
   useEffect(() => {
@@ -145,12 +130,7 @@ export function QualificationWizard() {
   }, [])
 
   const tier = useMemo(() => (headcount ? tierFromBand(headcount) : null), [headcount])
-
-  const resultMode = useMemo(() => {
-    if (!headcount || !budget || !tier) return null
-    return resolveResultMode(headcount, tier, budget)
-  }, [headcount, budget, tier])
-
+  const offer = tier ? TIER_OFFERS[tier] : null
   const collaboratorsCount = useMemo(
     () => HEADCOUNT_OPTIONS.find((o) => o.id === headcount)?.collaborators ?? null,
     [headcount],
@@ -162,22 +142,23 @@ export function QualificationWizard() {
     setError(null)
   }, [])
 
-  const goBack = useCallback(() => {
-    if (step === 2) goTo(1)
-    else if (step === 3) goTo(2)
-    else if (step === 4) goTo(3)
-  }, [step, goTo])
-
-  async function submitLead() {
-    if (!headcount || !urgency || !budget || !collaboratorsCount) return
+  async function submitAndCheckout(e: FormEvent) {
+    e.preventDefault()
+    if (!headcount || !tier || !offer || !collaboratorsCount) return
     setError(null)
+    if (!acceptedOffer) {
+      setError('Confirme que leu e aceita a oferta publicada antes de continuar.')
+      return
+    }
     if (!consent) {
       setError('É necessário aceitar o tratamento de dados para continuar.')
       return
     }
+
     setLoading(true)
+    const checkoutUrl = `/checkout/nr01?plan=${encodeURIComponent(offer.planId)}`
+
     try {
-      const utm_content = buildUtmContent(urgency, budget)
       const res = await fetch('/api/lp/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -185,28 +166,23 @@ export function QualificationWizard() {
           name: name.trim(),
           email: email.trim(),
           company: company.trim(),
-          phone: phone.trim() || undefined,
           collaborators_count: collaboratorsCount,
           consent_lgpd: true,
           source: 'lp_wizard',
           utm_source: utms.utm_source,
           utm_medium: utms.utm_medium,
           utm_campaign: utms.utm_campaign,
-          utm_content,
+          utm_content: buildUtmContent(headcount, tier),
         }),
       })
       const data = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(data.error || 'Não foi possível enviar.')
-      setSubmitted(true)
-      goTo('result')
+      if (!res.ok) throw new Error(data.error || 'Não foi possível validar os dados.')
+      window.location.href = checkoutUrl
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao enviar.')
-    } finally {
+      setError(err instanceof Error ? err.message : 'Erro ao continuar.')
       setLoading(false)
     }
   }
-
-  const progressLabel = step === 'result' ? null : `Etapa ${step} de 4`
 
   return (
     <section
@@ -216,102 +192,192 @@ export function QualificationWizard() {
     >
       <style>{`
         @keyframes wizardFade {
-          from { opacity: 0; transform: translateX(12px); }
+          from { opacity: 0; transform: translateX(8px); }
           to { opacity: 1; transform: translateX(0); }
         }
       `}</style>
-      <div className="mx-auto max-w-lg">
-        <h2 className="text-2xl font-bold sm:text-3xl">Descubra o plano NR-01 ideal</h2>
-        <p className="mt-2 text-sm opacity-90">
-          Responda em menos de 2 minutos. No final, mostramos o tier recomendado e o próximo passo.
+
+      <div className="mx-auto max-w-xl">
+        <h2 className="text-2xl font-bold sm:text-3xl">Contratar adequação NR-01</h2>
+        <p className="mt-2 text-sm leading-relaxed opacity-90">
+          Preços públicos e escopo fixo por porte. Sem proposta manual: você vê o plano, aceita a oferta e segue
+          para pagamento seguro (login + checkout).
         </p>
 
-        {progressLabel ? (
-          <div className="mt-8">
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: ACCENT }}>
-              {progressLabel}
-            </p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full transition-all duration-300 ease-out"
-                style={{
-                  backgroundColor: ACCENT,
-                  width: `${(Number(step) / 4) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
+        {step <= 2 ? (
+          <p className="mt-6 text-xs font-medium uppercase tracking-wider" style={{ color: ACCENT }}>
+            Passo {step} de 2
+          </p>
         ) : null}
 
         <div key={transitionKey} className={STEP_ANIMATION}>
           {step === 1 ? (
-            <StepOptions
-              question="Quantos colaboradores tem a sua empresa?"
-              options={HEADCOUNT_OPTIONS.map((o) => ({ id: o.id, label: o.label }))}
-              selected={headcount}
-              onSelect={(id) => {
-                setHeadcount(id as HeadcountBand)
-                goTo(2)
-              }}
-            />
+            <div>
+              <h3 className="mt-6 text-lg font-semibold">1. Qual o porte da sua empresa?</h3>
+              <p className="mt-1 text-sm opacity-80">
+                O plano e o preço são definidos automaticamente — sem análise comercial prévia.
+              </p>
+              <ul className="mt-5 space-y-3" role="listbox" aria-label="Porte da empresa">
+                {HEADCOUNT_OPTIONS.map((opt) => {
+                  const meta = TIER_OFFERS[opt.tier]
+                  const active = headcount === opt.id
+                  return (
+                    <li key={opt.id}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        onClick={() => {
+                          setHeadcount(opt.id)
+                          goTo(2)
+                        }}
+                        className="flex w-full flex-col rounded-xl border px-4 py-4 text-left transition"
+                        style={{
+                          borderColor: active ? ACCENT : 'rgba(255,255,255,0.15)',
+                          backgroundColor: active ? 'rgba(184,148,90,0.12)' : 'rgba(255,255,255,0.05)',
+                        }}
+                      >
+                        <span className="text-sm font-semibold sm:text-base">{opt.label}</span>
+                        <span className="mt-1 text-sm" style={{ color: ACCENT }}>
+                          {opt.tier} · {meta.price} · {meta.period}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
           ) : null}
 
-          {step === 2 ? (
-            <>
-              <StepOptions
-                question="Qual é a situação da sua empresa em relação à NR-01?"
-                options={URGENCY_OPTIONS}
-                selected={urgency}
-                onSelect={(id) => {
-                  setUrgency(id)
-                  goTo(3)
-                }}
-              />
-              <BackButton onClick={goBack} />
-            </>
-          ) : null}
+          {step === 2 && tier && offer && headcount ? (
+            <div className="space-y-6">
+              <button
+                type="button"
+                onClick={() => goTo(1)}
+                className="text-sm font-medium underline underline-offset-2 opacity-80"
+                style={{ color: ACCENT }}
+              >
+                ← Alterar porte
+              </button>
 
-          {step === 3 ? (
-            <>
-              <StepOptions
-                question="Qual é a sua expectativa de investimento para esta adequação?"
-                options={BUDGET_OPTIONS}
-                selected={budget}
-                onSelect={(id) => {
-                  setBudget(id as BudgetExpectation)
-                  goTo(4)
-                }}
-              />
-              <BackButton onClick={goBack} />
-            </>
-          ) : null}
+              <OfferCard tier={tier} offer={offer} />
 
-          {step === 4 ? (
-            <>
-              <ContactStep
-                name={name}
-                email={email}
-                company={company}
-                phone={phone}
-                consent={consent}
-                loading={loading}
-                error={error}
-                onNameChange={setName}
-                onEmailChange={setEmail}
-                onCompanyChange={setCompany}
-                onPhoneChange={setPhone}
-                onConsentChange={setConsent}
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  void submitLead()
-                }}
-              />
-              <BackButton onClick={goBack} />
-            </>
-          ) : null}
+              <GuaranteeBlock />
 
-          {step === 'result' && tier && resultMode ? (
-            <ResultScreen tier={tier} mode={resultMode} submitted={submitted} />
+              <form onSubmit={(e) => void submitAndCheckout(e)} className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-5">
+                <h3 className="text-lg font-semibold">2. Aceitar oferta e validar contacto</h3>
+                <p className="text-sm opacity-85">
+                  Só pedimos o essencial para emitir a cobrança e associar a sua empresa ao plano{' '}
+                  <strong>{tier}</strong>. No checkout pedimos CPF/CNPJ para o pagamento.
+                </p>
+
+                <label className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={acceptedOffer}
+                    onChange={(e) => setAcceptedOffer(e.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0"
+                    style={{ accentColor: ACCENT }}
+                  />
+                  <span>
+                    Li e aceito a oferta do plano <strong>{tier}</strong> ({offer.price} · {offer.period}) com o
+                    escopo listado acima, nos{' '}
+                    <a href="/termos" className="underline" style={{ color: ACCENT }}>
+                      termos de uso
+                    </a>
+                    .
+                  </span>
+                </label>
+
+                <div>
+                  <label className="block text-sm font-medium" htmlFor="wiz-email">
+                    Email corporativo *
+                  </label>
+                  <input
+                    id="wiz-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
+                    autoComplete="email"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium" htmlFor="wiz-company">
+                    Empresa *
+                  </label>
+                  <input
+                    id="wiz-company"
+                    required
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
+                    autoComplete="organization"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium" htmlFor="wiz-name">
+                    Nome do responsável *
+                  </label>
+                  <input
+                    id="wiz-name"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
+                    autoComplete="name"
+                  />
+                </div>
+
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0"
+                    style={{ accentColor: ACCENT }}
+                  />
+                  <span>
+                    Aceito o tratamento dos dados para contratação e contacto operacional, conforme a{' '}
+                    <a href="/privacidade" className="underline" style={{ color: ACCENT }}>
+                      política de privacidade
+                    </a>
+                    . *
+                  </span>
+                </label>
+
+                {error ? (
+                  <p className="text-sm" style={{ color: ALERT }}>
+                    {error}
+                  </p>
+                ) : null}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full min-h-[52px] rounded-lg font-semibold transition disabled:opacity-60"
+                  style={{ backgroundColor: ACCENT, color: BG }}
+                >
+                  {loading ? 'A redirecionar…' : `Continuar para pagamento — ${offer.price}`}
+                </button>
+
+                <p className="text-center text-xs opacity-70">
+                  Próximo passo: login (se necessário) e checkout seguro com valor{' '}
+                  <strong>{offer.price}</strong> ({offer.period}).
+                </p>
+              </form>
+
+              <p className="text-center text-xs opacity-60">
+                Não é o momento?{' '}
+                <a href="/lp/nr01/calculadora" className="underline" style={{ color: ACCENT }}>
+                  Simular outro cenário na calculadora
+                </a>{' '}
+                — sem compromisso.
+              </p>
+            </div>
           ) : null}
         </div>
       </div>
@@ -319,297 +385,57 @@ export function QualificationWizard() {
   )
 }
 
-function StepOptions({
-  question,
-  options,
-  selected,
-  onSelect,
+function OfferCard({
+  tier,
+  offer,
 }: {
-  question: string
-  options: { id: string; label: string }[]
-  selected: string | null
-  onSelect: (id: string) => void
+  tier: WizardTier
+  offer: (typeof TIER_OFFERS)[WizardTier]
 }) {
   return (
-    <div>
-      <h3 className="text-lg font-semibold leading-snug">{question}</h3>
-      <ul className="mt-6 space-y-3" role="listbox" aria-label={question}>
-        {options.map((opt) => {
-          const active = selected === opt.id
-          return (
-            <li key={opt.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={active}
-                onClick={() => onSelect(opt.id)}
-                className="flex min-h-[52px] w-full items-center rounded-xl border px-4 py-3 text-left text-sm font-medium transition sm:text-base"
-                style={{
-                  borderColor: active ? ACCENT : 'rgba(255,255,255,0.15)',
-                  backgroundColor: active ? 'rgba(184,148,90,0.15)' : 'rgba(255,255,255,0.05)',
-                  color: TEXT,
-                }}
-              >
-                {opt.label}
-              </button>
-            </li>
-          )
-        })}
+    <div
+      className="rounded-2xl border p-6"
+      style={{ borderColor: ACCENT, backgroundColor: 'rgba(184,148,90,0.08)' }}
+    >
+      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: ACCENT }}>
+        Oferta publicada · plano {tier}
+      </p>
+      <p className="mt-3">
+        <span className="text-3xl font-bold" style={{ color: ACCENT }}>
+          {offer.price}
+        </span>
+        <span className="ml-2 text-sm opacity-85">{offer.period}</span>
+      </p>
+      <p className="mt-2 text-sm opacity-90">{offer.modality}</p>
+      <ul className="mt-4 space-y-2 text-sm opacity-95">
+        {offer.includes.map((item) => (
+          <li key={item} className="flex gap-2">
+            <span style={{ color: ACCENT }} aria-hidden>
+              ✓
+            </span>
+            <span>{item}</span>
+          </li>
+        ))}
       </ul>
     </div>
   )
 }
 
-function ContactStep({
-  name,
-  email,
-  company,
-  phone,
-  consent,
-  loading,
-  error,
-  onNameChange,
-  onEmailChange,
-  onCompanyChange,
-  onPhoneChange,
-  onConsentChange,
-  onSubmit,
-}: {
-  name: string
-  email: string
-  company: string
-  phone: string
-  consent: boolean
-  loading: boolean
-  error: string | null
-  onNameChange: (v: string) => void
-  onEmailChange: (v: string) => void
-  onCompanyChange: (v: string) => void
-  onPhoneChange: (v: string) => void
-  onConsentChange: (v: boolean) => void
-  onSubmit: (e: FormEvent) => void
-}) {
-  const inputClass =
-    'mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white placeholder:text-white/40'
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <h3 className="text-lg font-semibold">Os seus dados de contacto</h3>
-      <p className="text-sm opacity-80">Última etapa — enviamos o resultado na hora.</p>
-      <div>
-        <label className="block text-sm font-medium" htmlFor="wiz-name">
-          Nome completo *
-        </label>
-        <input
-          id="wiz-name"
-          required
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          className={inputClass}
-          autoComplete="name"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium" htmlFor="wiz-email">
-          Email corporativo *
-        </label>
-        <input
-          id="wiz-email"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => onEmailChange(e.target.value)}
-          className={inputClass}
-          autoComplete="email"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium" htmlFor="wiz-company">
-          Empresa *
-        </label>
-        <input
-          id="wiz-company"
-          required
-          value={company}
-          onChange={(e) => onCompanyChange(e.target.value)}
-          className={inputClass}
-          autoComplete="organization"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium" htmlFor="wiz-phone">
-          Telefone / WhatsApp
-        </label>
-        <input
-          id="wiz-phone"
-          value={phone}
-          onChange={(e) => onPhoneChange(e.target.value)}
-          className={inputClass}
-          autoComplete="tel"
-        />
-      </div>
-      <label className="flex items-start gap-3 text-sm">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={(e) => onConsentChange(e.target.checked)}
-          className="mt-1 h-4 w-4 shrink-0 rounded border-white/30"
-          style={{ accentColor: ACCENT }}
-        />
-        <span>
-          Aceito o tratamento dos meus dados para contacto comercial, nos termos da{' '}
-          <a href="/privacidade" className="underline underline-offset-2" style={{ color: ACCENT }}>
-            política de privacidade
-          </a>{' '}
-          e dos{' '}
-          <a href="/termos" className="underline underline-offset-2" style={{ color: ACCENT }}>
-            termos de uso
-          </a>
-          . *
-        </span>
-      </label>
-      {error ? (
-        <p className="text-sm" style={{ color: ALERT }}>
-          {error}
-        </p>
-      ) : null}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full min-h-[52px] rounded-lg font-semibold transition disabled:opacity-60"
-        style={{ backgroundColor: ACCENT, color: BG }}
-      >
-        {loading ? 'A analisar…' : 'Ver o meu plano recomendado'}
-      </button>
-    </form>
-  )
-}
-
-function ResultScreen({
-  tier,
-  mode,
-  submitted,
-}: {
-  tier: WizardTier
-  mode: ResultMode
-  submitted: boolean
-}) {
-  const meta = TIER_META[tier]
-
-  if (mode === 'incompatible') {
-    return (
-      <div className="space-y-6">
-        <h3 className="text-xl font-bold">Proposta com escopo ajustado</h3>
-        <p className="text-sm leading-relaxed opacity-90">
-          Pelo porte da sua operação, o investimento típico está acima da expectativa que indicou. Podemos preparar
-          uma proposta com escopo ajustado.
-        </p>
-        <PrimaryButton href={JOVANE_MAILTO}>Receber proposta personalizada</PrimaryButton>
-        {submitted ? <SubmittedNote /> : null}
-      </div>
-    )
-  }
-
-  if (mode === 'high_ticket') {
-    return (
-      <div className="space-y-6">
-        <TierCard tier={tier} price={meta.price} period={meta.period} highlight />
-        <p className="text-sm leading-relaxed opacity-90">
-          Pelo porte e complexidade da sua operação, preparamos uma proposta detalhada com escopo, cronograma e
-          condições específicas para a sua empresa.
-        </p>
-        <PrimaryButton href={JOVANE_MAILTO}>Quero uma proposta personalizada</PrimaryButton>
-        <SecondaryButton href={JOVANE_MAILTO}>Falar com Jovane Borlini</SecondaryButton>
-        {submitted ? <SubmittedNote /> : null}
-      </div>
-    )
-  }
-
-  return (
-    <div id="checkout" className="scroll-mt-24 space-y-6">
-      <TierCard tier={tier} price={meta.price} period={meta.period} highlight />
-      <PrimaryButton href="#checkout">Contratar agora</PrimaryButton>
-      <SecondaryButton href={JOVANE_MAILTO}>Tenho dúvidas — falar com consultor</SecondaryButton>
-      {submitted ? <SubmittedNote /> : null}
-    </div>
-  )
-}
-
-function TierCard({
-  tier,
-  price,
-  period,
-  highlight,
-}: {
-  tier: WizardTier
-  price: string
-  period: string
-  highlight?: boolean
-}) {
+function GuaranteeBlock() {
   return (
     <div
-      className="rounded-2xl border p-6"
-      style={{
-        backgroundColor: highlight ? 'rgba(184,148,90,0.08)' : 'rgba(255,255,255,0.06)',
-        borderColor: ACCENT,
-        boxShadow: highlight ? `0 0 0 1px ${ACCENT}` : undefined,
-      }}
+      className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm leading-relaxed opacity-95"
+      role="note"
     >
-      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: ACCENT }}>
-        Plano recomendado
+      <p className="font-semibold" style={{ color: ACCENT }}>
+        Transparência e garantia do serviço
       </p>
-      <h3 className="mt-2 text-2xl font-bold">{tier}</h3>
-      <p className="mt-3">
-        <span className="text-3xl font-bold" style={{ color: ACCENT }}>
-          {price}
-        </span>
-        <span className="ml-2 text-sm opacity-80">{period}</span>
-      </p>
+      <ul className="mt-2 list-inside list-disc space-y-1 opacity-90">
+        <li>Preço e escopo visíveis antes do pagamento — sem taxas ocultas nesta etapa.</li>
+        <li>Plataforma Quantum5G: coleta anônima, laudo, plano PDCA e trilha de evidências conforme NR-01.</li>
+        <li>Material informativo; não substitui assessoria jurídica ou médica do trabalho da sua empresa.</li>
+        <li>Após o pagamento confirmado, acesso ao módulo NR-01 conforme o plano contratado.</li>
+      </ul>
     </div>
-  )
-}
-
-function PrimaryButton({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <a
-      href={href}
-      className="flex min-h-[52px] w-full items-center justify-center rounded-lg px-4 text-center text-base font-semibold transition hover:opacity-95"
-      style={{ backgroundColor: ACCENT, color: BG }}
-    >
-      {children}
-    </a>
-  )
-}
-
-function SecondaryButton({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <a
-      href={href}
-      className="flex min-h-[48px] w-full items-center justify-center rounded-lg border-2 px-4 text-center text-sm font-semibold transition hover:bg-white/5"
-      style={{ borderColor: ACCENT, color: TEXT }}
-    >
-      {children}
-    </a>
-  )
-}
-
-function BackButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mt-6 text-sm font-medium underline underline-offset-2 opacity-80 hover:opacity-100"
-      style={{ color: ACCENT }}
-    >
-      ← Voltar
-    </button>
-  )
-}
-
-function SubmittedNote() {
-  return (
-    <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs opacity-80">
-      Pedido registado. A equipa comercial pode contactá-lo com base nos dados enviados.
-    </p>
   )
 }
