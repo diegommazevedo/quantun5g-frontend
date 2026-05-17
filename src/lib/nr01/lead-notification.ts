@@ -79,7 +79,7 @@ function buildLeadEmail(lead: LeadData) {
     : `Não em ${formatCreatedAtBrt(lead.consent_at)}`
 
   const lines = [
-    'Novo lead capturado em quantum5g.app/lp/nr01',
+    'Novo lead capturado em quantun5g.app/lp/nr01',
     '',
     `Data/hora:     ${createdAt}`,
     ...(lead.name?.trim() ? [`Nome:          ${lead.name.trim()}`] : []),
@@ -106,7 +106,7 @@ function buildLeadEmail(lead: LeadData) {
   const html = `<!doctype html>
 <html lang="pt-BR"><body style="font-family:system-ui,sans-serif;background:#f8fafc;padding:20px;color:#0f172a">
   <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:24px">
-    <p style="margin:0 0 16px;font-size:14px">Novo lead capturado em <strong>quantum5g.app/lp/nr01</strong></p>
+    <p style="margin:0 0 16px;font-size:14px">Novo lead capturado em <strong>quantun5g.app/lp/nr01</strong></p>
     <table style="font-size:14px;line-height:1.4;border-collapse:collapse;width:100%">
       ${row('Data/hora', createdAt)}
       ${lead.name?.trim() ? row('Nome', lead.name.trim()) : ''}

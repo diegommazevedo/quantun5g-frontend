@@ -26,7 +26,7 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
-          // P021: domain=.quantum5g.app em produção para SSO entre
+          // P021: domain=.quantun5g.app em produção para SSO entre
           // apex e subdomínios (pentagrama., nr01.). Em dev, no-op.
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, withDualScope(options))

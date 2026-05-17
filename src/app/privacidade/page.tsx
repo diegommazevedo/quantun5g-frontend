@@ -188,7 +188,7 @@ export default function PrivacidadePage() {
           </h2>
           <p className="mt-3">
             Utilizamos cookies essenciais para sessão e autenticação (por exemplo, sessão Supabase), com escopo adequado
-            ao domínio de produção (ex.: <code className="rounded bg-slate-100 px-1 text-sm">.quantum5g.app</code>). Não
+            ao domínio de produção (ex.: <code className="rounded bg-slate-100 px-1 text-sm">.quantun5g.app</code>). Não
             utilizamos, nesta política vigente, cookies de publicidade de terceiros para perfilagem.
           </p>
         </section>

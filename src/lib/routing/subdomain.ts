@@ -4,13 +4,13 @@
  *
  * Em desenvolvimento (localhost), suporta override via query
  * `?subdomain=pentagrama` ou `?subdomain=nr01`, já que cookies
- * com escopo .quantum5g.app não funcionam em http://localhost.
+ * com escopo .quantun5g.app não funcionam em http://localhost.
  */
 
 import type { NextRequest } from 'next/server'
 import { type ProductId, getProductBySubdomain } from '@/lib/products/registry'
 
-export const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN?.trim() || 'quantun5g.app'
+export const APP_DOMAIN = 'quantun5g.app'
 
 export function detectSubdomainFromHost(
   host: string | null | undefined,

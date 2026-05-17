@@ -21,11 +21,11 @@ const nextConfig: NextConfig = {
   /**
    * P021 — rewrites por subdomínio (UX limpa de URL).
    *
-   * Para NR-01 (`nr01.quantum5g.app`), rewrita os paths visíveis ao
+   * Para NR-01 (`nr01.quantun5g.app`), rewrita os paths visíveis ao
    * usuário (`/dashboard`, `/avaliacao/...`, etc.) para os paths reais
    * do app (`/nr01/dashboard`, `/nr01/avaliacao/...`).
    *
-   * Para Pentagrama (`pentagrama.quantum5g.app`), os paths reais já
+   * Para Pentagrama (`pentagrama.quantun5g.app`), os paths reais já
    * vivem na raiz (`/dashboard`, `/diagnostico/...`) — sem rewrite.
    *
    * Importante:
@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
    *     exige hostname literal — usar `/nr01/...` direto em dev.
    */
   async rewrites() {
-    const NR01_HOST = 'nr01.quantum5g.app'
+    const NR01_HOST = 'nr01.quantun5g.app'
     return [
       {
         source: '/dashboard',

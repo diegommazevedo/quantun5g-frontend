@@ -1,5 +1,5 @@
 /**
- * QUANTUM5G — Apex Shell (quantum5g.app)
+ * QUANTUM5G — Apex Shell (quantun5g.app)
  *
  * Rota raiz da arquitetura dual (P021).
  *  - Sem login → redireciona para /institucional (landing pública).
@@ -7,8 +7,8 @@
  *    com link direto para o produto se houver assinatura ativa, ou CTA
  *    para checkout se não houver.
  *
- * Em produção, esta página é servida no apex `quantum5g.app`. Os
- * subdomínios `pentagrama.quantum5g.app` e `nr01.quantum5g.app`
+ * Em produção, esta página é servida no apex `quantun5g.app`. Os
+ * subdomínios `pentagrama.quantun5g.app` e `nr01.quantun5g.app`
  * usam o mesmo app (single Vercel deployment) e o proxy faz o
  * gating por assinatura.
  */
@@ -26,7 +26,7 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic'
 
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN?.trim() || 'quantun5g.app'
+const APP_DOMAIN = 'quantun5g.app'
 
 export default async function ApexShell() {
   const supabase = await createClient()
