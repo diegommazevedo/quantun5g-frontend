@@ -8,6 +8,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database'
 import { getSupabasePublishableKey, getSupabaseUrl } from './env'
+import { withDualScope } from '@/lib/auth/cookie-scope'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -25,8 +26,10 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
+          // P021: domain=.quantum5g.app em produção para SSO entre
+          // apex e subdomínios (pentagrama., nr01.). Em dev, no-op.
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, withDualScope(options))
           )
         },
       },
@@ -46,7 +49,11 @@ export async function updateSession(request: NextRequest) {
   ]
   const pathname = request.nextUrl.pathname
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
-  const isAuthPage = pathname === '/' || pathname === '/login'
+
+  // P021: a rota raiz `/` agora é o apex shell (server component que
+  // decide redirect ↔ dashboard de produtos). NÃO redireciona aqui.
+  // Apenas /login redireciona logged-in users para o apex.
+  const isAuthPage = pathname === '/login'
 
   // Só valida com getUser() em rotas que realmente precisam de decisão de auth
   if (isProtected || isAuthPage) {
@@ -62,7 +69,7 @@ export async function updateSession(request: NextRequest) {
 
     if (user && isAuthPage) {
       const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
+      url.pathname = '/'
       return NextResponse.redirect(url)
     }
   }

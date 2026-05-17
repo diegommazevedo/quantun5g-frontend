@@ -268,6 +268,126 @@ export interface Laudo {
 }
 
 // ============================================================
+// TABELAS: products / product_plans / subscriptions / payments (P021)
+// ============================================================
+
+export interface Product {
+  id: string
+  name: string
+  subdomain: string
+  description: string | null
+  active: boolean
+  created_at: string
+}
+export interface ProductInsert {
+  id: string
+  name: string
+  subdomain: string
+  description?: string | null
+  active?: boolean
+  created_at?: string
+}
+
+export type PlanModality = 'one_off' | 'annual' | 'monthly'
+
+export interface ProductPlan {
+  id: string
+  product_id: string
+  name: string
+  collaborators_min: number
+  collaborators_max: number | null
+  price_cents: number
+  modality: PlanModality
+  assessments_per_period: number
+  active: boolean
+  created_at: string
+}
+export interface ProductPlanInsert {
+  id: string
+  product_id: string
+  name: string
+  collaborators_min: number
+  collaborators_max?: number | null
+  price_cents: number
+  modality: PlanModality
+  assessments_per_period: number
+  active?: boolean
+  created_at?: string
+}
+
+export type SubscriptionStatus =
+  | 'pending' | 'active' | 'expired' | 'cancelled' | 'failed'
+
+export interface Subscription {
+  id: string
+  user_id: string
+  product_id: string
+  plan_id: string
+  company_id: string | null
+  status: SubscriptionStatus
+  starts_at: string | null
+  expires_at: string | null
+  assessments_remaining: number
+  asaas_customer_id: string | null
+  asaas_payment_id: string | null
+  asaas_subscription_id: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+export interface SubscriptionInsert {
+  id?: string
+  user_id: string
+  product_id: string
+  plan_id: string
+  company_id?: string | null
+  status: SubscriptionStatus
+  starts_at?: string | null
+  expires_at?: string | null
+  assessments_remaining?: number
+  asaas_customer_id?: string | null
+  asaas_payment_id?: string | null
+  asaas_subscription_id?: string | null
+  metadata?: Record<string, unknown>
+  created_at?: string
+  updated_at?: string
+}
+
+export interface Payment {
+  id: string
+  subscription_id: string
+  asaas_payment_id: string
+  amount_cents: number
+  status: string
+  payment_method: string | null
+  paid_at: string | null
+  webhook_payload: Record<string, unknown>
+  webhook_received_at: string
+}
+export interface PaymentInsert {
+  id?: string
+  subscription_id: string
+  asaas_payment_id: string
+  amount_cents: number
+  status: string
+  payment_method?: string | null
+  paid_at?: string | null
+  webhook_payload: Record<string, unknown>
+  webhook_received_at?: string
+}
+
+export interface ActiveSubscriptionRow {
+  id: string
+  user_id: string
+  product_id: string
+  plan_id: string
+  subdomain: string
+  expires_at: string | null
+  assessments_remaining: number
+  company_id: string | null
+}
+
+// ============================================================
 // TIPO: Database (compatível com @supabase/supabase-js)
 // ============================================================
 
@@ -314,6 +434,30 @@ export type Database = {
         Row: Laudo
         Insert: Omit<Laudo, 'id'>
         Update: Partial<Omit<Laudo, 'id'>>
+        Relationships: []
+      }
+      products: {
+        Row: Product
+        Insert: ProductInsert
+        Update: Partial<ProductInsert>
+        Relationships: []
+      }
+      product_plans: {
+        Row: ProductPlan
+        Insert: ProductPlanInsert
+        Update: Partial<ProductPlanInsert>
+        Relationships: []
+      }
+      subscriptions: {
+        Row: Subscription
+        Insert: SubscriptionInsert
+        Update: Partial<SubscriptionInsert>
+        Relationships: []
+      }
+      payments: {
+        Row: Payment
+        Insert: PaymentInsert
+        Update: Partial<PaymentInsert>
         Relationships: []
       }
     }
