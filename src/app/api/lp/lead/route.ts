@@ -2,6 +2,7 @@ import { createHmac } from 'crypto'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { inferTierFromHeadcount } from '@/lib/leads/tier-suggester'
+import { sendLeadNotification } from '@/lib/nr01/lead-notification'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 function hashClientIp(ip: string, secret: string): string {
@@ -145,6 +146,13 @@ export async function POST(req: Request) {
       console.error('[lp/lead] insert failed', error.message)
       return NextResponse.json({ ok: false, error: 'internal' }, { status: 500 })
     }
+
+    await sendLeadNotification({
+      ...row,
+      created_at: consentAt,
+      name: data.name?.trim() || null,
+      message: data.message?.trim() || null,
+    })
 
     return NextResponse.json({
       ok: true,
