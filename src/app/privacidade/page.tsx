@@ -14,12 +14,12 @@ function LegalFooter() {
       <p>Última revisão: {LAST_UPDATED}</p>
       <p className="mt-2">
         DPO:{' '}
-        <a href="mailto:dpo@quantum5g.app" className="text-blue-900 underline underline-offset-2">
-          dpo@quantum5g.app
+        <a href="mailto:dpo@quantun5g.com" className="text-blue-900 underline underline-offset-2">
+          dpo@quantun5g.com
         </a>{' '}
         · Contato geral:{' '}
-        <a href="mailto:contato@quantum5g.app" className="text-blue-900 underline underline-offset-2">
-          contato@quantum5g.app
+        <a href="mailto:contato@quantun5g.com" className="text-blue-900 underline underline-offset-2">
+          contato@quantun5g.com
         </a>
       </p>
     </footer>
@@ -54,8 +54,8 @@ export default function PrivacidadePage() {
           <p className="mt-3">
             <strong className="font-medium text-slate-800">Quantum5G</strong>, inscrita no CNPJ{' '}
             <span className="font-medium text-amber-800">[DEFINIR — CNPJ]</span>. Encarregado de dados (DPO):{' '}
-            <a href="mailto:dpo@quantum5g.app" className="text-blue-900 underline underline-offset-2">
-              dpo@quantum5g.app
+            <a href="mailto:dpo@quantun5g.com" className="text-blue-900 underline underline-offset-2">
+              dpo@quantun5g.com
             </a>
             .
           </p>
@@ -173,8 +173,8 @@ export default function PrivacidadePage() {
           </h2>
           <p className="mt-3">
             Encaminhe pedido ao DPO em{' '}
-            <a href="mailto:dpo@quantum5g.app" className="text-blue-900 underline underline-offset-2">
-              dpo@quantum5g.app
+            <a href="mailto:dpo@quantun5g.com" className="text-blue-900 underline underline-offset-2">
+              dpo@quantun5g.com
             </a>
             . Será disponibilizado formulário dedicado em{' '}
             <strong className="font-medium text-slate-800">/privacidade/solicitacao</strong> (em implementação futura);

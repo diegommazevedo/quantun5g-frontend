@@ -51,7 +51,7 @@ const TIER_META: Record<WizardTier, { price: string; period: string; priceValue:
 }
 
 const JOVANE_MAILTO =
-  'mailto:contato@quantum5g.com.br?subject=NR-01%20%E2%80%94%20proposta%20personalizada'
+  'mailto:contato@quantun5g.com?subject=NR-01%20%E2%80%94%20proposta%20personalizada'
 
 const STEP_ANIMATION =
   'mt-8 motion-safe:animate-[wizardFade_0.35s_ease-out] motion-reduce:transition-none'

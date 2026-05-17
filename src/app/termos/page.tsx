@@ -14,8 +14,8 @@ function LegalFooter() {
       <p>Última atualização: {LAST_UPDATED}</p>
       <p className="mt-2">
         Contato:{' '}
-        <a href="mailto:contato@quantum5g.app" className="text-blue-900 underline underline-offset-2">
-          contato@quantum5g.app
+        <a href="mailto:contato@quantun5g.com" className="text-blue-900 underline underline-offset-2">
+          contato@quantun5g.com
         </a>
       </p>
     </footer>
@@ -150,8 +150,8 @@ export default function TermosPage() {
           </h2>
           <p className="mt-3">
             Dúvidas sobre estes termos:{' '}
-            <a href="mailto:contato@quantum5g.app" className="text-blue-900 underline underline-offset-2">
-              contato@quantum5g.app
+            <a href="mailto:contato@quantun5g.com" className="text-blue-900 underline underline-offset-2">
+              contato@quantun5g.com
             </a>
             .
           </p>

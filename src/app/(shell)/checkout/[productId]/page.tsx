@@ -49,7 +49,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
             contacto para uma proposta personalizada.
           </p>
           <Link
-            href="mailto:contato@quantum5g.com.br?subject=Proposta%20Quantum5G"
+            href="mailto:contato@quantun5g.com?subject=Proposta%20Quantum5G"
             className="mt-6 inline-flex rounded-md border border-slate-900 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-100"
           >
             Pedir proposta
