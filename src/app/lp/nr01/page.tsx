@@ -1,14 +1,12 @@
 import Link from 'next/link'
-import { Calculator } from '@/components/lp/Calculator'
 import { ContentLibrary } from '@/components/lp/ContentLibrary'
 import { FAQ } from '@/components/lp/FAQ'
 import { FinalCTA } from '@/components/lp/FinalCTA'
 import { Hero } from '@/components/lp/Hero'
 import { JovaneManifesto } from '@/components/lp/JovaneManifesto'
-import { QualificationWizard } from '@/components/lp/QualificationWizard'
+import { LpPurchaseFlow } from '@/components/lp/LpPurchaseFlow'
 import { Methodology5Pillars } from '@/components/lp/Methodology5Pillars'
 import { PackageTrino } from '@/components/lp/PackageTrino'
-import { PricingTiers } from '@/components/lp/PricingTiers'
 import { RegulatoryContext } from '@/components/lp/RegulatoryContext'
 import { RegulatoryCountdown } from '@/components/lp/RegulatoryCountdown'
 
@@ -26,9 +24,7 @@ export default function LpNr01Page() {
       <Methodology5Pillars />
       <PackageTrino />
       <ContentLibrary />
-      <PricingTiers />
-      <Calculator />
-      <QualificationWizard />
+      <LpPurchaseFlow />
       <FAQ />
       <FinalCTA />
       <footer className="border-t border-white/10 px-4 py-10 text-center text-xs sm:text-sm" style={{ backgroundColor: BG, color: TEXT }}>

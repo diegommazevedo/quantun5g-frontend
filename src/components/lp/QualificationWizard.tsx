@@ -1,98 +1,24 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import {
+  getOfferByTier,
+  type Nr01WizardTier,
+} from '@/constants/lp-nr01-offers'
 
 const BG = '#0B1A2F'
 const ACCENT = '#B8945A'
 const TEXT = '#F5F1EA'
 const ALERT = '#B8423E'
 
-type Step = 1 | 2
+const CHECKOUT_PREFILL_KEY = 'lp_nr01_checkout_prefill'
 
-type HeadcountBand = 'up_to_20' | '20_99' | '100_499' | '500_plus'
-type WizardTier = 'Essencial' | 'Operacional' | 'Estruturado' | 'Corporativo'
-
-const HEADCOUNT_OPTIONS: {
-  id: HeadcountBand
-  label: string
-  collaborators: number
-  tier: WizardTier
-}[] = [
-  { id: 'up_to_20', label: 'Até 20 colaboradores', collaborators: 15, tier: 'Essencial' },
-  { id: '20_99', label: '20 a 99 colaboradores', collaborators: 60, tier: 'Operacional' },
-  { id: '100_499', label: '100 a 499 colaboradores', collaborators: 250, tier: 'Estruturado' },
-  { id: '500_plus', label: '500 ou mais colaboradores', collaborators: 500, tier: 'Corporativo' },
-]
-
-const TIER_OFFERS: Record<
-  WizardTier,
-  {
-    planId: string
-    price: string
-    period: string
-    modality: string
-    includes: string[]
-  }
-> = {
-  Essencial: {
-    planId: 'nr01_essencial',
-    price: 'R$ 2.800',
-    period: 'pagamento único',
-    modality: 'Projeto fechado · 1 ciclo de avaliação',
-    includes: [
-      'Coleta anônima NR-01 (fatores psicossociais)',
-      'Laudo técnico em PDF',
-      'Plano de ação PDCA base',
-      'Dashboard do consultor',
-    ],
-  },
-  Operacional: {
-    planId: 'nr01_operacional',
-    price: 'R$ 5.500',
-    period: 'pagamento único',
-    modality: 'Projeto fechado · 1 ciclo de avaliação',
-    includes: [
-      'Tudo do Essencial',
-      'Pacote de evidências com hashes SHA-256',
-      'Audit log imutável para fiscalização',
-      'Suporte na implantação',
-    ],
-  },
-  Estruturado: {
-    planId: 'nr01_estruturado',
-    price: 'R$ 19.600',
-    period: 'por ano',
-    modality: 'Assinatura anual · 2 ciclos de avaliação',
-    includes: [
-      'Tudo do Operacional',
-      'Monitoramento contínuo (pulsos)',
-      'Relatórios periódicos para SST',
-      'k-anonymity configurável por avaliação',
-    ],
-  },
-  Corporativo: {
-    planId: 'nr01_corporativo',
-    price: 'R$ 60.000',
-    period: 'por ano',
-    modality: 'Assinatura anual · 4 ciclos de avaliação',
-    includes: [
-      'Tudo do Estruturado',
-      'Volume elevado e multi-equipe',
-      'Prioridade na fila de implantação',
-      'Evidências prontas para auditoria',
-    ],
-  },
-}
-
-const STEP_ANIMATION =
-  'mt-8 motion-safe:animate-[wizardFade_0.35s_ease-out] motion-reduce:transition-none'
-
-function tierFromBand(band: HeadcountBand): WizardTier {
-  return HEADCOUNT_OPTIONS.find((o) => o.id === band)!.tier
-}
-
-function buildUtmContent(band: HeadcountBand, tier: WizardTier): string {
-  return JSON.stringify({ wizard_band: band, wizard_tier: tier })
+function buildUtmContent(tier: Nr01WizardTier, collaborators: number, cnpj: string): string {
+  return JSON.stringify({
+    wizard_tier: tier,
+    collaborators_count: collaborators,
+    company_cnpj: cnpj.replace(/\D/g, ''),
+  })
 }
 
 function readUtmsFromUrl(): {
@@ -110,14 +36,28 @@ function readUtmsFromUrl(): {
   }
 }
 
-export function QualificationWizard() {
-  const [step, setStep] = useState<Step>(1)
-  const [transitionKey, setTransitionKey] = useState(0)
-  const [headcount, setHeadcount] = useState<HeadcountBand | null>(null)
+function normalizeCnpj(value: string): string {
+  return value.replace(/\D/g, '')
+}
 
+function isValidCnpjDigits(digits: string): boolean {
+  return digits.length === 14
+}
+
+export function QualificationWizard({
+  tier,
+  collaborators,
+  onChangePlan,
+}: {
+  tier: Nr01WizardTier | null
+  collaborators: number | null
+  onChangePlan: () => void
+}) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [company, setCompany] = useState('')
+  const [cnpj, setCnpj] = useState('')
+  const [phone, setPhone] = useState('')
   const [consent, setConsent] = useState(false)
   const [acceptedOffer, setAcceptedOffer] = useState(false)
 
@@ -129,23 +69,22 @@ export function QualificationWizard() {
     setUtms(readUtmsFromUrl())
   }, [])
 
-  const tier = useMemo(() => (headcount ? tierFromBand(headcount) : null), [headcount])
-  const offer = tier ? TIER_OFFERS[tier] : null
-  const collaboratorsCount = useMemo(
-    () => HEADCOUNT_OPTIONS.find((o) => o.id === headcount)?.collaborators ?? null,
-    [headcount],
-  )
-
-  const goTo = useCallback((next: Step) => {
-    setTransitionKey((k) => k + 1)
-    setStep(next)
-    setError(null)
-  }, [])
+  const offer = tier ? getOfferByTier(tier) : null
 
   async function submitAndCheckout(e: FormEvent) {
     e.preventDefault()
-    if (!headcount || !tier || !offer || !collaboratorsCount) return
+    if (!tier || !offer || collaborators == null) return
     setError(null)
+
+    const cnpjDigits = normalizeCnpj(cnpj)
+    if (!isValidCnpjDigits(cnpjDigits)) {
+      setError('Informe o CNPJ da empresa (14 dígitos).')
+      return
+    }
+    if (!phone.trim()) {
+      setError('Informe o telefone do responsável.')
+      return
+    }
     if (!acceptedOffer) {
       setError('Confirme que leu e aceita a oferta publicada antes de continuar.')
       return
@@ -166,17 +105,33 @@ export function QualificationWizard() {
           name: name.trim(),
           email: email.trim(),
           company: company.trim(),
-          collaborators_count: collaboratorsCount,
+          phone: phone.trim(),
+          collaborators_count: collaborators,
           consent_lgpd: true,
           source: 'lp_wizard',
           utm_source: utms.utm_source,
           utm_medium: utms.utm_medium,
           utm_campaign: utms.utm_campaign,
-          utm_content: buildUtmContent(headcount, tier),
+          utm_content: buildUtmContent(tier, collaborators, cnpjDigits),
         }),
       })
       const data = (await res.json()) as { error?: string }
       if (!res.ok) throw new Error(data.error || 'Não foi possível validar os dados.')
+
+      try {
+        sessionStorage.setItem(
+          CHECKOUT_PREFILL_KEY,
+          JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            phone: phone.trim(),
+            cpfCnpj: cnpjDigits,
+          }),
+        )
+      } catch {
+        /* sessionStorage indisponível */
+      }
+
       window.location.href = checkoutUrl
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao continuar.')
@@ -190,196 +145,181 @@ export function QualificationWizard() {
       className="scroll-mt-20 px-4 py-16"
       style={{ backgroundColor: BG, color: TEXT }}
     >
-      <style>{`
-        @keyframes wizardFade {
-          from { opacity: 0; transform: translateX(8px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-      `}</style>
-
       <div className="mx-auto max-w-xl">
-        <h2 className="text-2xl font-bold sm:text-3xl">Contratar adequação NR-01</h2>
+        <p className="text-xs font-medium uppercase tracking-wider" style={{ color: ACCENT }}>
+          Confirmação · passo final
+        </p>
+        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Aceitar oferta e validar dados</h2>
         <p className="mt-2 text-sm leading-relaxed opacity-90">
-          Preços públicos e escopo fixo por porte. Sem proposta manual: você vê o plano, aceita a oferta e segue
-          para pagamento seguro (login + checkout).
+          Valide a empresa e o responsável. Em seguida, login (se necessário) e pagamento seguro no checkout.
         </p>
 
-        {step <= 2 ? (
-          <p className="mt-6 text-xs font-medium uppercase tracking-wider" style={{ color: ACCENT }}>
-            Passo {step} de 2
-          </p>
-        ) : null}
+        {!tier || !offer || collaborators == null ? (
+          <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6 text-sm opacity-90">
+            <p>Selecione o plano na secção acima (botão &quot;Contratar&quot;) para continuar.</p>
+            <button
+              type="button"
+              onClick={onChangePlan}
+              className="mt-4 text-sm font-medium underline underline-offset-2"
+              style={{ color: ACCENT }}
+            >
+              Ver plano recomendado
+            </button>
+          </div>
+        ) : (
+          <div className="mt-8 space-y-6">
+            <button
+              type="button"
+              onClick={onChangePlan}
+              className="text-sm font-medium underline underline-offset-2 opacity-80"
+              style={{ color: ACCENT }}
+            >
+              ← Alterar plano / escala
+            </button>
 
-        <div key={transitionKey} className={STEP_ANIMATION}>
-          {step === 1 ? (
-            <div>
-              <h3 className="mt-6 text-lg font-semibold">1. Qual o porte da sua empresa?</h3>
-              <p className="mt-1 text-sm opacity-80">
-                O plano e o preço são definidos automaticamente — sem análise comercial prévia.
+            <OfferCard tier={tier} offer={offer} collaborators={collaborators} />
+            <GuaranteeBlock />
+
+            <form
+              onSubmit={(e) => void submitAndCheckout(e)}
+              className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-5"
+            >
+              <h3 className="text-lg font-semibold">Dados para contratação</h3>
+              <p className="text-sm opacity-85">
+                Usamos estes dados para a fatura e para associar o plano <strong>{tier}</strong> à sua empresa.
+                O mesmo CNPJ será usado no pagamento.
               </p>
-              <ul className="mt-5 space-y-3" role="listbox" aria-label="Porte da empresa">
-                {HEADCOUNT_OPTIONS.map((opt) => {
-                  const meta = TIER_OFFERS[opt.tier]
-                  const active = headcount === opt.id
-                  return (
-                    <li key={opt.id}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={active}
-                        onClick={() => {
-                          setHeadcount(opt.id)
-                          goTo(2)
-                        }}
-                        className="flex w-full flex-col rounded-xl border px-4 py-4 text-left transition"
-                        style={{
-                          borderColor: active ? ACCENT : 'rgba(255,255,255,0.15)',
-                          backgroundColor: active ? 'rgba(184,148,90,0.12)' : 'rgba(255,255,255,0.05)',
-                        }}
-                      >
-                        <span className="text-sm font-semibold sm:text-base">{opt.label}</span>
-                        <span className="mt-1 text-sm" style={{ color: ACCENT }}>
-                          {opt.tier} · {meta.price} · {meta.period}
-                        </span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ) : null}
 
-          {step === 2 && tier && offer && headcount ? (
-            <div className="space-y-6">
+              <label className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={acceptedOffer}
+                  onChange={(e) => setAcceptedOffer(e.target.checked)}
+                  className="mt-1 h-4 w-4 shrink-0"
+                  style={{ accentColor: ACCENT }}
+                />
+                <span>
+                  Li e aceito a oferta do plano <strong>{tier}</strong> ({offer.price} · {offer.period}) com o
+                  escopo listado, nos{' '}
+                  <a href="/termos" className="underline" style={{ color: ACCENT }}>
+                    termos de uso
+                  </a>
+                  .
+                </span>
+              </label>
+
+              <div>
+                <label className="block text-sm font-medium" htmlFor="wiz-company">
+                  Razão social / nome da empresa *
+                </label>
+                <input
+                  id="wiz-company"
+                  required
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
+                  autoComplete="organization"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium" htmlFor="wiz-cnpj">
+                  CNPJ da empresa *
+                </label>
+                <input
+                  id="wiz-cnpj"
+                  required
+                  inputMode="numeric"
+                  value={cnpj}
+                  onChange={(e) => setCnpj(e.target.value)}
+                  placeholder="00.000.000/0000-00"
+                  className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white placeholder:text-white/40"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium" htmlFor="wiz-name">
+                  Nome do responsável *
+                </label>
+                <input
+                  id="wiz-name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
+                  autoComplete="name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium" htmlFor="wiz-phone">
+                  Telefone / WhatsApp do responsável *
+                </label>
+                <input
+                  id="wiz-phone"
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
+                  autoComplete="tel"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium" htmlFor="wiz-email">
+                  Email corporativo *
+                </label>
+                <input
+                  id="wiz-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
+                  autoComplete="email"
+                />
+              </div>
+
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-1 h-4 w-4 shrink-0"
+                  style={{ accentColor: ACCENT }}
+                />
+                <span>
+                  Aceito o tratamento dos dados para contratação e contacto operacional, conforme a{' '}
+                  <a href="/privacidade" className="underline" style={{ color: ACCENT }}>
+                    política de privacidade
+                  </a>
+                  . *
+                </span>
+              </label>
+
+              {error ? (
+                <p className="text-sm" style={{ color: ALERT }}>
+                  {error}
+                </p>
+              ) : null}
+
               <button
-                type="button"
-                onClick={() => goTo(1)}
-                className="text-sm font-medium underline underline-offset-2 opacity-80"
-                style={{ color: ACCENT }}
+                type="submit"
+                disabled={loading}
+                className="w-full min-h-[52px] rounded-lg font-semibold transition disabled:opacity-60"
+                style={{ backgroundColor: ACCENT, color: BG }}
               >
-                ← Alterar porte
+                {loading ? 'A redirecionar…' : `Continuar para pagamento — ${offer.price}`}
               </button>
 
-              <OfferCard tier={tier} offer={offer} />
-
-              <GuaranteeBlock />
-
-              <form onSubmit={(e) => void submitAndCheckout(e)} className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-5">
-                <h3 className="text-lg font-semibold">2. Aceitar oferta e validar contacto</h3>
-                <p className="text-sm opacity-85">
-                  Só pedimos o essencial para emitir a cobrança e associar a sua empresa ao plano{' '}
-                  <strong>{tier}</strong>. No checkout pedimos CPF/CNPJ para o pagamento.
-                </p>
-
-                <label className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={acceptedOffer}
-                    onChange={(e) => setAcceptedOffer(e.target.checked)}
-                    className="mt-1 h-4 w-4 shrink-0"
-                    style={{ accentColor: ACCENT }}
-                  />
-                  <span>
-                    Li e aceito a oferta do plano <strong>{tier}</strong> ({offer.price} · {offer.period}) com o
-                    escopo listado acima, nos{' '}
-                    <a href="/termos" className="underline" style={{ color: ACCENT }}>
-                      termos de uso
-                    </a>
-                    .
-                  </span>
-                </label>
-
-                <div>
-                  <label className="block text-sm font-medium" htmlFor="wiz-email">
-                    Email corporativo *
-                  </label>
-                  <input
-                    id="wiz-email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
-                    autoComplete="email"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium" htmlFor="wiz-company">
-                    Empresa *
-                  </label>
-                  <input
-                    id="wiz-company"
-                    required
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
-                    autoComplete="organization"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium" htmlFor="wiz-name">
-                    Nome do responsável *
-                  </label>
-                  <input
-                    id="wiz-name"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-3 text-base text-white"
-                    autoComplete="name"
-                  />
-                </div>
-
-                <label className="flex items-start gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={consent}
-                    onChange={(e) => setConsent(e.target.checked)}
-                    className="mt-1 h-4 w-4 shrink-0"
-                    style={{ accentColor: ACCENT }}
-                  />
-                  <span>
-                    Aceito o tratamento dos dados para contratação e contacto operacional, conforme a{' '}
-                    <a href="/privacidade" className="underline" style={{ color: ACCENT }}>
-                      política de privacidade
-                    </a>
-                    . *
-                  </span>
-                </label>
-
-                {error ? (
-                  <p className="text-sm" style={{ color: ALERT }}>
-                    {error}
-                  </p>
-                ) : null}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full min-h-[52px] rounded-lg font-semibold transition disabled:opacity-60"
-                  style={{ backgroundColor: ACCENT, color: BG }}
-                >
-                  {loading ? 'A redirecionar…' : `Continuar para pagamento — ${offer.price}`}
-                </button>
-
-                <p className="text-center text-xs opacity-70">
-                  Próximo passo: login (se necessário) e checkout seguro com valor{' '}
-                  <strong>{offer.price}</strong> ({offer.period}).
-                </p>
-              </form>
-
-              <p className="text-center text-xs opacity-60">
-                Não é o momento?{' '}
-                <a href="/lp/nr01/calculadora" className="underline" style={{ color: ACCENT }}>
-                  Simular outro cenário na calculadora
-                </a>{' '}
-                — sem compromisso.
+              <p className="text-center text-xs opacity-70">
+                Checkout seguro · plano <strong>{offer.planId}</strong> · {collaborators} colaboradores na escala
+                indicada.
               </p>
-            </div>
-          ) : null}
-        </div>
+            </form>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -388,9 +328,11 @@ export function QualificationWizard() {
 function OfferCard({
   tier,
   offer,
+  collaborators,
 }: {
-  tier: WizardTier
-  offer: (typeof TIER_OFFERS)[WizardTier]
+  tier: Nr01WizardTier
+  offer: ReturnType<typeof getOfferByTier>
+  collaborators: number
 }) {
   return (
     <div
@@ -398,8 +340,9 @@ function OfferCard({
       style={{ borderColor: ACCENT, backgroundColor: 'rgba(184,148,90,0.08)' }}
     >
       <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: ACCENT }}>
-        Oferta publicada · plano {tier}
+        Oferta selecionada · {tier}
       </p>
+      <p className="mt-1 text-xs opacity-75">{collaborators} colaboradores (calculadora de escala)</p>
       <p className="mt-3">
         <span className="text-3xl font-bold" style={{ color: ACCENT }}>
           {offer.price}
@@ -408,7 +351,7 @@ function OfferCard({
       </p>
       <p className="mt-2 text-sm opacity-90">{offer.modality}</p>
       <ul className="mt-4 space-y-2 text-sm opacity-95">
-        {offer.includes.map((item) => (
+        {offer.highlights.map((item) => (
           <li key={item} className="flex gap-2">
             <span style={{ color: ACCENT }} aria-hidden>
               ✓

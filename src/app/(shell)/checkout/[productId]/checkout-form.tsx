@@ -6,10 +6,11 @@
  * e redireciona para o invoiceUrl retornado pelo Asaas.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ProductPlan } from '@/types/database'
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+const CHECKOUT_PREFILL_KEY = 'lp_nr01_checkout_prefill'
 
 export function CheckoutForm({
   productId,
@@ -29,6 +30,26 @@ export function CheckoutForm({
   const [email, setEmail] = useState(userEmail)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(CHECKOUT_PREFILL_KEY)
+      if (!raw) return
+      const data = JSON.parse(raw) as {
+        name?: string
+        email?: string
+        phone?: string
+        cpfCnpj?: string
+      }
+      if (data.name) setName(data.name)
+      if (data.email) setEmail(data.email)
+      if (data.phone) setPhone(data.phone)
+      if (data.cpfCnpj) setCpfCnpj(data.cpfCnpj)
+      sessionStorage.removeItem(CHECKOUT_PREFILL_KEY)
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
