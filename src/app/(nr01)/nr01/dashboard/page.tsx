@@ -1,153 +1,125 @@
 /**
- * QUANTUM5G — NR-01 Dashboard
- * Lista avaliações do consultor com status, ISO e adesão.
+ * QUANTUM5G — Painel NR-01
+ * Dashboard gerencial: KPIs + lista de avaliações com filtros.
  */
 
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import type { UserRole } from '@/types/database'
+import type { Nr01AssessmentResult, Nr01AssessmentStatus, Nr01RiskLevel } from '@/types/nr01'
 import {
-  ASSESSMENT_STATUS_COLOR,
-  ASSESSMENT_STATUS_LABEL,
-  Nr01Assessment,
-  Nr01AssessmentResult,
-  RISK_LEVEL_LABEL,
-  RISK_LEVEL_COLOR,
-} from '@/types/nr01'
+  DashboardEmptyState,
+  ModuleDashboardShell,
+} from '@/components/dashboard/ModuleDashboardShell'
+import { Nr01AssessmentsList, type Nr01DashboardRow } from '@/components/nr01/Nr01AssessmentsList'
 
-type Row = Nr01Assessment & {
-  companies: { name: string; total_collaborators: number } | null
-  nr01_assessment_results: Pick<Nr01AssessmentResult, 'iso_score' | 'iso_risk_level' | 'adherence_pct'> | null
+type Row = {
+  id: string
+  name: string
+  status: Nr01AssessmentStatus
+  reference_period: string | null
+  competencia_label: string | null
+  created_at: string
+  linked_diagnostic_id: string | null
+  companies: { name: string } | null
+  nr01_assessment_results: Pick<
+    Nr01AssessmentResult,
+    'iso_score' | 'iso_risk_level' | 'adherence_pct'
+  > | null
 }
 
 export default async function Nr01DashboardPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data, error } = await supabase
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('name, role')
+    .eq('id', user.id)
+    .returns<{ name: string | null; role: UserRole }[]>()
+    .single()
+
+  const isAdmin = profile?.role === 'admin'
+
+  const query = supabase
     .from('nr01_assessments')
     .select(`
-      id, name, status, reference_period, instrument_version, modality,
-      collection_token, expected_respondents, collection_opens_at,
-      collection_closes_at, linked_diagnostic_id, created_at, updated_at,
-      company_id, consultant_id, k_anonymity_min, technical_lead_id, technical_lead_crp,
-      companies:companies!nr01_assessments_company_id_fkey ( name, total_collaborators ),
+      id, name, status, reference_period, competencia_label, created_at, linked_diagnostic_id,
+      companies:companies!nr01_assessments_company_id_fkey ( name ),
       nr01_assessment_results ( iso_score, iso_risk_level, adherence_pct )
     `)
     .order('created_at', { ascending: false })
 
-  const rows = (data ?? []) as unknown as Row[]
+  if (!isAdmin) {
+    query.eq('consultant_id', user.id)
+  }
 
-  const pctFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
-  const oneDecFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  const { data, error } = await query
+  const raw = (data ?? []) as unknown as Row[]
+
+  const rows: Nr01DashboardRow[] = raw.map((r) => ({
+    id: r.id,
+    name: r.name,
+    status: r.status,
+    reference_period: r.reference_period,
+    competencia_label: r.competencia_label,
+    created_at: r.created_at,
+    company_name: r.companies?.name ?? null,
+    linked_diagnostic_id: r.linked_diagnostic_id,
+    iso_score: r.nr01_assessment_results?.iso_score ?? null,
+    iso_risk_level: (r.nr01_assessment_results?.iso_risk_level ?? 'sem_dados') as Nr01RiskLevel,
+    adherence_pct: r.nr01_assessment_results?.adherence_pct ?? null,
+  }))
+
+  const total = rows.length
+  const ativos = rows.filter((r) =>
+    ['CRIADO', 'COLETANDO', 'COLETA_ENCERRADA', 'PROCESSANDO'].includes(r.status),
+  ).length
+  const concluidas = rows.filter((r) => r.status === 'CONCLUIDO').length
+
+  const firstName = profile?.name?.split(' ')[0]
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Avaliações NR-01</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Risco psicossocial conforme NR-01/GRO. Vigência punitiva: 26/05/2026.
-          </p>
-        </div>
-        <Link
-          href="/nr01/avaliacao/nova"
-          className="rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
-        >
-          + Nova avaliação
-        </Link>
-      </div>
-
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error.message}
-        </div>
-      )}
-
+    <ModuleDashboardShell
+      module="nr01"
+      firstName={firstName}
+      primaryAction={{ href: '/nr01/avaliacao/nova', label: '+ Nova avaliação' }}
+      sectionTitle="Avaliações"
+      stats={[
+        { label: 'Total', value: total },
+        {
+          label: 'Em andamento',
+          value: ativos,
+          tone: 'active',
+          hint: 'Coleta aberta ou processamento',
+        },
+        {
+          label: 'Concluídas',
+          value: concluidas,
+          tone: 'success',
+          hint: 'Laudo e evidências disponíveis',
+        },
+      ]}
+      alert={
+        error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error.message}
+          </div>
+        ) : undefined
+      }
+    >
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-          <p className="text-zinc-700">Nenhuma avaliação NR-01 ainda.</p>
-          <p className="mt-2 text-sm text-zinc-500">
-            Comece criando uma avaliação para gerar o pacote de evidências auditável.
-          </p>
-        </div>
+        <DashboardEmptyState
+          message="Nenhuma avaliação NR-01 ainda."
+          hint="Vincule a uma empresa, abra a coleta e acompanhe adesão e ISO aqui."
+          action={{ href: '/nr01/avaliacao/nova', label: 'Criar primeira avaliação' }}
+        />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-          <table className="min-w-full divide-y divide-zinc-200 text-sm">
-            <thead className="bg-zinc-50">
-              <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
-                <th className="px-4 py-3">Avaliação</th>
-                <th className="px-4 py-3">Empresa</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Adesão</th>
-                <th className="px-4 py-3">ISO</th>
-                <th className="px-4 py-3">Risco</th>
-                <th className="px-4 py-3">Pentagrama</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {rows.map((r) => {
-                const iso = r.nr01_assessment_results?.iso_score ?? null
-                const level = r.nr01_assessment_results?.iso_risk_level ?? 'sem_dados'
-                const adh = r.nr01_assessment_results?.adherence_pct
-                return (
-                  <tr key={r.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3 text-zinc-900">
-                      <div className="font-medium">{r.name}</div>
-                      <div className="text-xs text-zinc-500">{r.reference_period ?? '—'}</div>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">{r.companies?.name ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${ASSESSMENT_STATUS_COLOR[r.status]}`}>
-                        {ASSESSMENT_STATUS_LABEL[r.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {adh != null ? `${pctFmt.format(adh)}%` : '—'}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-zinc-900">
-                      {iso != null ? oneDecFmt.format(iso) : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${RISK_LEVEL_COLOR[level]}`}>
-                        {RISK_LEVEL_LABEL[level]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">
-                      {r.linked_diagnostic_id ? (
-                        <Link
-                          href={`/diagnostico/${r.linked_diagnostic_id}`}
-                          className="text-zinc-700 underline hover:text-zinc-900"
-                        >
-                          Diagnóstico vinculado
-                        </Link>
-                      ) : (
-                        <span className="text-zinc-400">não vinculado</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/nr01/avaliacao/${r.id}`}
-                        className="text-blue-800 hover:text-blue-900"
-                      >
-                        Abrir →
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Nr01AssessmentsList rows={rows} />
       )}
-
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <strong>Janela regulatória.</strong> A vigência punitiva da exigência de avaliação
-        de FRPRT começa em 26/05/2026. Empresas sem PGR atualizado com FRPRT estão sujeitas
-        a multa por trabalhador exposto (R$ 1.610,12 a R$ 6.708,08).
-      </div>
-    </div>
+    </ModuleDashboardShell>
   )
 }
