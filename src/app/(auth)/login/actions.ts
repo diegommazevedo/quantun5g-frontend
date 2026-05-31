@@ -13,10 +13,10 @@ import type { UserRole } from '@/types/database'
 
 // Mapa de destino por role após login bem-sucedido
 const ROLE_REDIRECT: Record<UserRole, string> = {
-  admin:         '/dashboard/admin',
-  consultant:    '/dashboard',
-  leader:        '/dashboard/lider',
-  collaborator:  '/dashboard',
+  admin: '/admin',
+  consultant: '/dashboard',
+  leader: '/faturas',
+  collaborator: '/dashboard',
 }
 
 export async function login(formData: FormData) {

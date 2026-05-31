@@ -55,9 +55,8 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
 
-  // P021: a rota raiz `/` agora é o apex shell (server component que
-  // decide redirect ↔ dashboard de produtos). NÃO redireciona aqui.
-  // Apenas /login redireciona logged-in users para o apex.
+  // Apex `/` → login (visitante) ou dashboard (sessão); ver src/app/page.tsx.
+  // `/login` redireciona usuário autenticado para o painel.
   const isAuthPage = pathname === '/login'
 
   // Só valida com getUser() em rotas que realmente precisam de decisão de auth
