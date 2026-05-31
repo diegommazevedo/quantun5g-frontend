@@ -21,19 +21,30 @@ export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ productId: string }>
-  searchParams: Promise<{ plan?: string }>
+  searchParams: Promise<{ plan?: string; addon?: string }>
+}
+
+function buildCheckoutPath(productId: string, plan?: string, addon?: string): string {
+  const q = new URLSearchParams()
+  if (plan) q.set('plan', plan)
+  if (addon) q.set('addon', addon)
+  const qs = q.toString()
+  return `/checkout/${productId}${qs ? `?${qs}` : ''}`
 }
 
 export default async function CheckoutPage({ params, searchParams }: Props) {
   const { productId } = await params
-  const { plan: planQuery } = await searchParams
+  const { plan: planQuery, addon: addonQuery } = await searchParams
 
   const product = await getProductForCheckout(productId)
   if (!product) notFound()
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect(`/login?redirect=/checkout/${productId}`)
+  if (!user) {
+    const dest = buildCheckoutPath(productId, planQuery, addonQuery)
+    redirect(`/login?redirect=${encodeURIComponent(dest)}`)
+  }
 
   const plans = await getActivePlansForProduct(productId)
 
@@ -60,7 +71,12 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
   }
 
   const initialPlanId =
-    planQuery && plans.some(p => p.id === planQuery) ? planQuery : plans[0].id
+    planQuery && plans.some((p) => p.id === planQuery) ? planQuery : plans[0].id
+
+  const planLocked = Boolean(planQuery && plans.some((p) => p.id === planQuery))
+  const addonLocked = addonQuery === 'jovane_rt'
+  const vendasOrigin =
+    process.env.NEXT_PUBLIC_VENDAS_ORIGIN?.replace(/\/$/, '') ?? 'http://localhost:3001'
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-12">
@@ -76,6 +92,10 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
           productId={productId}
           plans={plans}
           initialPlanId={initialPlanId}
+          initialAddon={addonQuery === 'jovane_rt' ? 'jovane_rt' : null}
+          planLocked={planLocked}
+          addonLocked={addonLocked}
+          vendasOrigin={vendasOrigin}
           userEmail={user.email ?? ''}
         />
       </div>

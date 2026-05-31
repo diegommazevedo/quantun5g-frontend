@@ -65,12 +65,84 @@ export interface Profile {
   name: string | null
   email: string | null
   is_active: boolean
+  module_pentagrama: boolean
+  module_nr01: boolean
   created_at: string
   updated_at: string
 }
 
-export type ProfileInsert = Omit<Profile, 'created_at' | 'updated_at'>
+export type ProfileInsert = Omit<Profile, 'created_at' | 'updated_at'> & {
+  module_pentagrama?: boolean
+  module_nr01?: boolean
+}
 export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'created_at'>>
+
+export interface CompanyIlLeader {
+  id: string
+  company_id: string
+  name: string
+  email: string
+  sort_order: number
+  created_at: string
+}
+
+export type CompanyContactRole = 'leader' | 'collaborator'
+
+export interface CompanyContact {
+  id: string
+  company_id: string
+  full_name: string
+  email: string
+  contact_role: CompanyContactRole
+  job_title: string | null
+  department: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type SurveyModule = 'pentagrama' | 'nr01'
+export type SurveyKind = 'il' | 'ic' | 'nr01_coleta'
+
+export interface SurveyInvite {
+  id: string
+  token: string
+  company_id: string
+  contact_id: string
+  module: SurveyModule
+  survey_kind: SurveyKind
+  reference_id: string
+  survey_url: string
+  email_sent_at: string | null
+  email_status: string | null
+  email_error: string | null
+  resend_email_id: string | null
+  email_delivered_at: string | null
+  email_opened_at: string | null
+  email_clicked_at: string | null
+  opened_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export type SurveyInviteEmailStatus =
+  | 'pending'
+  | 'sent'
+  | 'delivered'
+  | 'failed'
+  | 'bounced'
+  | 'complained'
+
+export interface EmailSuppression {
+  id: string
+  email_normalized: string
+  reason: 'hard_bounce' | 'complaint' | 'manual'
+  resend_email_id: string | null
+  resend_event_id: string | null
+  contact_id: string | null
+  notes: string | null
+  created_at: string
+}
 
 // ============================================================
 // TABELA: companies
@@ -79,13 +151,41 @@ export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'created_at'>>
 export interface Company {
   id: string
   name: string
+  legal_name: string | null
+  trade_name: string | null
+  cnpj: string | null
+  rh_contact_name: string | null
+  rh_contact_email: string | null
+  technical_lead_name: string | null
+  technical_lead_crp: string | null
+  technical_lead_profession: string | null
+  technical_lead_email: string | null
+  il_leader_name: string | null
+  il_leader_email: string | null
+  name_normalized: string | null
   total_collaborators: number
   consultant_id: string
   created_at: string
   updated_at: string
 }
 
-export type CompanyInsert = Omit<Company, 'id' | 'created_at' | 'updated_at'>
+export type CompanyInsert = Omit<
+  Company,
+  'id' | 'created_at' | 'updated_at' | 'name_normalized' | 'legal_name' | 'trade_name' | 'cnpj' | 'rh_contact_name' | 'rh_contact_email' | 'technical_lead_name' | 'technical_lead_crp' | 'technical_lead_profession' | 'technical_lead_email' | 'il_leader_name' | 'il_leader_email'
+> & {
+  legal_name?: string | null
+  trade_name?: string | null
+  cnpj?: string | null
+  rh_contact_name?: string | null
+  rh_contact_email?: string | null
+  technical_lead_name?: string | null
+  technical_lead_crp?: string | null
+  technical_lead_profession?: string | null
+  technical_lead_email?: string | null
+  il_leader_name?: string | null
+  il_leader_email?: string | null
+  name_normalized?: string | null
+}
 export type CompanyUpdate = Partial<Omit<Company, 'id' | 'created_at' | 'consultant_id'>>
 
 // ============================================================
@@ -106,6 +206,10 @@ export interface Diagnostic {
   ic_closed_at: string | null
   il_deadline: string | null
   ic_deadline: string | null
+  competencia_seq: number | null
+  competencia_month: number | null
+  competencia_year: number | null
+  competencia_label: string | null
   created_at: string
   updated_at: string
 }

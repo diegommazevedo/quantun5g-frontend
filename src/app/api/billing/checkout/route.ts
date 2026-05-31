@@ -24,11 +24,19 @@ import {
   createServiceRoleAdmin,
 } from '@/lib/supabase/service-role'
 import { findOrCreateCustomer, createPayment } from '@/lib/billing/asaas-client'
-import type { ProductPlan, SubscriptionInsert } from '@/types/database'
+import { resolveActivePlan } from '@/lib/billing/resolve-plan'
+import {
+  computeCheckoutTotalCents,
+  getSalesPlan,
+  JOVANE_RT_UPSELL,
+  JOVANE_RT_UPSELL_ID,
+} from '@/constants/nr01-sales-plans'
+import type { SubscriptionInsert } from '@/types/database'
 
 interface CheckoutBody {
   productId?: string
   planId?: string
+  addon?: string
   customerData?: {
     name?: string
     cpfCnpj?: string
@@ -55,25 +63,32 @@ export async function POST(req: NextRequest) {
     return bad('JSON inválido')
   }
 
-  const { productId, planId, customerData } = body
+  const { productId, planId, addon, customerData } = body
   if (!productId || !planId) return bad('productId e planId são obrigatórios')
+  const addonJovaneRt = addon === JOVANE_RT_UPSELL_ID
   if (!customerData?.name?.trim()) return bad('customerData.name é obrigatório')
   if (!customerData?.cpfCnpj?.trim()) return bad('customerData.cpfCnpj é obrigatório')
   if (!customerData?.email?.trim()) return bad('customerData.email é obrigatório')
 
-  // 3. Validar product/plan
-  const admin = createServiceRoleClient()
-  const { data: planRow, error: planErr } = await admin
-    .from('product_plans')
-    .select('*')
-    .eq('id', planId)
-    .eq('product_id', productId)
-    .eq('active', true)
-    .maybeSingle()
+  const plan = await resolveActivePlan(productId, planId)
+  if (!plan) return bad('Plano não encontrado ou inativo', 404)
 
-  if (planErr) return bad(`Erro consultando plano: ${planErr.message}`, 500)
-  if (!planRow) return bad('Plano não encontrado ou inativo', 404)
-  const plan = planRow as ProductPlan
+  const salesPlan = productId === 'nr01' ? getSalesPlan(planId) : undefined
+  if (addonJovaneRt && !salesPlan) {
+    return bad('Add-on disponível apenas para planos NR-01', 400)
+  }
+
+  const pricing = salesPlan
+    ? computeCheckoutTotalCents(salesPlan, addonJovaneRt)
+    : {
+        baseCents: plan.price_cents,
+        addonCents: 0,
+        totalCents: plan.price_cents,
+      }
+
+  if (pricing.totalCents <= 0) {
+    return bad('Este plano requer proposta comercial. Contacte contato@quantun5g.com', 400)
+  }
 
   // 4. Asaas customer
   const customer = await findOrCreateCustomer({
@@ -106,6 +121,15 @@ export async function POST(req: NextRequest) {
     asaas_customer_id: customer.id,
     asaas_payment_id: null,
     asaas_subscription_id: null,
+    metadata: addonJovaneRt
+      ? {
+          addon_jovane_rt: true,
+          addon_price_cents: pricing.addonCents,
+          base_price_cents: pricing.baseCents,
+          total_price_cents: pricing.totalCents,
+          includes_pentagrama_precursor: true,
+        }
+      : {},
   }
 
   const { error: subErr } = await adminUntyped
@@ -121,14 +145,18 @@ export async function POST(req: NextRequest) {
     return d.toISOString().slice(0, 10)
   })()
 
+  const description = addonJovaneRt
+    ? `${plan.name} + ${JOVANE_RT_UPSELL.shortLabel} — ${productId}`
+    : `${plan.name} — ${productId}`
+
   let payment
   try {
     payment = await createPayment({
       customer: customer.id,
       billingType: 'UNDEFINED', // permite cliente escolher (pix/boleto/cartão)
-      value: plan.price_cents / 100,
+      value: pricing.totalCents / 100,
       dueDate,
-      description: `${plan.name} — ${productId}`,
+      description,
       externalReference: subscriptionId,
     })
   } catch (err) {

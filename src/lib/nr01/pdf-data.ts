@@ -21,6 +21,10 @@ import type {
   Nr01PulseConfig,
   Nr01PulseDispatch,
 } from '@/types/nr01'
+import {
+  resolveTechnicalLeadForLaudo,
+  type TechnicalLeadDisplay,
+} from '@/lib/nr01/technical-lead'
 
 export interface LaudoTexto {
   texto_principal: string
@@ -29,8 +33,16 @@ export interface LaudoTexto {
 
 export interface LaudoData {
   assessment: Nr01Assessment & {
-    companies: { id: string; name: string; total_collaborators: number } | null
-    technical_lead: { name: string | null; email: string | null } | null
+    companies: {
+      id: string
+      name: string
+      total_collaborators: number
+      technical_lead_name?: string | null
+      technical_lead_crp?: string | null
+      technical_lead_profession?: string | null
+      technical_lead_email?: string | null
+    } | null
+    technical_lead: TechnicalLeadDisplay
   }
   result: Nr01AssessmentResult | null
   dimensions: Nr01Dimension[]
@@ -64,22 +76,16 @@ export async function loadLaudoData(
     .from('nr01_assessments')
     .select(`
       *,
-      companies:companies!nr01_assessments_company_id_fkey ( id, name, total_collaborators )
+      companies:companies!nr01_assessments_company_id_fkey (
+        id, name, total_collaborators,
+        technical_lead_name, technical_lead_crp, technical_lead_profession, technical_lead_email
+      )
     `)
     .eq('id', assessmentId)
     .single()
   if (!assessmentRow) return null
 
-  // Lead técnico (se existir)
-  let technical_lead: LaudoData['assessment']['technical_lead'] = null
-  if (assessmentRow.technical_lead_id) {
-    const { data: leadRow } = await sb
-      .from('profiles')
-      .select('name, email')
-      .eq('id', assessmentRow.technical_lead_id)
-      .single()
-    if (leadRow) technical_lead = leadRow
-  }
+  const companyRow = assessmentRow.companies as LaudoData['assessment']['companies']
 
   const instrumentVer = assessmentRow.instrument_version ?? 'v1.1'
   const [
@@ -157,7 +163,15 @@ export async function loadLaudoData(
   }
 
   return {
-    assessment: { ...assessmentRow, technical_lead } as LaudoData['assessment'],
+    assessment: {
+      ...assessmentRow,
+      companies: companyRow,
+      technical_lead: resolveTechnicalLeadForLaudo({
+        assessment: assessmentRow,
+        company: companyRow,
+        evidencePack: pack as Nr01EvidencePack | null,
+      }),
+    } as LaudoData['assessment'],
     result: result as Nr01AssessmentResult | null,
     dimensions: (dimensions ?? []) as Nr01Dimension[],
     dimensionScores: (scores ?? []) as Nr01DimensionScore[],

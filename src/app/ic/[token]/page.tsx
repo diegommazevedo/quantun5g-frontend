@@ -6,14 +6,18 @@
 
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import ICFormClient from './ICFormClient'
 
 interface Props {
   params: Promise<{ token: string }>
+  searchParams: Promise<{ invite?: string }>
 }
 
-export default async function ICPage({ params }: Props) {
+export default async function ICPage({ params, searchParams }: Props) {
   const { token } = await params
+  const { invite } = await searchParams
+  await markSurveyInviteOpened(invite)
   const supabase = await createClient()
 
   // Carrega diagnóstico pelo ic_token

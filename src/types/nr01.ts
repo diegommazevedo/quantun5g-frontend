@@ -149,8 +149,14 @@ export interface Nr01Assessment {
   collection_opens_at: string | null
   collection_closes_at: string | null
   technical_lead_id: string | null
+  technical_lead_name: string | null
+  technical_lead_profession: string | null
   technical_lead_crp: string | null
   linked_diagnostic_id: string | null
+  competencia_seq: number | null
+  competencia_month: number | null
+  competencia_year: number | null
+  competencia_label: string | null
   created_at: string
   updated_at: string
 }
@@ -284,8 +290,16 @@ export interface Nr01ActionPlan {
   approved_by: string | null
   approved_at: string | null
   next_review_at: string | null
+  execution_started_at: string | null
+  review_notes: string | null
   created_at: string
   updated_at: string
+}
+
+export interface Nr01ActionItemCheckNotes {
+  '30'?: string
+  '60'?: string
+  '90'?: string
 }
 
 export interface Nr01ActionItem {
@@ -302,6 +316,10 @@ export interface Nr01ActionItem {
   priority: Nr01ActionPriority
   estimated_cost_brl: number | null
   status: Nr01ActionStatus
+  pdca_phase: 'plan' | 'do' | 'check' | 'act'
+  rollout_steps: Nr01InterventionRolloutStep[]
+  check_notes: Nr01ActionItemCheckNotes
+  baseline_score_pct: number | null
   check_30d_at: string | null
   check_60d_at: string | null
   check_90d_at: string | null

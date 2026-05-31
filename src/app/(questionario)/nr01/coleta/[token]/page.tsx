@@ -5,18 +5,20 @@
 
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import { loadInstrument, LIKERT_LABELS } from '@/lib/nr01/instrument'
 import { Nr01Assessment } from '@/types/nr01'
 import { submeterRespostaNr01 } from './actions'
 
 interface Props {
   params: Promise<{ token: string }>
-  searchParams: Promise<{ status?: string; error?: string }>
+  searchParams: Promise<{ status?: string; error?: string; invite?: string }>
 }
 
 export default async function ColetaPublicaNr01Page({ params, searchParams }: Props) {
   const { token } = await params
-  const { status, error } = await searchParams
+  const { status, error, invite } = await searchParams
+  await markSurveyInviteOpened(invite)
   const supabase = await createClient()
 
   const { data: assess } = await supabase

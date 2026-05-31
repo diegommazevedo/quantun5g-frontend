@@ -9,7 +9,8 @@ import Link             from 'next/link'
 import { redirect }     from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { logout }       from '@/app/(auth)/login/actions'
-import { SidebarNav }          from '@/components/agente/SidebarNav'
+import { SidebarNav } from '@/components/agente/SidebarNav'
+import { sidebarRoleLabel } from '@/lib/auth/roles'
 import { AgentePanelDynamic } from '@/components/agente/AgentePanelDynamic'
 import type { UserRole }       from '@/types/database'
 
@@ -21,24 +22,28 @@ async function SidebarUser() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, role')
+    .select('name, role, module_pentagrama, module_nr01')
     .eq('id', user.id)
-    .returns<{ name: string | null; role: UserRole }[]>()
+    .returns<{ name: string | null; role: UserRole; module_pentagrama: boolean; module_nr01: boolean }[]>()
     .single()
 
   const displayName = profile?.name ?? user.email ?? 'Usuário'
-  const role        = profile?.role ?? 'leader'
+  const role        = profile?.role ?? 'consultant'
 
   return (
     <>
-      <SidebarNav role={role} />
+      <SidebarNav
+        role={role}
+        modulePentagrama={profile?.module_pentagrama ?? true}
+        moduleNr01={profile?.module_nr01 ?? true}
+      />
       <div className="border-t border-zinc-100 px-4 py-4 shrink-0">
         <div className="mb-3">
           <p className="text-sm font-medium text-zinc-800 leading-tight truncate">
             {displayName}
           </p>
-          <p className="text-xs text-zinc-400 capitalize mt-0.5">
-            {role}
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {sidebarRoleLabel(role)}
           </p>
         </div>
         <form action={logout}>
@@ -91,7 +96,7 @@ export default async function DashboardLayout({
               Quantum5G
             </p>
             <p className="text-zinc-400 text-[11px] mt-1 leading-none">
-              Pentagrama de Ginger
+              Plataforma consultor
             </p>
           </Link>
         </div>
@@ -108,10 +113,12 @@ export default async function DashboardLayout({
         </div>
       </main>
 
-      {/* ── PAINEL DO AGENTE ──────────────────────────────── */}
-      <Suspense fallback={<div className="w-12 border-l border-zinc-200 bg-white shrink-0" />}>
-        <AgentePanelDynamic />
-      </Suspense>
+      {/* ── PAINEL DO AGENTE (desativado por padrão — reativar com NEXT_PUBLIC_AGENT_ENABLED=true) ── */}
+      {process.env.NEXT_PUBLIC_AGENT_ENABLED === 'true' && (
+        <Suspense fallback={<div className="w-12 border-l border-zinc-200 bg-white shrink-0" />}>
+          <AgentePanelDynamic />
+        </Suspense>
+      )}
 
     </div>
   )

@@ -6,10 +6,16 @@
 import { createClient }        from '@/lib/supabase/server'
 import Link                    from 'next/link'
 import type { UserRole }       from '@/types/database'
+import { isPlatformStaff }     from '@/lib/auth/roles'
 import { DiagnosticosList }    from '@/components/dashboard/DiagnosticosList'
 import type { DiagRow }        from '@/components/dashboard/DiagnosticosList'
 
-export default async function DashboardPage() {
+interface Props {
+  searchParams: Promise<{ error?: string }>
+}
+
+export default async function DashboardPage({ searchParams }: Props) {
+  const { error } = await searchParams
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -17,10 +23,12 @@ export default async function DashboardPage() {
   // ── Perfil
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, role')
+    .select('name, role, module_pentagrama, module_nr01')
     .eq('id', user!.id)
-    .returns<{ name: string | null; role: UserRole }[]>()
+    .returns<{ name: string | null; role: UserRole; module_pentagrama: boolean; module_nr01: boolean }[]>()
     .single()
+
+  const staff = isPlatformStaff(profile?.role)
 
   // ── Diagnósticos com empresa (admin vê todos, consultant vê os seus)
   const isAdmin = profile?.role === 'admin'
@@ -90,6 +98,35 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+
+      {error && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {decodeURIComponent(error)}
+        </div>
+      )}
+
+      {staff && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {profile?.module_pentagrama !== false && (
+            <Link
+              href="/empresas"
+              className="rounded-xl border border-zinc-200 bg-white px-5 py-4 hover:border-zinc-300"
+            >
+              <p className="text-sm font-semibold text-zinc-900">Empresas e equipe</p>
+              <p className="mt-1 text-xs text-zinc-500">CNPJ, RT, líderes IL, colaboradores IC, listas de e-mail</p>
+            </Link>
+          )}
+          {profile?.module_nr01 !== false && (
+            <Link
+              href="/nr01/dashboard"
+              className="rounded-xl border border-blue-200 bg-blue-50/50 px-5 py-4 hover:border-blue-300"
+            >
+              <p className="text-sm font-semibold text-blue-900">Módulo NR-01</p>
+              <p className="mt-1 text-xs text-blue-800/80">Avaliações, coleta, disparos e laudos</p>
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Boas-vindas */}
       <div className="flex items-start justify-between">

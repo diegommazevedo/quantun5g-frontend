@@ -17,6 +17,7 @@ import {
   Nr01ActionPriority,
   Nr01DimensionScore,
   Nr01Intervention,
+  Nr01InterventionRolloutStep,
   Nr01RiskLevel,
 } from '@/types/nr01'
 
@@ -30,6 +31,39 @@ export interface SuggestedAction {
   due_in_days: number
   estimated_cost_brl: number | null
   kpi: string
+  baseline_score_pct: number | null
+  rollout_steps: Nr01InterventionRolloutStep[]
+}
+
+export function parseInterventionRolloutSteps(
+  lib: Nr01Intervention,
+): Nr01InterventionRolloutStep[] {
+  const raw = lib.rollout_steps ?? []
+  return raw.map((s, i) =>
+    typeof s === 'string'
+      ? { ord: i + 1, descricao: s }
+      : { ord: s.ord ?? i + 1, descricao: s.descricao },
+  )
+}
+
+export function buildActionDescription(lib: Nr01Intervention): string {
+  const steps = parseInterventionRolloutSteps(lib)
+  const body = lib.description?.trim() ?? ''
+  if (steps.length === 0) return body
+  const stepsText = steps.map((s) => `${s.ord}. ${s.descricao}`).join('\n')
+  if (!body) return `Passos de implantação:\n${stepsText}`
+  return `${body}\n\nPassos de implantação:\n${stepsText}`
+}
+
+function buildKpi(
+  lib: Nr01Intervention,
+  scorePct: number | null,
+): string {
+  const target = lib.expected_impact_pct ?? 10
+  const days = lib.typical_duration_days ?? 90
+  const baseline =
+    scorePct != null ? ` (baseline ${scorePct.toFixed(1)} p.)` : ''
+  return `Reduzir score de risco em ≥${target} p.p. em ${days} dias${baseline}`
 }
 
 const RISK_TO_PRIORITY: Record<Nr01RiskLevel, { priority: Nr01ActionPriority | null; days: number }> = {
@@ -78,16 +112,19 @@ export function suggestActionsFromScores(
       .slice(0, 2)
 
     for (const lib of ranked) {
+      const rolloutSteps = parseInterventionRolloutSteps(lib)
       out.push({
         dimension_code: score.dimension_code,
         intervention_id: lib.id,
         intervention_code: lib.code,
         title: lib.title,
-        description: lib.description,
+        description: buildActionDescription(lib),
         priority: cfg.priority,
         due_in_days: cfg.days,
         estimated_cost_brl: lib.cost_band ? COST_BAND_TO_BRL[lib.cost_band] : null,
-        kpi: `Reduzir score de risco em ${lib.expected_impact_pct ?? 10} p.p. em ${lib.typical_duration_days ?? 60} dias`,
+        kpi: buildKpi(lib, score.score_pct),
+        baseline_score_pct: score.score_pct,
+        rollout_steps: rolloutSteps,
       })
     }
   }

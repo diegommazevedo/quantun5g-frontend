@@ -21,13 +21,25 @@ import { criarTokenStatusPublico, revogarTokenStatusPublico } from './status-pub
 import { DownloadPdfButton } from '@/components/nr01/DownloadPdfButton'
 import { CopyLinkButton } from '@/components/nr01/CopyLinkButton'
 import type { Nr01PublicStatusToken } from '@/types/nr01'
+import {
+  formatTechnicalLeadLine,
+  resolveTechnicalLeadForLaudo,
+} from '@/lib/nr01/technical-lead'
 
 interface Props {
   params: Promise<{ id: string }>
 }
 
 type AssessFull = Nr01Assessment & {
-  companies: { id: string; name: string; total_collaborators: number } | null
+  companies: {
+    id: string
+    name: string
+    total_collaborators: number
+    technical_lead_name: string | null
+    technical_lead_crp: string | null
+    technical_lead_profession: string | null
+    technical_lead_email: string | null
+  } | null
 }
 
 export default async function Nr01AssessmentDetailPage({ params }: Props) {
@@ -40,12 +52,20 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
     .from('nr01_assessments')
     .select(`
       *,
-      companies:companies!nr01_assessments_company_id_fkey ( id, name, total_collaborators )
+      companies:companies!nr01_assessments_company_id_fkey (
+        id, name, total_collaborators,
+        technical_lead_name, technical_lead_crp, technical_lead_profession, technical_lead_email
+      )
     `)
     .eq('id', id)
     .single()
   if (!assess) notFound()
   const a = assess as unknown as AssessFull
+  const technicalLead = resolveTechnicalLeadForLaudo({
+    assessment: a,
+    company: a.companies,
+  })
+  const rtFrozen = Boolean(a.technical_lead_name?.trim() && a.status === 'CONCLUIDO')
 
   const [{ data: result }, { data: scores }, respCountResult, { data: pack }, { data: pubTokensData }] = await Promise.all([
     supabase.from('nr01_assessment_results').select('*').eq('assessment_id', id).maybeSingle(),
@@ -88,6 +108,32 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
           ← Voltar
         </Link>
       </div>
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-4">
+        <div className="text-xs uppercase tracking-wide text-zinc-500">Responsável técnico assinante</div>
+        <p className="mt-1 text-sm font-medium text-zinc-900">
+          {formatTechnicalLeadLine(technicalLead)}
+        </p>
+        {technicalLead.email && (
+          <p className="mt-0.5 text-xs text-zinc-500">{technicalLead.email}</p>
+        )}
+        <p className="mt-2 text-xs text-zinc-500">
+          {rtFrozen
+            ? 'Snapshot congelado no laudo após processar os resultados.'
+            : 'Vinculado ao cadastro da empresa; será congelado ao processar os resultados.'}
+          {a.companies?.id && (
+            <>
+              {' '}
+              <Link
+                href={`/empresas/${a.companies.id}?retorno=/nr01/avaliacao/${id}`}
+                className="text-blue-800 hover:underline"
+              >
+                Editar na empresa
+              </Link>
+            </>
+          )}
+        </p>
+      </section>
 
       {/* Bloco de status + ações */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -143,6 +189,14 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
               <div className="mt-2 text-xs text-amber-800">
                 Anônimo. Compartilhe com os trabalhadores via e-mail, QR code ou WhatsApp.
               </div>
+              {a.status === 'COLETANDO' && (
+                <Link
+                  href={`/nr01/avaliacao/${id}/disparos`}
+                  className="mt-2 inline-block text-xs font-semibold text-blue-900 hover:underline"
+                >
+                  Disparar lista de transmissão por e-mail →
+                </Link>
+              )}
             </div>
             {a.status === 'CRIADO' && (
               <form action={abrirColeta}>

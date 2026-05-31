@@ -21,45 +21,11 @@ import { createHash } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { loadLaudoData } from '@/lib/nr01/pdf-data'
 import { buildLaudoHtml } from '@/lib/nr01/pdf-template'
+import { launchPdfBrowser } from '@/lib/nr01/launch-pdf-browser'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
-
-// Quando rodando em prod (Vercel), use o pacote min com binário do CDN.
-// Em dev local, pode-se setar PUPPETEER_EXECUTABLE_PATH apontando para
-// um Chrome/Chromium instalado.
-async function launchBrowser() {
-  const isServerless = !!process.env.VERCEL || !!process.env.AWS_EXECUTION_ENV
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { chromium: pwChromium } = (await import('playwright-core')) as any
-
-  if (isServerless) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sparticuz: any = await import('@sparticuz/chromium-min')
-    const chromiumLib = sparticuz.default ?? sparticuz
-    const remoteUrl =
-      process.env.NR01_CHROMIUM_PACK_URL ??
-      'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
-
-    const executablePath = await chromiumLib.executablePath(remoteUrl)
-    return pwChromium.launch({
-      args: chromiumLib.args,
-      executablePath,
-      headless: true,
-    })
-  }
-
-  // Dev local: usa o Chrome/Chromium do sistema se PUPPETEER_EXECUTABLE_PATH
-  // estiver setado; caso contrário, tenta sem path (precisa playwright instalado
-  // separadamente — em dev é responsabilidade do desenvolvedor).
-  const localPath = process.env.PUPPETEER_EXECUTABLE_PATH
-  return pwChromium.launch({
-    headless: true,
-    ...(localPath ? { executablePath: localPath } : {}),
-  })
-}
 
 export async function POST(
   request: NextRequest,
@@ -105,10 +71,10 @@ export async function POST(
   // ============================================================
   let pdfBuffer: Buffer
   let pageCount = 0
-  let browser: Awaited<ReturnType<typeof launchBrowser>> | null = null
+  let browser: Awaited<ReturnType<typeof launchPdfBrowser>> | null = null
 
   try {
-    browser = await launchBrowser()
+    browser = await launchPdfBrowser()
     const ctx = await browser.newContext()
     const page = await ctx.newPage()
 
@@ -133,7 +99,7 @@ export async function POST(
         detail: (err as Error).message,
         hint: process.env.VERCEL
           ? 'Em Vercel: confirma que vercel.json libera memory ≥ 1024 e maxDuration ≥ 60. Verifica logs da função.'
-          : 'Em dev local: instale Chrome/Chromium e configure PUPPETEER_EXECUTABLE_PATH no .env.local, OU teste direto em produção.',
+          : 'Em dev: instale Chrome ou rode "npx playwright install chromium". Opcional: PUPPETEER_EXECUTABLE_PATH no .env.local.',
       },
       { status: 500 },
     )

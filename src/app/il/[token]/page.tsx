@@ -7,14 +7,18 @@
 
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import ILFormClient from './ILFormClient'
 
 interface Props {
   params: Promise<{ token: string }>
+  searchParams: Promise<{ invite?: string }>
 }
 
-export default async function ILPage({ params }: Props) {
+export default async function ILPage({ params, searchParams }: Props) {
   const { token } = await params
+  const { invite } = await searchParams
+  await markSurveyInviteOpened(invite)
   const supabase = await createClient()
 
   // Carrega diagnóstico pelo il_token

@@ -21,6 +21,10 @@ import {
   hashResponse,
   METHODOLOGY_TEXT_V1_1,
 } from '@/lib/nr01/evidence'
+import {
+  snapshotTechnicalLeadPayload,
+  type CompanyTechnicalLeadSource,
+} from '@/lib/nr01/technical-lead'
 
 async function ensureOwnership(assessmentId: string) {
   const supabase = await createClient()
@@ -93,11 +97,24 @@ export async function processarResultados(formData: FormData) {
   // Carrega avaliação completa
   const { data: assessment } = await supabase
     .from('nr01_assessments')
-    .select('id, instrument_version, k_anonymity_min')
+    .select('id, company_id, instrument_version, k_anonymity_min')
     .eq('id', id)
     .single()
   if (!assessment) redirect('/nr01/dashboard')
-  const a = assessment as { id: string; instrument_version: string; k_anonymity_min: number }
+  const a = assessment as { id: string; company_id: string; instrument_version: string; k_anonymity_min: number }
+
+  const { data: companyRowRaw } = await supabase
+    .from('companies')
+    .select('technical_lead_name, technical_lead_crp, technical_lead_profession')
+    .eq('id', a.company_id)
+    .single()
+  const companyRow = companyRowRaw as CompanyTechnicalLeadSource | null
+  if (!companyRow?.technical_lead_name?.trim() || !companyRow?.technical_lead_crp?.trim()) {
+    redirect(
+      `/empresas/${a.company_id}?error=${encodeURIComponent('Cadastre o responsável técnico assinante (RT) na empresa antes de processar.')}&retorno=/nr01/avaliacao/${id}`,
+    )
+  }
+  const rtSnapshot = snapshotTechnicalLeadPayload(companyRow)
 
   // Carrega questões + respostas + pesos por dimensão (P013: uniformes 1.00 no DB)
   const [{ data: questionsData }, { data: responsesData }, { data: dimsData }] = await Promise.all([
@@ -183,8 +200,14 @@ export async function processarResultados(formData: FormData) {
       { onConflict: 'assessment_id' },
     )
 
-  // Conclui
-  await supabase.from('nr01_assessments').update({ status: 'CONCLUIDO' } as never).eq('id', id)
+  // Conclui e congela RT assinante no snapshot da avaliação (laudo/PDF)
+  await supabase
+    .from('nr01_assessments')
+    .update({
+      status: 'CONCLUIDO',
+      ...rtSnapshot,
+    } as never)
+    .eq('id', id)
 
   await supabase.from('nr01_audit_log').insert({
     assessment_id: id,
@@ -215,7 +238,13 @@ export async function gerarPacoteEvidencias(formData: FormData) {
 
   const { data: a } = await supabase
     .from('nr01_assessments')
-    .select('id, instrument_version, technical_lead_crp, technical_lead_id, collection_opens_at, collection_closes_at, expected_respondents')
+    .select(`
+      id, instrument_version, technical_lead_crp, technical_lead_name, technical_lead_profession,
+      company_id, collection_opens_at, collection_closes_at, expected_respondents,
+      companies:companies!nr01_assessments_company_id_fkey (
+        technical_lead_name, technical_lead_crp, technical_lead_profession
+      )
+    `)
     .eq('id', id)
     .single()
   if (!a) redirect('/nr01/dashboard')
@@ -223,22 +252,27 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     id: string
     instrument_version: string
     technical_lead_crp: string | null
-    technical_lead_id: string | null
+    technical_lead_name: string | null
+    technical_lead_profession: string | null
+    company_id: string
     collection_opens_at: string | null
     collection_closes_at: string | null
     expected_respondents: number
+    companies: {
+      technical_lead_name: string | null
+      technical_lead_crp: string | null
+      technical_lead_profession: string | null
+    } | null
   }
 
-  // Busca nome do responsável técnico
-  let leadName = 'Responsável técnico'
-  if (ass.technical_lead_id) {
-    const { data: lead } = await supabase
-      .from('profiles')
-      .select('name, email')
-      .eq('id', ass.technical_lead_id)
-      .single()
-    if (lead) leadName = (lead as { name: string | null; email: string | null }).name ?? (lead as { email: string | null }).email ?? leadName
-  }
+  const rtSnapshot = snapshotTechnicalLeadPayload({
+    technical_lead_name: ass.technical_lead_name ?? ass.companies?.technical_lead_name,
+    technical_lead_crp: ass.technical_lead_crp ?? ass.companies?.technical_lead_crp,
+    technical_lead_profession:
+      ass.technical_lead_profession ?? ass.companies?.technical_lead_profession,
+  })
+  const leadName = rtSnapshot.technical_lead_name ?? 'Responsável técnico'
+  const leadCrp = rtSnapshot.technical_lead_crp ?? null
 
   // Carrega questões + respostas para hash
   const [{ data: qData }, { data: respData }] = await Promise.all([
@@ -279,7 +313,7 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     methodologyText: METHODOLOGY_TEXT_V1_1,
     methodologyVersion: 'v1.1',
     technicalLeadName: leadName,
-    technicalLeadCrp: ass.technical_lead_crp,
+    technicalLeadCrp: leadCrp,
     responseHashes,
   })
 
@@ -294,7 +328,7 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     methodology_text: METHODOLOGY_TEXT_V1_1,
     methodology_version: 'v1.1',
     technical_lead_name: leadName,
-    technical_lead_crp: ass.technical_lead_crp,
+    technical_lead_crp: leadCrp,
     pack_sha256: packSha,
     // Patch 008: hash dos laudos oficiais vigentes
     laudos_pack_sha256: laudosSha,

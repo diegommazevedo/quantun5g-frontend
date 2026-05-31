@@ -4,9 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:vendas": "npm run dev --prefix vendas-nr01",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:verify": "node --env-file=.env.local scripts/verify-db-schema.mjs",
+    "db:apply-pending": "node --env-file=.env.local scripts/apply-pending-migrations.mjs",
+    "db:push": "node scripts/db-push-pentaclaude.mjs",
+    "resend:domain": "node --env-file=.env.local scripts/resend-remote.mjs domain",
+    "resend:verify": "node --env-file=.env.local scripts/resend-remote.mjs verify",
+    "resend:send-test": "node --env-file=.env.local scripts/resend-remote.mjs send-test",
+    "resend:setup": "node --env-file=.env.local scripts/verify-resend-setup.mjs",
+    "vercel:sync-env": "node scripts/sync-vercel-production-env.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium-min": "^147.0.1",

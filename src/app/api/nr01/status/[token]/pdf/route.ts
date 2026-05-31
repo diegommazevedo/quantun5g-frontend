@@ -18,38 +18,12 @@ import { createHash } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { loadLaudoData } from '@/lib/nr01/pdf-data'
 import { buildLaudoHtml } from '@/lib/nr01/pdf-template'
+import { launchPdfBrowser } from '@/lib/nr01/launch-pdf-browser'
 import { hashIp } from '@/lib/nr01/evidence'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
-
-// Reusa a lógica da rota interna — sem extrair pra lib comum por enquanto
-// (duas chamadas; refatorar quando virar três).
-async function launchBrowser() {
-  const isServerless = !!process.env.VERCEL || !!process.env.AWS_EXECUTION_ENV
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { chromium: pwChromium } = (await import('playwright-core')) as any
-  if (isServerless) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sparticuz: any = await import('@sparticuz/chromium-min')
-    const chromiumLib = sparticuz.default ?? sparticuz
-    const remoteUrl =
-      process.env.NR01_CHROMIUM_PACK_URL ??
-      'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
-    const executablePath = await chromiumLib.executablePath(remoteUrl)
-    return pwChromium.launch({
-      args: chromiumLib.args,
-      executablePath,
-      headless: true,
-    })
-  }
-  const localPath = process.env.PUPPETEER_EXECUTABLE_PATH
-  return pwChromium.launch({
-    headless: true,
-    ...(localPath ? { executablePath: localPath } : {}),
-  })
-}
 
 export async function GET(
   request: NextRequest,
@@ -95,9 +69,9 @@ export async function GET(
 
   // 4. Playwright
   let pdfBuffer: Buffer
-  let browser: Awaited<ReturnType<typeof launchBrowser>> | null = null
+  let browser: Awaited<ReturnType<typeof launchPdfBrowser>> | null = null
   try {
-    browser = await launchBrowser()
+    browser = await launchPdfBrowser()
     const ctx = await browser.newContext()
     const page = await ctx.newPage()
     await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 })

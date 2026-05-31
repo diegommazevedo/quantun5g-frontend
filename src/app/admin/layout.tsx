@@ -38,6 +38,12 @@ export default async function AdminLayout({
               <span className="text-zinc-300">|</span>
               <nav className="flex items-center gap-1">
                 <a
+                  href="/admin/usuarios"
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition-colors"
+                >
+                  Usuários
+                </a>
+                <a
                   href="/admin/consultores"
                   className="rounded-md px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition-colors"
                 >

@@ -4,6 +4,7 @@
  */
 
 import { getProductById } from '@/lib/products/registry'
+import { nr01PlansAsProductPlans } from '@/lib/billing/nr01-plans'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type { Product, ProductPlan } from '@/types/database'
 
@@ -42,6 +43,10 @@ export async function getProductForCheckout(productId: string): Promise<Product 
 }
 
 export async function getActivePlansForProduct(productId: string): Promise<ProductPlan[]> {
+  // NR-01: fonte de verdade em código (página de vendas v2). Evita exibir preços
+  // desatualizados quando a migration ainda não foi aplicada no Supabase.
+  if (productId === 'nr01') return nr01PlansAsProductPlans()
+
   try {
     const admin = createServiceRoleClient()
     const { data, error } = await admin

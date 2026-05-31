@@ -68,7 +68,7 @@ export function ScaleCalculator({
   }
 
   return (
-    <section id="calculadora-escala" className="scroll-mt-20 px-4 py-16" style={{ backgroundColor: BG, color: TEXT }}>
+    <section id="calculadora-escala" className="scroll-mt-20 px-4 py-12 sm:py-14" style={{ backgroundColor: 'transparent', color: TEXT }}>
       <div className="mx-auto max-w-xl">
         {showStepLabel ? (
           <p className="text-xs font-medium uppercase tracking-wider" style={{ color: ACCENT }}>
@@ -129,14 +129,24 @@ export function ScaleCalculator({
             </div>
           </div>
 
-          <div className="mt-6 rounded-lg border border-white/10 p-4 text-sm leading-relaxed">
-            <p className="text-xs uppercase tracking-wide opacity-75">Plano recomendado para {collaborators} colaboradores</p>
-            <p className="mt-1 text-lg font-bold" style={{ color: ACCENT }}>
-              {tier} · {offer.price}
+          <div
+            className="mt-6 rounded-lg border p-4 text-sm leading-relaxed"
+            style={{ borderColor: ACCENT, backgroundColor: 'rgba(184,148,90,0.06)' }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
+              Faixa do plano (critério de preço)
             </p>
-            <p className="mt-1 opacity-90">{offer.modality}</p>
-            <p className="mt-1 text-xs opacity-75">Faixa do plano: {tierRangeLabel(tier)}</p>
-            <p className="mt-2 text-xs opacity-70">{offer.description}</p>
+            <p className="mt-1 text-base font-bold" style={{ color: ACCENT }}>
+              {tierRangeLabel(tier)}
+            </p>
+            <p className="mt-3 text-xs uppercase tracking-wide opacity-75">
+              Para {collaborators} colaboradores · plano {tier}
+            </p>
+            <p className="mt-1 text-xl font-bold" style={{ color: ACCENT }}>
+              {offer.price}
+              <span className="ml-2 text-sm font-normal opacity-85">{offer.period}</span>
+            </p>
+            <p className="mt-2 opacity-90">{offer.headline}</p>
           </div>
 
           <button

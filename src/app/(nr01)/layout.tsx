@@ -7,11 +7,22 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { profileHasModule } from '@/lib/auth/modules'
+import type { Profile } from '@/types/database'
 
 export default async function Nr01Layout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, module_nr01, module_pentagrama, is_active')
+    .eq('id', user.id)
+    .single()
+  const p = profile as Pick<Profile, 'role' | 'module_nr01' | 'module_pentagrama' | 'is_active'> | null
+  if (p && !p.is_active) redirect('/login')
+  if (!profileHasModule(p, 'nr01')) redirect('/dashboard?error=sem_acesso_nr01')
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -28,6 +39,14 @@ export default async function Nr01Layout({ children }: { children: React.ReactNo
               <Link href="/nr01/avaliacao/nova" className="text-zinc-600 hover:text-zinc-900">
                 Nova avaliação
               </Link>
+              <Link href="/empresas" className="text-zinc-600 hover:text-zinc-900">
+                Empresas
+              </Link>
+              {p?.role === 'admin' && (
+                <Link href="/admin/usuarios" className="text-zinc-600 hover:text-zinc-900">
+                  Usuários
+                </Link>
+              )}
               <Link href="/dashboard" className="text-zinc-400 hover:text-zinc-700">
                 ← Pentagrama
               </Link>

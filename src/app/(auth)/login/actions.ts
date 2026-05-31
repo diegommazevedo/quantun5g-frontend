@@ -8,6 +8,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { safeRedirectPath } from '@/lib/auth/safe-redirect'
 import type { UserRole } from '@/types/database'
 
 // Mapa de destino por role após login bem-sucedido
@@ -23,15 +24,28 @@ export async function login(formData: FormData) {
 
   const email    = formData.get('email') as string
   const password = formData.get('password') as string
+  const redirectTo = safeRedirectPath(formData.get('redirect') as string | null)
 
   if (!email || !password) {
     redirect('/login?error=Preencha%20e-mail%20e%20senha.')
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  let error: { message: string } | null = null
+  const maxAttempts = process.env.NODE_ENV === 'development' ? 3 : 1
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const result = await supabase.auth.signInWithPassword({ email, password })
+    error = result.error
+    if (!error || error.message !== 'fetch failed' || attempt === maxAttempts) break
+    await new Promise((r) => setTimeout(r, attempt * 1500))
+  }
 
   if (error) {
-    redirect('/login?error=E-mail%20ou%20senha%20incorretos.')
+    const msg =
+      process.env.NODE_ENV === 'development'
+        ? error.message
+        : 'E-mail ou senha incorretos.'
+    redirect(`/login?error=${encodeURIComponent(msg)}`)
   }
 
   // Busca role do perfil para redirect correto
@@ -40,6 +54,11 @@ export async function login(formData: FormData) {
     .select('role')
     .returns<{ role: UserRole }[]>()
     .single()
+
+  if (redirectTo) {
+    revalidatePath(redirectTo, 'page')
+    redirect(redirectTo)
+  }
 
   const role = (profile?.role ?? 'consultant') as UserRole
   const dest = ROLE_REDIRECT[role] ?? '/dashboard'

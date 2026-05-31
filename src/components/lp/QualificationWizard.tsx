@@ -1,10 +1,8 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
-import {
-  getOfferByTier,
-  type Nr01WizardTier,
-} from '@/constants/lp-nr01-offers'
+import { getOfferByTier, NR01_RT_LAUDO_NOTICE, type Nr01WizardTier } from '@/constants/lp-nr01-offers'
+import { PlanOfferDetail } from '@/components/lp/PlanOfferDetail'
 
 const BG = '#0B1A2F'
 const ACCENT = '#B8945A'
@@ -142,8 +140,8 @@ export function QualificationWizard({
   return (
     <section
       id="captura-diagnostico"
-      className="scroll-mt-20 px-4 py-16"
-      style={{ backgroundColor: BG, color: TEXT }}
+      className="scroll-mt-20 px-4 py-12 sm:py-16"
+      style={{ backgroundColor: 'transparent', color: TEXT }}
     >
       <div className="mx-auto max-w-xl">
         <p className="text-xs font-medium uppercase tracking-wider" style={{ color: ACCENT }}>
@@ -177,7 +175,7 @@ export function QualificationWizard({
               ← Alterar plano / escala
             </button>
 
-            <OfferCard tier={tier} offer={offer} collaborators={collaborators} />
+            <PlanOfferDetail offer={offer} collaborators={collaborators} compact />
             <GuaranteeBlock />
 
             <form
@@ -199,8 +197,9 @@ export function QualificationWizard({
                   style={{ accentColor: ACCENT }}
                 />
                 <span>
-                  Li e aceito a oferta do plano <strong>{tier}</strong> ({offer.price} · {offer.period}) com o
-                  escopo listado, nos{' '}
+                  Li e aceito a oferta do plano <strong>{tier}</strong> ({offer.price} · {offer.period}) para a
+                  faixa <strong>{offer.audienceRange}</strong>, com o escopo listado e a obrigação de cadastrar o
+                  responsável técnico habilitado para assinatura do laudo, nos{' '}
                   <a href="/termos" className="underline" style={{ color: ACCENT }}>
                     termos de uso
                   </a>
@@ -325,45 +324,6 @@ export function QualificationWizard({
   )
 }
 
-function OfferCard({
-  tier,
-  offer,
-  collaborators,
-}: {
-  tier: Nr01WizardTier
-  offer: ReturnType<typeof getOfferByTier>
-  collaborators: number
-}) {
-  return (
-    <div
-      className="rounded-2xl border p-6"
-      style={{ borderColor: ACCENT, backgroundColor: 'rgba(184,148,90,0.08)' }}
-    >
-      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: ACCENT }}>
-        Oferta selecionada · {tier}
-      </p>
-      <p className="mt-1 text-xs opacity-75">{collaborators} colaboradores (calculadora de escala)</p>
-      <p className="mt-3">
-        <span className="text-3xl font-bold" style={{ color: ACCENT }}>
-          {offer.price}
-        </span>
-        <span className="ml-2 text-sm opacity-85">{offer.period}</span>
-      </p>
-      <p className="mt-2 text-sm opacity-90">{offer.modality}</p>
-      <ul className="mt-4 space-y-2 text-sm opacity-95">
-        {offer.highlights.map((item) => (
-          <li key={item} className="flex gap-2">
-            <span style={{ color: ACCENT }} aria-hidden>
-              ✓
-            </span>
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
 function GuaranteeBlock() {
   return (
     <div
@@ -376,6 +336,7 @@ function GuaranteeBlock() {
       <ul className="mt-2 list-inside list-disc space-y-1 opacity-90">
         <li>Preço e escopo visíveis antes do pagamento — sem taxas ocultas nesta etapa.</li>
         <li>Plataforma Quantum5G: coleta anônima, laudo, plano PDCA e trilha de evidências conforme NR-01.</li>
+        <li>{NR01_RT_LAUDO_NOTICE}</li>
         <li>Material informativo; não substitui assessoria jurídica ou médica do trabalho da sua empresa.</li>
         <li>Após o pagamento confirmado, acesso ao módulo NR-01 conforme o plano contratado.</li>
       </ul>

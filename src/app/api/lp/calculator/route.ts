@@ -22,7 +22,9 @@ export async function POST(req: Request) {
       planId: offer.planId,
       price: offer.price,
       period: offer.period,
-      summary: offer.description,
+      summary: offer.summary,
+      headline: offer.headline,
+      audienceRange: offer.audienceRange,
       range: tierRangeLabel(tier),
     })
   } catch {

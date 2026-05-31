@@ -21,10 +21,13 @@ import {
 import {
   adicionarItemPlano,
   aprovarPlano,
+  atualizarItemPlano,
   atualizarStatusItem,
   marcarCheckpoint,
+  removerItemPlano,
   sugerirAcoesAuto,
 } from './actions'
+import { PDCA_PHASE_COLOR, PDCA_PHASE_LABEL } from '@/lib/nr01/plan-pdca'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -212,6 +215,12 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
                 {plan.approved_at && ` em ${new Date(plan.approved_at).toLocaleDateString('pt-BR')}`}
               </span>
             )}
+            {plan?.status === 'em_execucao' && (
+              <span className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                Em execução
+                {plan.execution_started_at && ` desde ${new Date(plan.execution_started_at).toLocaleDateString('pt-BR')}`}
+              </span>
+            )}
           </>
         )}
       </section>
@@ -356,6 +365,9 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
                             <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${PRIORITY_COLOR[it.priority]}`}>
                               {it.priority}
                             </span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${PDCA_PHASE_COLOR[it.pdca_phase ?? 'plan']}`}>
+                              {PDCA_PHASE_LABEL[it.pdca_phase ?? 'plan']}
+                            </span>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLOR[it.status]}`}>
                               {STATUS_LABEL[it.status]}
                             </span>
@@ -367,43 +379,107 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
                           </div>
                           <h3 className="mt-1.5 text-sm font-semibold text-zinc-900">{it.title}</h3>
                           {it.description && (
-                            <p className="mt-1 text-xs text-zinc-600">{it.description}</p>
+                            <p className="mt-1 whitespace-pre-line text-xs text-zinc-600">{it.description}</p>
+                          )}
+                          {Array.isArray(it.rollout_steps) && it.rollout_steps.length > 0 && (
+                            <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-xs text-zinc-600">
+                              {it.rollout_steps.map((step, idx) => (
+                                <li key={idx}>
+                                  {typeof step === 'string' ? step : step.descricao}
+                                </li>
+                              ))}
+                            </ol>
                           )}
                           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-                            <span>Resp: <strong className="text-zinc-700">{it.owner_name}</strong></span>
+                            <span>Resp: <strong className={it.owner_name.toLowerCase() === 'a definir' ? 'text-amber-700' : 'text-zinc-700'}>{it.owner_name}</strong></span>
                             <span>Prazo: {new Date(it.due_date).toLocaleDateString('pt-BR')}</span>
+                            {it.baseline_score_pct != null && (
+                              <span>Baseline: {it.baseline_score_pct.toFixed(1)} p.</span>
+                            )}
                             {it.estimated_cost_brl != null && (
                               <span>Custo est.: R$ {it.estimated_cost_brl.toLocaleString('pt-BR')}</span>
                             )}
                             {it.kpi && <span>KPI: {it.kpi}</span>}
                           </div>
                           {/* Checkpoints */}
-                          <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                            {(['30', '60', '90'] as const).map((cp) => {
-                              const field =
-                                cp === '30' ? it.check_30d_at
-                                : cp === '60' ? it.check_60d_at
-                                : it.check_90d_at
-                              return field ? (
-                                <span key={cp} className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">
-                                  ✓ {cp}d {new Date(field).toLocaleDateString('pt-BR')}
-                                </span>
-                              ) : (
-                                <form key={cp} action={marcarCheckpoint} className="inline">
-                                  <input type="hidden" name="assessment_id" value={id} />
-                                  <input type="hidden" name="item_id" value={it.id} />
-                                  <input type="hidden" name="checkpoint" value={cp} />
-                                  <button
-                                    type="submit"
-                                    className="rounded border border-zinc-300 px-1.5 py-0.5 text-zinc-600 hover:border-zinc-500 hover:text-zinc-900"
-                                  >
-                                    + {cp}d
-                                  </button>
-                                </form>
-                              )
-                            })}
+                          <div className="mt-2 space-y-1">
+                            <div className="flex flex-wrap gap-1.5 text-[10px]">
+                              {(['30', '60', '90'] as const).map((cp) => {
+                                const field =
+                                  cp === '30' ? it.check_30d_at
+                                  : cp === '60' ? it.check_60d_at
+                                  : it.check_90d_at
+                                const note = it.check_notes?.[cp]
+                                return field ? (
+                                  <span key={cp} className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800" title={note ?? undefined}>
+                                    ✓ Check {cp}d {new Date(field).toLocaleDateString('pt-BR')}
+                                    {note ? ' · nota' : ''}
+                                  </span>
+                                ) : (
+                                  <details key={cp} className="inline">
+                                    <summary className="cursor-pointer rounded border border-zinc-300 px-1.5 py-0.5 text-zinc-600 hover:border-zinc-500">
+                                      + Check {cp}d
+                                    </summary>
+                                    <form action={marcarCheckpoint} className="mt-1 flex flex-wrap items-end gap-1">
+                                      <input type="hidden" name="assessment_id" value={id} />
+                                      <input type="hidden" name="item_id" value={it.id} />
+                                      <input type="hidden" name="checkpoint" value={cp} />
+                                      <input
+                                        name="check_note"
+                                        placeholder="Nota do checkpoint (opcional)"
+                                        className="min-w-[180px] rounded border border-zinc-300 px-1.5 py-0.5 text-[10px]"
+                                      />
+                                      <button type="submit" className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-white">
+                                        Registrar
+                                      </button>
+                                    </form>
+                                  </details>
+                                )
+                              })}
+                            </div>
                           </div>
+                          {/* Atribuição rápida */}
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-[10px] font-medium text-blue-800">
+                              Atribuir responsável / ajustar prazo
+                            </summary>
+                            <form action={atualizarItemPlano} className="mt-2 grid grid-cols-2 gap-2">
+                              <input type="hidden" name="assessment_id" value={id} />
+                              <input type="hidden" name="item_id" value={it.id} />
+                              <input
+                                name="owner_name"
+                                defaultValue={it.owner_name}
+                                required
+                                placeholder="Responsável"
+                                className="rounded border border-zinc-300 px-2 py-1 text-xs"
+                              />
+                              <input
+                                name="owner_email"
+                                type="email"
+                                defaultValue={it.owner_email ?? ''}
+                                placeholder="E-mail"
+                                className="rounded border border-zinc-300 px-2 py-1 text-xs"
+                              />
+                              <input
+                                name="due_date"
+                                type="date"
+                                defaultValue={it.due_date}
+                                required
+                                className="rounded border border-zinc-300 px-2 py-1 text-xs"
+                              />
+                              <input
+                                name="kpi"
+                                defaultValue={it.kpi ?? ''}
+                                placeholder="KPI"
+                                className="rounded border border-zinc-300 px-2 py-1 text-xs"
+                              />
+                              <button type="submit" className="col-span-2 rounded bg-blue-800 px-2 py-1 text-xs font-semibold text-white">
+                                Salvar atribuição
+                              </button>
+                            </form>
+                          </details>
                         </div>
+                        <div className="flex flex-col items-end gap-2">
                         {/* Mudar status */}
                         <form action={atualizarStatusItem} className="flex items-center gap-2">
                           <input type="hidden" name="assessment_id" value={id} />
@@ -424,6 +500,16 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
                             Atualizar
                           </button>
                         </form>
+                        {plan?.status === 'rascunho' && (
+                          <form action={removerItemPlano}>
+                            <input type="hidden" name="assessment_id" value={id} />
+                            <input type="hidden" name="item_id" value={it.id} />
+                            <button type="submit" className="text-[10px] text-red-600 hover:underline">
+                              Remover
+                            </button>
+                          </form>
+                        )}
+                        </div>
                       </div>
                     </li>
                   ))}

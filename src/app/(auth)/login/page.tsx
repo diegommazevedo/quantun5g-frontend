@@ -6,13 +6,16 @@
 
 import { login } from './actions'
 
+import { safeRedirectPath } from '@/lib/auth/safe-redirect'
+
 interface LoginPageProps {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; redirect?: string }>
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
   const errorMsg = params.error
+  const redirectTo = safeRedirectPath(params.redirect)
 
   return (
     <div className="w-full max-w-sm space-y-8">
@@ -40,6 +43,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
       {/* Formulário */}
       <form action={login} className="space-y-5">
+        {redirectTo ? <input type="hidden" name="redirect" value={redirectTo} /> : null}
         <div className="space-y-1.5">
           <label
             htmlFor="email"

@@ -16,11 +16,13 @@
  */
 
 import {
+  NR01_DIMENSION_LABEL,
   RISK_LEVEL_LABEL,
   type Nr01DimensionCode,
   type Nr01RiskLevel,
 } from '@/types/nr01'
 import { METHODOLOGY_TEXT_V1_1 } from '@/lib/nr01/evidence'
+import { formatTechnicalLeadLine } from '@/lib/nr01/technical-lead'
 import { LIKERT_LABELS } from '@/lib/nr01/instrument'
 import type { LaudoData } from '@/lib/nr01/pdf-data'
 
@@ -319,7 +321,7 @@ function renderCapa(d: LaudoData): string {
       <dt>Data de emissão</dt><dd>${fmtDateBR(d.generatedAt)}</dd>
       <dt>Instrumento</dt><dd>Pentagrama NR-01 ${escapeHtml(a.instrument_version)}</dd>
       <dt>ISO global</dt><dd>${r?.iso_score != null ? fmtMean(r.iso_score) : '—'} · ${r?.iso_risk_level ? RISK_LEVEL_LABEL[r.iso_risk_level] : '—'}</dd>
-      <dt>Responsável técnico</dt><dd>${escapeHtml(a.technical_lead?.name ?? '—')}${a.technical_lead_crp ? ' · ' + escapeHtml(a.technical_lead_crp) : ''}</dd>
+      <dt>Responsável técnico</dt><dd>${escapeHtml(formatTechnicalLeadLine(a.technical_lead))}</dd>
     </dl>
   </div>
 </section>
@@ -363,8 +365,9 @@ function renderSecao1_Identificacao(d: LaudoData): string {
   <table class="compact">
     <tr><th style="width: 45mm;">Empresa</th><td>${escapeHtml(co?.name ?? '—')}</td></tr>
     <tr><th>Avaliação</th><td>${escapeHtml(a.name)}</td></tr>
-    <tr><th>Responsável técnico</th><td>${escapeHtml(a.technical_lead?.name ?? '—')}</td></tr>
-    <tr><th>Registro profissional</th><td>${escapeHtml(a.technical_lead_crp ?? '—')}</td></tr>
+    <tr><th>Responsável técnico</th><td>${escapeHtml(a.technical_lead.name)}</td></tr>
+    <tr><th>Profissão</th><td>${escapeHtml(a.technical_lead.profession ?? '—')}</td></tr>
+    <tr><th>Registro profissional</th><td>${escapeHtml(a.technical_lead.crp ?? '—')}</td></tr>
     <tr><th>Período de avaliação</th><td>${escapeHtml(a.reference_period ?? '—')}</td></tr>
     <tr><th>Data de emissão</th><td>${fmtDateBR(d.generatedAt)}</td></tr>
   </table>
@@ -669,10 +672,11 @@ function renderSecao10_Recomendacoes(d: LaudoData): string {
     const itens = d.actionItems.map((it) => `
       <tr>
         <td>${escapeHtml(it.priority)}</td>
-        <td>${escapeHtml(it.dimension_code)}</td>
-        <td><strong>${escapeHtml(it.title)}</strong>${it.description ? `<br/><span class="muted" style="font-size: 8.5pt;">${escapeHtml(it.description)}</span>` : ''}</td>
+        <td>${escapeHtml(NR01_DIMENSION_LABEL[it.dimension_code as Nr01DimensionCode] ?? it.dimension_code)}</td>
+        <td><strong>${escapeHtml(it.title)}</strong>${it.description ? `<br/><span class="muted" style="font-size: 8.5pt;">${escapeHtml(it.description)}</span>` : ''}${Array.isArray(it.rollout_steps) && it.rollout_steps.length > 0 ? `<br/><span class="muted" style="font-size: 8pt;">Passos: ${it.rollout_steps.map((s) => typeof s === 'string' ? s : s.descricao).join(' · ')}</span>` : ''}</td>
         <td>${escapeHtml(it.owner_name)}</td>
         <td>${fmtDateBR(it.due_date)}</td>
+        <td>${escapeHtml(it.kpi ?? '—')}</td>
         <td>${escapeHtml(it.status)}</td>
       </tr>
     `).join('')
@@ -685,7 +689,7 @@ function renderSecao10_Recomendacoes(d: LaudoData): string {
   </p>
   <table class="compact">
     <thead>
-      <tr><th>Prio</th><th>Dimensão</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Status</th></tr>
+      <tr><th>Prio</th><th>Dimensão</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>KPI</th><th>Status</th></tr>
     </thead>
     <tbody>${itens}</tbody>
   </table>
@@ -747,9 +751,10 @@ function renderSecao11_Conclusao(d: LaudoData): string {
 // ============================================================
 
 function renderSecao12_Responsabilidade(d: LaudoData): string {
-  const a = d.assessment
-  const lead = a.technical_lead?.name ?? '—'
-  const crp = a.technical_lead_crp ?? 'CRP —'
+  const rt = d.assessment.technical_lead
+  const lead = rt.name
+  const crp = rt.crp ?? '—'
+  const prof = rt.profession ?? ''
   return `
 <section class="principal">
   <h2>12. Responsabilidade técnica</h2>
@@ -763,6 +768,7 @@ function renderSecao12_Responsabilidade(d: LaudoData): string {
     <div class="pre">
       <div>
         <div><strong>${escapeHtml(lead)}</strong></div>
+        ${prof ? `<div>${escapeHtml(prof)}</div>` : ''}
         <div>${escapeHtml(crp)}</div>
         <div>Responsável Técnico</div>
       </div>

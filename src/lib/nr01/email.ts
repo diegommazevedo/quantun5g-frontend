@@ -19,6 +19,8 @@ export interface EmailMessage {
   text: string
   html?: string
   from?: string
+  /** Tag Resend para correlacionar webhook → survey_invites */
+  inviteId?: string
 }
 
 export interface EmailSendResult {
@@ -26,11 +28,18 @@ export interface EmailSendResult {
   ok: boolean
   id?: string
   error?: string
+  /** true quando enviado via console (sem webhook Resend) */
+  simulated?: boolean
 }
 
 const DEFAULT_FROM = process.env.NR01_EMAIL_FROM ?? 'Quantum5G NR-01 <onboarding@resend.dev>'
 
 export function getActiveDriver(): EmailDriver {
+  const forced = process.env.EMAIL_DRIVER?.toLowerCase()
+  if (forced === 'console' || forced === 'resend') return forced
+  if (process.env.NODE_ENV === 'development' && process.env.EMAIL_USE_RESEND_IN_DEV !== 'true') {
+    return 'console'
+  }
   return process.env.RESEND_API_KEY ? 'resend' : 'console'
 }
 
@@ -54,6 +63,9 @@ async function sendViaResend(msg: EmailMessage): Promise<EmailSendResult> {
         subject: msg.subject,
         text: msg.text,
         html: msg.html,
+        ...(msg.inviteId
+          ? { tags: [{ name: 'invite_id', value: msg.inviteId }] }
+          : {}),
       }),
     })
 
@@ -81,7 +93,7 @@ function sendViaConsole(msg: EmailMessage): EmailSendResult {
   console.log('  ---')
   console.log(msg.text.split('\n').map((l) => '  ' + l).join('\n'))
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-  return { driver: 'console', ok: true, id }
+  return { driver: 'console', ok: true, id, simulated: true }
 }
 
 // ============================================================
@@ -89,8 +101,17 @@ function sendViaConsole(msg: EmailMessage): EmailSendResult {
 // ============================================================
 export async function sendEmail(msg: EmailMessage): Promise<EmailSendResult> {
   const driver = getActiveDriver()
-  if (driver === 'resend') return sendViaResend(msg)
-  return sendViaConsole(msg)
+  if (driver === 'console') return sendViaConsole(msg)
+
+  const result = await sendViaResend(msg)
+  if (
+    !result.ok &&
+    result.error?.includes('only send testing emails to your own email address')
+  ) {
+    console.warn('[email] Resend sandbox — fallback para console:', result.error?.slice(0, 120))
+    return sendViaConsole(msg)
+  }
+  return result
 }
 
 // ============================================================
