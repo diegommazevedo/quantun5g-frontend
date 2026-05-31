@@ -81,7 +81,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         {/* Formulário */}
-        <div className="mt-4 shrink-0 rounded-xl border border-white/10 bg-white p-4 text-zinc-900 shadow-xl shadow-black/20">
+        <div className="q-card-form mt-4 shrink-0 rounded-xl border border-zinc-200 p-4 shadow-xl shadow-black/20">
           <h2 className="text-base font-bold text-zinc-900">Acesse sua conta</h2>
           <p className="mt-0.5 text-xs text-zinc-500">E-mail e senha cadastrados na plataforma.</p>
 

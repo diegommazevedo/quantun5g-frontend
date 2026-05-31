@@ -50,7 +50,7 @@ async function ShellWithProfile({
   const role = (p?.role ?? 'consultant') as UserRole
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-zinc-50">
+    <div className="flex h-[100dvh] overflow-hidden bg-[var(--q-bg)]">
       <AppShell
         displayName={displayName}
         userEmail={userEmail}
@@ -77,7 +77,7 @@ export function StaffShell(props: Props) {
   return (
     <Suspense
       fallback={
-        <div className="flex h-[100dvh] items-center justify-center bg-zinc-50 text-sm text-zinc-500">
+        <div className="flex h-[100dvh] items-center justify-center bg-[var(--q-bg)] text-sm text-[var(--q-text-muted)]">
           Carregando…
         </div>
       }

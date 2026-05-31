@@ -10,6 +10,7 @@ import {
 } from '@/lib/navigation/app-nav'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { NavIcon } from '@/components/navigation/NavIcon'
+import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
 interface Props {
   role: string
@@ -19,19 +20,21 @@ interface Props {
 }
 
 function accentForSection(sectionId: string, active: boolean): string {
-  if (!active) return 'text-zinc-500 group-hover:text-zinc-800'
-  if (sectionId === 'nr01') return 'text-blue-700'
-  if (sectionId === 'admin') return 'text-amber-800'
-  if (sectionId === 'pentagrama') return 'text-violet-700'
-  return 'text-zinc-900'
+  if (!active) return 'text-[var(--q-text-faint)] group-hover:text-[var(--q-text)]'
+  if (sectionId === 'nr01') return 'text-blue-300'
+  if (sectionId === 'admin') return 'text-amber-300'
+  if (sectionId === 'pentagrama') return 'text-violet-300'
+  return 'text-[var(--q-text)]'
 }
 
 function activeClasses(sectionId: string, active: boolean): string {
-  if (!active) return 'text-zinc-600 hover:bg-zinc-100/90 hover:text-zinc-900'
-  if (sectionId === 'nr01') return 'bg-blue-50 text-blue-900 ring-1 ring-blue-100'
-  if (sectionId === 'admin') return 'bg-amber-50 text-amber-950 ring-1 ring-amber-100'
-  if (sectionId === 'pentagrama') return 'bg-violet-50 text-violet-900 ring-1 ring-violet-100'
-  return 'bg-zinc-100 text-zinc-900 ring-1 ring-zinc-200/80'
+  if (!active) {
+    return 'text-[var(--q-text-muted)] hover:bg-[var(--q-surface-elevated)] hover:text-[var(--q-text)]'
+  }
+  if (sectionId === 'nr01') return 'bg-blue-500/15 text-blue-100 ring-1 ring-blue-400/25'
+  if (sectionId === 'admin') return 'bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/25'
+  if (sectionId === 'pentagrama') return 'bg-violet-500/15 text-violet-100 ring-1 ring-violet-400/25'
+  return 'bg-[var(--q-nav-active-bg)] text-[var(--q-text)] ring-1 ring-[var(--q-border)]'
 }
 
 function SectionBlock({
@@ -45,7 +48,7 @@ function SectionBlock({
 }) {
   return (
     <div className="mb-1">
-      <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+      <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--q-text-faint)]">
         {section.label}
       </p>
       <ul className="space-y-0.5">
@@ -79,7 +82,7 @@ export function AppSidebar({ role, modulePentagrama, moduleNr01, onNavigate }: P
   return (
     <div className="flex h-full flex-col">
       {!staff && (
-        <p className="mx-3 mb-3 rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-[11px] leading-snug text-amber-950">
+        <p className="mx-3 mb-3 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-[11px] leading-snug text-amber-100/90">
           Perfil de liderança (IL). Empresas e disparos são gerenciados pelo consultor.
         </p>
       )}
@@ -90,9 +93,12 @@ export function AppSidebar({ role, modulePentagrama, moduleNr01, onNavigate }: P
         ))}
       </nav>
 
-      <p className="shrink-0 px-4 pb-2 text-[10px] leading-tight text-zinc-400">
-        {moduleSubtitle(modulePentagrama, moduleNr01, role)}
-      </p>
+      <div className="shrink-0 space-y-2 px-3 pb-2">
+        <ThemeToggle />
+        <p className="text-[10px] leading-tight text-[var(--q-text-faint)]">
+          {moduleSubtitle(modulePentagrama, moduleNr01, role)}
+        </p>
+      </div>
     </div>
   )
 }

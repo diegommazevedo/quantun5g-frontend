@@ -14,8 +14,8 @@ export function LogoutButton({ variant = 'sidebar' }: Props) {
         type="submit"
         className={
           isHeader
-            ? 'rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100'
-            : 'w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100'
+            ? 'rounded-lg border border-[var(--q-border-strong)] bg-[var(--q-surface-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--q-text)] transition hover:bg-[var(--q-nav-active-bg)]'
+            : 'w-full rounded-lg border border-[var(--q-border-strong)] bg-[var(--q-surface-elevated)] px-3 py-2 text-sm font-semibold text-[var(--q-text)] transition hover:bg-[var(--q-nav-active-bg)]'
         }
       >
         Sair

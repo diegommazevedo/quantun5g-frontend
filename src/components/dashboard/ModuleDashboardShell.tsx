@@ -11,15 +11,17 @@ const MODULE_META: Record<
     badge: 'Pentagrama de Ginger',
     title: 'Painel Pentagrama',
     subtitle: 'Diagnósticos IL/IC, relatórios e gaps de liderança × colaboradores.',
-    accent: 'border-violet-200 bg-gradient-to-br from-violet-50/80 to-white',
-    ctaClass: 'bg-zinc-900 hover:bg-zinc-800 text-white',
+    accent:
+      'border-violet-400/25 bg-gradient-to-br from-violet-500/10 via-[var(--q-surface)] to-[var(--q-bg-muted)]',
+    ctaClass: 'bg-violet-600 hover:bg-violet-500 text-white',
   },
   nr01: {
     badge: 'NR-01 · GRO',
     title: 'Painel NR-01',
     subtitle: 'Avaliações de riscos psicossociais, coleta anônima e laudo regulatório.',
-    accent: 'border-blue-200 bg-gradient-to-br from-blue-50/80 to-white',
-    ctaClass: 'bg-blue-800 hover:bg-blue-900 text-white',
+    accent:
+      'border-blue-400/25 bg-gradient-to-br from-blue-500/10 via-[var(--q-surface)] to-[var(--q-bg-muted)]',
+    ctaClass: 'bg-blue-600 hover:bg-blue-500 text-white',
   },
 }
 
@@ -54,13 +56,13 @@ function statToneClasses(tone: DashboardStat['tone'], module: DashboardModule): 
       ? 'border-green-100 bg-green-50/60'
       : 'border-violet-100 bg-violet-50/60'
   }
-  return 'border-zinc-200 bg-white'
+  return 'border-[var(--q-border)] bg-[var(--q-surface)]'
 }
 
 function statValueClasses(tone: DashboardStat['tone'], module: DashboardModule): string {
   if (tone === 'active') return module === 'nr01' ? 'text-blue-900' : 'text-amber-900'
   if (tone === 'success') return module === 'nr01' ? 'text-green-900' : 'text-violet-900'
-  return 'text-zinc-900'
+  return 'text-[var(--q-text)]'
 }
 
 export function ModuleDashboardShell({
@@ -89,14 +91,14 @@ export function ModuleDashboardShell({
             <span
               className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                 module === 'nr01'
-                  ? 'border-blue-200 bg-white/80 text-blue-800'
-                  : 'border-violet-200 bg-white/80 text-violet-800'
+                  ? 'border-blue-400/30 bg-blue-500/15 text-blue-200'
+                  : 'border-violet-400/30 bg-violet-500/15 text-violet-200'
               }`}
             >
               {meta.badge}
             </span>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-[1.65rem]">
+              <h1 className="text-2xl font-bold tracking-tight text-[var(--q-text)] sm:text-[1.65rem]">
                 {meta.title}
               </h1>
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-600">
@@ -149,7 +151,7 @@ export function ModuleDashboardShell({
 
       {/* Lista principal */}
       <section className="space-y-4">
-        <h2 className="text-base font-semibold text-zinc-900">{sectionTitle}</h2>
+        <h2 className="text-base font-semibold text-[var(--q-text)]">{sectionTitle}</h2>
         {children}
       </section>
     </div>

@@ -1,39 +1,231 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Paleta 1: clara (legado) ───────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  --q-bg: #fafafa;
+  --q-bg-muted: #f4f4f5;
+  --q-surface: #ffffff;
+  --q-surface-elevated: #ffffff;
+  --q-border: #e4e4e7;
+  --q-border-strong: #d4d4d8;
+  --q-text: #18181b;
+  --q-text-muted: #71717a;
+  --q-text-faint: #a1a1aa;
+  --q-nav-active-bg: #f4f4f5;
+  --q-header-from: #18181b;
+  --q-header-to: #27272a;
+  --q-input-bg: #ffffff;
+  --q-input-border: #d4d4d8;
+  --q-card-form: #ffffff;
+  --q-card-form-fg: #18181b;
+  --background: #fafafa;
+  --foreground: #18181b;
+}
+
+/* ── Paleta 2: Quantum escura (login / SaaS) ──────────────────────────────── */
+[data-theme="quantum-dark"] {
+  color-scheme: dark;
+  --q-bg: #020617;
+  --q-bg-muted: #0f172a;
+  --q-surface: #1e293b;
+  --q-surface-elevated: #334155;
+  --q-border: rgb(255 255 255 / 0.1);
+  --q-border-strong: rgb(255 255 255 / 0.16);
+  --q-text: #f8fafc;
+  --q-text-muted: #94a3b8;
+  --q-text-faint: #64748b;
+  --q-nav-active-bg: rgb(255 255 255 / 0.08);
+  --q-header-from: #0f172a;
+  --q-header-to: #020617;
+  --q-input-bg: #1e293b;
+  --q-input-border: rgb(148 163 184 / 0.35);
+  --q-card-form: #ffffff;
+  --q-card-form-fg: #18181b;
+  --background: #020617;
+  --foreground: #f8fafc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-q-bg: var(--q-bg);
+  --color-q-surface: var(--q-surface);
+  --color-q-border: var(--q-border);
+  --color-q-text: var(--q-text);
+  --color-q-muted: var(--q-text-muted);
+  --font-sans: var(--font-inter);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--q-bg);
+  color: var(--q-text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Utilitários semânticos da plataforma */
+.q-page-bg {
+  background-color: var(--q-bg);
+  color: var(--q-text);
+}
+.q-surface {
+  background-color: var(--q-surface);
+  border-color: var(--q-border);
+  color: var(--q-text);
+}
+.q-surface-elevated {
+  background-color: var(--q-surface-elevated);
+  border-color: var(--q-border);
+  color: var(--q-text);
+}
+.q-border {
+  border-color: var(--q-border);
+}
+.q-text-muted {
+  color: var(--q-text-muted);
+}
+.q-text-faint {
+  color: var(--q-text-faint);
+}
+.q-card-form {
+  background-color: var(--q-card-form);
+  color: var(--q-card-form-fg);
+}
+
+/* Overrides automáticos — paleta escura em telas legadas (zinc/white) */
+[data-theme="quantum-dark"] .bg-zinc-50,
+[data-theme="quantum-dark"] .bg-zinc-50\/80 {
+  background-color: var(--q-bg-muted) !important;
+}
+[data-theme="quantum-dark"] .bg-white {
+  background-color: var(--q-surface) !important;
+  color: var(--q-text);
+}
+[data-theme="quantum-dark"] .bg-white\/95 {
+  background-color: color-mix(in srgb, var(--q-surface) 95%, transparent) !important;
+}
+[data-theme="quantum-dark"] .text-zinc-900,
+[data-theme="quantum-dark"] .text-zinc-800 {
+  color: var(--q-text) !important;
+}
+[data-theme="quantum-dark"] .text-zinc-700 {
+  color: color-mix(in srgb, var(--q-text) 90%, var(--q-text-muted)) !important;
+}
+[data-theme="quantum-dark"] .text-zinc-600,
+[data-theme="quantum-dark"] .text-zinc-500 {
+  color: var(--q-text-muted) !important;
+}
+[data-theme="quantum-dark"] .text-zinc-400 {
+  color: var(--q-text-faint) !important;
+}
+[data-theme="quantum-dark"] .border-zinc-200,
+[data-theme="quantum-dark"] .border-zinc-200\/80,
+[data-theme="quantum-dark"] .border-zinc-100,
+[data-theme="quantum-dark"] .border-zinc-300,
+[data-theme="quantum-dark"] .border-dashed.border-zinc-300 {
+  border-color: var(--q-border) !important;
+}
+[data-theme="quantum-dark"] .divide-zinc-100 > :not([hidden]) ~ :not([hidden]),
+[data-theme="quantum-dark"] .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--q-border) !important;
+}
+[data-theme="quantum-dark"] .bg-zinc-100,
+[data-theme="quantum-dark"] .bg-zinc-100\/90,
+[data-theme="quantum-dark"] .hover\:bg-zinc-100:hover,
+[data-theme="quantum-dark"] .hover\:bg-zinc-50:hover {
+  background-color: var(--q-surface-elevated) !important;
+}
+[data-theme="quantum-dark"] .bg-zinc-900 {
+  background-color: #0f172a !important;
+}
+[data-theme="quantum-dark"] .ring-zinc-200\/80,
+[data-theme="quantum-dark"] .ring-zinc-200 {
+  --tw-ring-color: var(--q-border) !important;
+}
+[data-theme="quantum-dark"] .shadow-sm,
+[data-theme="quantum-dark"] .shadow-xl {
+  --tw-shadow-color: rgb(0 0 0 / 0.35);
+}
+[data-theme="quantum-dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+[data-theme="quantum-dark"] textarea,
+[data-theme="quantum-dark"] select {
+  background-color: var(--q-input-bg) !important;
+  border-color: var(--q-input-border) !important;
+  color: var(--q-text) !important;
+}
+[data-theme="quantum-dark"] input::placeholder,
+[data-theme="quantum-dark"] textarea::placeholder {
+  color: var(--q-text-faint) !important;
+}
+[data-theme="quantum-dark"] .q-card-form input,
+[data-theme="quantum-dark"] .q-card-form textarea,
+[data-theme="quantum-dark"] .q-card-form select {
+  background-color: #fff !important;
+  border-color: #d4d4d8 !important;
+  color: #18181b !important;
+}
+[data-theme="quantum-dark"] .bg-red-50 {
+  background-color: rgb(127 29 29 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .border-red-200 {
+  border-color: rgb(248 113 113 / 0.4) !important;
+}
+[data-theme="quantum-dark"] .text-red-700 {
+  color: #fecaca !important;
+}
+[data-theme="quantum-dark"] .bg-green-50 {
+  background-color: rgb(20 83 45 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .border-green-200 {
+  border-color: rgb(74 222 128 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .text-green-800 {
+  color: #bbf7d0 !important;
+}
+[data-theme="quantum-dark"] .bg-amber-50,
+[data-theme="quantum-dark"] .bg-amber-50\/60 {
+  background-color: rgb(120 53 15 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .border-amber-200,
+[data-theme="quantum-dark"] .border-amber-100 {
+  border-color: rgb(251 191 36 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .text-amber-950,
+[data-theme="quantum-dark"] .text-amber-800,
+[data-theme="quantum-dark"] .text-amber-900 {
+  color: #fde68a !important;
+}
+[data-theme="quantum-dark"] .bg-blue-50,
+[data-theme="quantum-dark"] .bg-blue-50\/60 {
+  background-color: rgb(30 58 138 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .border-blue-100,
+[data-theme="quantum-dark"] .border-blue-200 {
+  border-color: rgb(96 165 250 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .text-blue-800,
+[data-theme="quantum-dark"] .text-blue-900 {
+  color: #bfdbfe !important;
+}
+[data-theme="quantum-dark"] .bg-violet-50,
+[data-theme="quantum-dark"] .bg-violet-50\/60,
+[data-theme="quantum-dark"] .from-violet-50\/80 {
+  background-color: rgb(76 29 149 / 0.25) !important;
+}
+[data-theme="quantum-dark"] .border-violet-100,
+[data-theme="quantum-dark"] .border-violet-200 {
+  border-color: rgb(167 139 250 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .text-violet-900 {
+  color: #ddd6fe !important;
 }
 
 /* ── Impressão / Export PDF ──────────────────────────── */
 @media print {
-
-  /* Elementos não impressos */
   .no-print {
     display: none !important;
   }
 
-  /* Reset de body */
   body {
     background: white !important;
     color: #000 !important;
@@ -42,25 +234,21 @@ body {
     padding: 0;
   }
 
-  /* Layout máximo para A4 */
   .max-w-4xl {
     max-width: 100% !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
   }
 
-  /* Remove sticky bar de ações */
   .sticky {
     position: static !important;
     display: none !important;
   }
 
-  /* Quebra de página entre seções */
   .page-break {
     break-after: page;
   }
 
-  /* Evita quebras dentro de cards e tabelas */
   .rounded-xl,
   .rounded-lg,
   table,
@@ -68,17 +256,11 @@ body {
     break-inside: avoid;
   }
 
-  /* Garante impressão de cores e gradientes */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* ── Fix Recharts em modo print ──────────────────────
-   * ResponsiveContainer colapsa para width=0 em print
-   * porque o DOM não tem dimensões visíveis. Forçamos
-   * dimensões fixas para o SVG renderizar corretamente.
-   */
   .recharts-responsive-container {
     width: 500px !important;
     min-width: 500px !important;
@@ -91,20 +273,17 @@ body {
     height: 360px !important;
   }
 
-  /* SVG do radar não deve ser cortado */
   .recharts-wrapper svg {
     width: 500px !important;
     height: 360px !important;
     overflow: visible !important;
   }
 
-  /* ── Capa: garante que o gradiente seja impresso ── */
   [class*="bg-gradient"] {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* ── Margens de página ── */
   @page {
     size: A4 portrait;
     margin: 15mm 12mm;
