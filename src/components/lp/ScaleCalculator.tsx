@@ -5,6 +5,7 @@ import {
   collaboratorsToTier,
   getOfferByTier,
   tierRangeLabel,
+  tierDisplayName,
 } from '@/constants/lp-nr01-offers'
 import type { ScaleSelection } from '@/components/lp/LpPurchaseFlow'
 
@@ -140,7 +141,7 @@ export function ScaleCalculator({
               {tierRangeLabel(tier)}
             </p>
             <p className="mt-3 text-xs uppercase tracking-wide opacity-75">
-              Para {collaborators} colaboradores · plano {tier}
+              Para {collaborators} colaboradores · faixa {tierDisplayName(tier)}
             </p>
             <p className="mt-1 text-xl font-bold" style={{ color: ACCENT }}>
               {offer.price}

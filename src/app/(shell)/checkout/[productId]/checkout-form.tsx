@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import {
-  computeCheckoutTotalCents,
+  PENTAGRAMA_GINGER_ADDON,
+  PENTAGRAMA_GINGER_ADDON_ID,
+  NR01_RT_NOTICE,
+  computeCheckoutPricing,
   formatBrl,
-  getSalesPlan,
-  JOVANE_RT_UPSELL,
-  JOVANE_RT_UPSELL_ID,
-} from '@/constants/nr01-sales-plans'
+  formatBillingLabel,
+  parseTierPlanId,
+  resolveTierFromHeadcount,
+  type Nr01BillingMode,
+  type Nr01TierId,
+} from '@/lib/billing/nr01-catalog'
+import { getOfferByTier } from '@/constants/lp-nr01-offers'
 import type { ProductPlan } from '@/types/database'
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -17,23 +23,39 @@ export function CheckoutForm({
   productId,
   plans,
   initialPlanId,
-  initialAddon,
+  initialTierId,
+  initialHeadcount,
+  initialBillingMode,
+  initialIncludePentagrama,
   planLocked,
-  addonLocked,
+  gingerLocked,
   vendasOrigin,
   userEmail,
 }: {
   productId: string
   plans: ProductPlan[]
   initialPlanId: string
-  initialAddon: 'jovane_rt' | null
+  initialTierId?: Nr01TierId | null
+  initialHeadcount?: number | null
+  initialBillingMode?: Nr01BillingMode
+  initialIncludePentagrama?: boolean
   planLocked: boolean
-  addonLocked: boolean
+  gingerLocked: boolean
   vendasOrigin: string
   userEmail: string
 }) {
+  const isNr01 = productId === 'nr01'
+
+  const [tierId, setTierId] = useState<Nr01TierId>(
+    initialTierId ?? parseTierPlanId(initialPlanId) ?? 't03',
+  )
+  const [headcount, setHeadcount] = useState(initialHeadcount ?? 50)
+  const [billingMode, setBillingMode] = useState<Nr01BillingMode>(
+    initialBillingMode ?? 'anual_parcelado',
+  )
+  const [includePentagrama, setIncludePentagrama] = useState(initialIncludePentagrama ?? false)
   const [planId, setPlanId] = useState(initialPlanId)
-  const [addonJovaneRt, setAddonJovaneRt] = useState(initialAddon === JOVANE_RT_UPSELL_ID)
+
   const [name, setName] = useState('')
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [phone, setPhone] = useState('')
@@ -41,13 +63,36 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const salesPlan = productId === 'nr01' ? getSalesPlan(planId) : undefined
+  useEffect(() => {
+    if (isNr01) {
+      setTierId(resolveTierFromHeadcount(headcount) as Nr01TierId)
+    }
+  }, [headcount, isNr01])
+
   const pricing = useMemo(() => {
-    if (salesPlan) return computeCheckoutTotalCents(salesPlan, addonJovaneRt)
+    if (isNr01) {
+      try {
+        return computeCheckoutPricing({ tierId, billingMode, includePentagrama })
+      } catch {
+        return null
+      }
+    }
     const plan = plans.find((p) => p.id === planId)
     const base = plan?.price_cents ?? 0
-    return { baseCents: base, addonCents: 0, totalCents: base }
-  }, [salesPlan, addonJovaneRt, planId, plans])
+    return {
+      tierId,
+      billingMode,
+      includePentagrama: false,
+      baseCents: base,
+      gingerCents: 0,
+      totalCents: base,
+      installmentCents: Math.round(base / 12),
+      skuId: '',
+      entitlements: [],
+    }
+  }, [isNr01, tierId, billingMode, includePentagrama, planId, plans])
+
+  const offer = isNr01 ? getOfferByTier(tierId, billingMode) : null
 
   useEffect(() => {
     try {
@@ -71,18 +116,29 @@ export function CheckoutForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!pricing) return
     setError(null)
     setSubmitting(true)
     try {
+      const body = isNr01
+        ? {
+            productId,
+            tierId,
+            billingMode,
+            includePentagrama,
+            headcountDeclared: headcount,
+            customerData: { name, cpfCnpj, email, phone },
+          }
+        : {
+            productId,
+            planId,
+            customerData: { name, cpfCnpj, email, phone },
+          }
+
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId,
-          planId,
-          addon: addonJovaneRt ? JOVANE_RT_UPSELL_ID : undefined,
-          customerData: { name, cpfCnpj, email, phone },
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erro ao processar checkout')
@@ -97,116 +153,154 @@ export function CheckoutForm({
     }
   }
 
-  const changePlanHref = `${vendasOrigin}/`
-
   return (
     <form
       onSubmit={handleSubmit}
       className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
     >
-      {planLocked && salesPlan ? (
-        <section className="rounded-lg border border-slate-900/20 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Plano escolhido na página de vendas
-          </p>
-          <p className="mt-2 text-lg font-bold text-slate-900">{salesPlan.name}</p>
-          <p className="mt-1 text-sm font-medium text-amber-800">{salesPlan.audienceBadge}</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">
-            {salesPlan.priceLabel}
-            <span className="text-base font-normal text-slate-600"> /ano</span>
-          </p>
-          <p className="text-sm text-slate-600">{salesPlan.installmentNote}</p>
-          <a
-            href={changePlanHref}
-            className="mt-3 inline-block text-sm font-medium text-slate-700 underline underline-offset-2"
-          >
-            Alterar plano na página de vendas
-          </a>
-          <input type="hidden" name="plan" value={planId} />
-        </section>
+      {isNr01 && offer && pricing ? (
+        <>
+          <section className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+              Faixa NR-01 · {tierId.toUpperCase()}
+            </p>
+            <p className="mt-1 text-lg font-bold text-slate-900">{offer.audienceRange}</p>
+            {!planLocked && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-700" htmlFor="headcount">
+                  Trabalhadores no escopo NR-01
+                </label>
+                <input
+                  id="headcount"
+                  type="number"
+                  min={1}
+                  max={5000}
+                  value={headcount}
+                  onChange={(e) => setHeadcount(Math.max(1, Number(e.target.value) || 1))}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+            )}
+            {planLocked && (
+              <p className="mt-2 text-sm text-slate-600">
+                Escala informada na contratação: <strong>{headcount}</strong> colaboradores
+              </p>
+            )}
+            {!planLocked && (
+              <a
+                href={vendasOrigin}
+                className="mt-3 inline-block text-sm text-blue-800 underline underline-offset-2"
+              >
+                Alterar na página de vendas
+              </a>
+            )}
+          </section>
+
+          <fieldset>
+            <legend className="text-sm font-medium text-slate-700">Forma de pagamento (anual)</legend>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {(['anual_parcelado', 'anual_vista'] as const).map((mode) => (
+                <label
+                  key={mode}
+                  className={`cursor-pointer rounded-lg border p-3 text-sm ${
+                    billingMode === mode ? 'border-slate-900 bg-slate-50' : 'border-slate-200'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="billing"
+                    checked={billingMode === mode}
+                    onChange={() => setBillingMode(mode)}
+                    className="mr-2"
+                  />
+                  {formatBillingLabel(mode)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {gingerLocked ? (
+            <section className="rounded-lg border border-violet-200 bg-violet-50/80 p-4 text-sm">
+              <p className="font-semibold text-violet-950">{PENTAGRAMA_GINGER_ADDON.shortLabel}</p>
+              <p className="mt-1 text-slate-700">Incluído (+{formatBrl(pricing.gingerCents)}).</p>
+            </section>
+          ) : (
+            <fieldset className="rounded-lg border border-violet-200 bg-violet-50/60 p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={includePentagrama}
+                  onChange={(e) => setIncludePentagrama(e.target.checked)}
+                  className="mt-1 h-4 w-4"
+                />
+                <span className="text-sm text-slate-800">
+                  <span className="font-semibold">{PENTAGRAMA_GINGER_ADDON.label}</span>
+                  <span className="mt-1 block text-slate-600">{PENTAGRAMA_GINGER_ADDON.description}</span>
+                  {includePentagrama && (
+                    <span className="mt-2 block font-medium">+50% sobre a base ({formatBrl(pricing.gingerCents)})</span>
+                  )}
+                </span>
+              </label>
+            </fieldset>
+          )}
+
+          <p className="text-xs text-slate-500 leading-relaxed">{NR01_RT_NOTICE}</p>
+        </>
       ) : (
         <fieldset>
           <legend className="text-sm font-medium text-slate-700">Plano</legend>
           <div className="mt-2 grid gap-2">
-            {plans.map((plan) => {
-              const sp = productId === 'nr01' ? getSalesPlan(plan.id) : null
-              return (
-                <label
-                  key={plan.id}
-                  className={`flex cursor-pointer items-center justify-between rounded border p-3 ${
-                    planId === plan.id ? 'border-slate-900 bg-slate-50' : 'border-slate-200'
-                  }`}
-                >
-                  <div>
-                    <input
-                      type="radio"
-                      name="plan"
-                      value={plan.id}
-                      checked={planId === plan.id}
-                      onChange={() => setPlanId(plan.id)}
-                      className="mr-2"
-                    />
-                    <span className="font-medium">{plan.name}</span>
-                    <span className="ml-2 text-xs text-slate-500">
-                      {sp?.audienceBadge ??
-                        `até ${plan.collaborators_max ?? '∞'} colaboradores`}{' '}
-                      · {plan.modality === 'annual' ? 'anual' : plan.modality}
-                    </span>
-                  </div>
-                  <span className="font-semibold">
-                    {sp ? sp.priceLabel : BRL.format(plan.price_cents / 100)}
-                  </span>
-                </label>
-              )
-            })}
+            {plans.map((plan) => (
+              <label
+                key={plan.id}
+                className={`flex cursor-pointer items-center justify-between rounded border p-3 ${
+                  planId === plan.id ? 'border-slate-900 bg-slate-50' : 'border-slate-200'
+                }`}
+              >
+                <div>
+                  <input
+                    type="radio"
+                    name="plan"
+                    value={plan.id}
+                    checked={planId === plan.id}
+                    onChange={() => setPlanId(plan.id)}
+                    className="mr-2"
+                  />
+                  <span className="font-medium">{plan.name}</span>
+                </div>
+                <span className="font-semibold">{BRL.format(plan.price_cents / 100)}</span>
+              </label>
+            ))}
           </div>
         </fieldset>
       )}
 
-      {productId === 'nr01' && salesPlan ? (
-        addonLocked ? (
-          <section className="rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-sm text-slate-800">
-            <p className="font-semibold text-amber-950">{JOVANE_RT_UPSELL.shortLabel}</p>
-            <p className="mt-1 text-slate-700">Incluído na sua escolha (+{formatBrl(pricing.addonCents)}).</p>
-            <p className="mt-2 text-xs text-slate-600">{JOVANE_RT_UPSELL.description}</p>
-          </section>
-        ) : (
-          <fieldset className="rounded-lg border border-amber-200 bg-amber-50/80 p-4">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                checked={addonJovaneRt}
-                onChange={(e) => setAddonJovaneRt(e.target.checked)}
-                className="mt-1 h-4 w-4"
-              />
-              <span className="text-sm text-slate-800">
-                <span className="font-semibold">{JOVANE_RT_UPSELL.shortLabel}</span>
-                <span className="mt-1 block text-slate-600">{JOVANE_RT_UPSELL.description}</span>
-                <span className="mt-2 block font-medium text-slate-900">
-                  +{BRL.format(pricing.addonCents / 100)} (50% do plano base)
-                </span>
-              </span>
-            </label>
-          </fieldset>
-        )
-      ) : null}
-
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-        <p className="flex justify-between">
-          <span>Plano base</span>
-          <span>{BRL.format(pricing.baseCents / 100)}</span>
-        </p>
-        {pricing.addonCents > 0 ? (
-          <p className="mt-1 flex justify-between text-amber-900">
-            <span>Add-on RT + Pentagrama</span>
-            <span>{BRL.format(pricing.addonCents / 100)}</span>
+      {pricing && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
+          <p className="flex justify-between">
+            <span>Assinatura NR-01 ({tierId.toUpperCase()})</span>
+            <span>{BRL.format(pricing.baseCents / 100)}</span>
           </p>
-        ) : null}
-        <p className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-base font-semibold">
-          <span>Total</span>
-          <span>{BRL.format(pricing.totalCents / 100)}</span>
-        </p>
-      </div>
+          {pricing.gingerCents > 0 && (
+            <p className="mt-1 flex justify-between text-violet-900">
+              <span>Pentagrama de Ginger</span>
+              <span>{BRL.format(pricing.gingerCents / 100)}</span>
+            </p>
+          )}
+          {billingMode === 'anual_parcelado' && isNr01 && (
+            <p className="mt-1 text-xs text-slate-500">
+              12× de {BRL.format(pricing.installmentCents / 100)} no cartão
+            </p>
+          )}
+          <p className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-base font-semibold">
+            <span>Total anual</span>
+            <span>{BRL.format(pricing.totalCents / 100)}</span>
+          </p>
+          {isNr01 && pricing.skuId && (
+            <p className="mt-2 font-mono text-[10px] text-slate-400">SKU {pricing.skuId}</p>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nome completo / Razão social" value={name} onChange={setName} required />
@@ -219,17 +313,13 @@ export function CheckoutForm({
 
       <button
         type="submit"
-        disabled={submitting || pricing.totalCents <= 0}
+        disabled={submitting || !pricing || pricing.totalCents <= 0}
         className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
       >
-        {submitting ? 'Processando…' : `Continuar para pagamento — ${BRL.format(pricing.totalCents / 100)}`}
+        {submitting
+          ? 'Processando…'
+          : `Continuar para pagamento — ${pricing ? BRL.format(pricing.totalCents / 100) : '—'}`}
       </button>
-
-      {planLocked ? (
-        <p className="text-center text-xs text-slate-500">
-          Confirme os dados da empresa e prossiga para o pagamento seguro.
-        </p>
-      ) : null}
     </form>
   )
 }
@@ -260,3 +350,6 @@ function Field({
     </label>
   )
 }
+
+// silence unused import
+void PENTAGRAMA_GINGER_ADDON_ID

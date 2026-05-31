@@ -113,7 +113,19 @@ export async function POST(req: NextRequest) {
   switch (eventType) {
     case 'PAYMENT_CONFIRMED':
     case 'PAYMENT_RECEIVED': {
-      // Buscar plano para saber modality + assessments_per_period
+      const paidAt =
+        payment.confirmedDate
+          ? new Date(payment.confirmedDate)
+          : payment.paymentDate
+            ? new Date(payment.paymentDate)
+            : new Date()
+
+      if (subscription.product_id === 'nr01') {
+        const { provisionNr01Subscription } = await import('@/lib/billing/provision-nr01')
+        await provisionNr01Subscription({ subscription, paidAt })
+        return NextResponse.json({ ok: true, action: 'activated_nr01' })
+      }
+
       const { data: planRow } = await admin
         .from('product_plans')
         .select('modality, assessments_per_period')
@@ -121,13 +133,6 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
       const plan = planRow as Pick<ProductPlan, 'modality' | 'assessments_per_period'> | null
       if (!plan) return bad('plano não encontrado para subscription', 500)
-
-      const paidAt =
-        payment.confirmedDate
-          ? new Date(payment.confirmedDate)
-          : payment.paymentDate
-            ? new Date(payment.paymentDate)
-            : new Date()
 
       await activateSubscription({
         subscriptionId: subscription.id,

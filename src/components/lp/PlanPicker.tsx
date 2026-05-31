@@ -52,7 +52,7 @@ export function PlanPicker({
               className="mt-8 inline-flex min-h-[52px] w-full items-center justify-center rounded-lg px-4 text-center text-base font-semibold transition hover:opacity-95"
               style={{ backgroundColor: ACCENT, color: BG }}
             >
-              Contratar plano {recommended.tier} — {recommended.price}
+              Contratar faixa {recommended.tier.toUpperCase()} — {recommended.price}
             </button>
 
             <p className="mt-3 text-center text-xs opacity-70">{NR01_PLATFORM_NOTICE}</p>

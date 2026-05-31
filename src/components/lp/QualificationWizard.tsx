@@ -93,7 +93,7 @@ export function QualificationWizard({
     }
 
     setLoading(true)
-    const checkoutUrl = `/checkout/nr01?plan=${encodeURIComponent(offer.planId)}`
+    const checkoutUrl = `/checkout/nr01?tier=${encodeURIComponent(tier)}&headcount=${collaborators}&plan=${encodeURIComponent(offer.planId)}`
 
     try {
       const res = await fetch('/api/lp/lead', {
