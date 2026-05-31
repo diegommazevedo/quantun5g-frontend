@@ -1,61 +1,9 @@
-/**
- * QUANTUM5G — Layout do módulo NR-01
- * Reutiliza autenticação Supabase. Header próprio para diferenciar
- * visualmente o módulo regulatório do Pentagrama.
- */
+import { StaffShell } from '@/components/navigation/StaffShell'
 
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { profileHasModule } from '@/lib/auth/modules'
-import type { Profile } from '@/types/database'
-
-export default async function Nr01Layout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, module_nr01, module_pentagrama, is_active')
-    .eq('id', user.id)
-    .single()
-  const p = profile as Pick<Profile, 'role' | 'module_nr01' | 'module_pentagrama' | 'is_active'> | null
-  if (p && !p.is_active) redirect('/login')
-  if (!profileHasModule(p, 'nr01')) redirect('/dashboard?error=sem_acesso_nr01')
-
+export default function Nr01Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-6">
-            <Link href="/nr01/dashboard" className="text-sm font-semibold text-zinc-900">
-              Quantum5G · <span className="text-blue-800">NR-01</span>
-            </Link>
-            <nav className="flex items-center gap-4 text-sm">
-              <Link href="/nr01/dashboard" className="text-zinc-600 hover:text-zinc-900">
-                Painel
-              </Link>
-              <Link href="/nr01/avaliacao/nova" className="text-zinc-600 hover:text-zinc-900">
-                Nova avaliação
-              </Link>
-              <Link href="/empresas" className="text-zinc-600 hover:text-zinc-900">
-                Empresas
-              </Link>
-              {p?.role === 'admin' && (
-                <Link href="/admin/usuarios" className="text-zinc-600 hover:text-zinc-900">
-                  Usuários
-                </Link>
-              )}
-              <Link href="/dashboard" className="text-zinc-400 hover:text-zinc-700">
-                ← Pentagrama
-              </Link>
-            </nav>
-          </div>
-          <div className="text-xs text-zinc-500">{user.email}</div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
-    </div>
+    <StaffShell contentMaxWidth="max-w-6xl" requireModuleNr01>
+      {children}
+    </StaffShell>
   )
 }
