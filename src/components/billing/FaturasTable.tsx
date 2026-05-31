@@ -1,13 +1,17 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { formatBrl, formatBillingLabel, parseTierPlanId } from '@/lib/billing/nr01-catalog'
-import { formatInvoiceProductPt, formatInvoiceStatusPt } from '@/lib/billing/commercial-invoice'
-import { getPentagramaPlan } from '@/lib/billing/pentagrama-catalog'
-import type { CommercialInvoice, CommercialInvoiceStatus } from '@/types/database'
+import {
+  formatBrl,
+  formatInvoiceNotesPreview,
+  invoiceContractLines,
+  type CommercialInvoiceListRow,
+} from '@/lib/billing/commercial-invoice-display'
+import { formatInvoiceStatusPt } from '@/lib/billing/commercial-invoice'
+import type { CommercialInvoiceStatus } from '@/types/database'
 
 interface Props {
-  invoices: CommercialInvoice[]
+  rows: CommercialInvoiceListRow[]
   adminMode?: boolean
 }
 
@@ -18,7 +22,7 @@ const STATUS_CLASS: Record<CommercialInvoiceStatus, string> = {
   cancelada: 'bg-zinc-100 text-zinc-600 border-zinc-200',
 }
 
-export function FaturasTable({ invoices, adminMode }: Props) {
+export function FaturasTable({ rows, adminMode }: Props) {
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -39,7 +43,7 @@ export function FaturasTable({ invoices, adminMode }: Props) {
     })
   }
 
-  if (invoices.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-6 py-12 text-center text-sm text-zinc-600">
         Nenhuma fatura ainda.{' '}
@@ -57,12 +61,13 @@ export function FaturasTable({ invoices, adminMode }: Props) {
           {erro}
         </div>
       )}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+        <table className="w-full min-w-[880px] text-sm">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase text-zinc-500">
               <th className="px-4 py-3">Nº</th>
-              <th className="px-4 py-3">Plano</th>
+              <th className="px-4 py-3">Cliente</th>
+              <th className="px-4 py-3">Contrato</th>
               <th className="px-4 py-3">Valor</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Data</th>
@@ -70,38 +75,83 @@ export function FaturasTable({ invoices, adminMode }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {invoices.map((inv) => {
-              const tier = parseTierPlanId(inv.plan_id)
-              const pentPlan = getPentagramaPlan(inv.plan_id)
-              const meta = inv.metadata as Record<string, unknown>
-              const productLabel = formatInvoiceProductPt(
-                inv.product_id,
-                inv.include_pentagrama,
-                meta,
-              )
+            {rows.map((row) => {
+              const inv = row.invoice
+              const contract = invoiceContractLines(inv)
+              const notesPreview = formatInvoiceNotesPreview(inv.notes)
               return (
-                <tr key={inv.id}>
-                  <td className="px-4 py-3 font-mono text-xs">{inv.invoice_number}</td>
-                  <td className="px-4 py-3">
-                    <span className="font-medium">{productLabel}</span>
-                    <span className="block text-xs text-zinc-500">
-                      {pentPlan?.name ?? tier?.toUpperCase() ?? inv.plan_id}
-                      {inv.product_id === 'nr01' && ` · ${formatBillingLabel(inv.billing_mode)}`}
-                    </span>
+                <tr key={inv.id} className="align-top">
+                  <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
+                    {inv.invoice_number}
                   </td>
-                  <td className="px-4 py-3 font-medium">{formatBrl(inv.amount_cents)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 max-w-[220px]">
+                    <span className="font-medium text-zinc-900">
+                      {row.clientName ?? '—'}
+                    </span>
+                    {row.clientEmail && (
+                      <span className="mt-0.5 block text-xs text-zinc-600 break-all">
+                        {row.clientEmail}
+                      </span>
+                    )}
+                    {row.clientCnpj && (
+                      <span className="mt-0.5 block text-xs text-zinc-500">
+                        CNPJ {row.clientCnpj}
+                      </span>
+                    )}
+                    {row.clientWhatsapp && (
+                      <span className="mt-0.5 block text-xs text-zinc-500">
+                        WhatsApp {row.clientWhatsapp}
+                      </span>
+                    )}
+                    {adminMode && row.consultantName && (
+                      <span className="mt-1 block text-xs text-zinc-400">
+                        Consultor: {row.consultantName}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 max-w-[240px]">
+                    <span className="font-medium text-zinc-900">{contract.productLabel}</span>
+                    {contract.planDetail && (
+                      <span className="mt-0.5 block text-xs text-zinc-600">
+                        {contract.planDetail}
+                      </span>
+                    )}
+                    {contract.scopeDetail && (
+                      <span className="mt-0.5 block text-xs text-zinc-500">
+                        {contract.scopeDetail}
+                      </span>
+                    )}
+                    {row.companyName && row.companyName !== row.clientName && (
+                      <span className="mt-0.5 block text-xs text-zinc-500">
+                        Empresa: {row.companyName}
+                      </span>
+                    )}
+                    {notesPreview && (
+                      <span className="mt-1 block text-xs italic text-zinc-400" title={inv.notes ?? ''}>
+                        Obs.: {notesPreview}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 font-medium whitespace-nowrap">
+                    {formatBrl(inv.amount_cents)}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span
                       className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_CLASS[inv.status]}`}
                     >
                       {formatInvoiceStatusPt(inv.status)}
                     </span>
+                    {inv.status === 'paga' && inv.paid_at && (
+                      <span className="mt-1 block text-xs text-zinc-400">
+                        Paga {new Date(inv.paid_at).toLocaleDateString('pt-BR')}
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-500">
+                  <td className="px-4 py-3 text-xs text-zinc-500 whitespace-nowrap">
                     {new Date(inv.created_at).toLocaleDateString('pt-BR')}
                   </td>
                   {adminMode && (
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="flex flex-wrap justify-end gap-1">
                         {inv.status === 'emitida' && (
                           <button
@@ -145,7 +195,7 @@ export function FaturasTable({ invoices, adminMode }: Props) {
       {!adminMode && (
         <p className="text-xs text-zinc-500">
           Após pagamento presencial, o administrador Quantum5G aprova e marca como paga para liberar
-          nova avaliação NR-01.
+          os módulos contratados.
         </p>
       )}
     </div>

@@ -160,6 +160,9 @@ export async function POST(req: NextRequest) {
       clientCnpj: cnpjRaw,
       clientWhatsapp: body.clientWhatsapp ?? null,
       clientCompanyName: body.targetUserName ?? null,
+      clientEmail: isPlatformStaff(role)
+        ? body.targetUserEmail?.trim().toLowerCase()
+        : user.email ?? undefined,
       companyCnpjSlots,
     })
 

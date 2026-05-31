@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { enrichCommercialInvoices } from '@/lib/billing/enrich-commercial-invoices'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { createClient } from '@/lib/supabase/server'
 import { FaturasTable } from '@/components/billing/FaturasTable'
 import type { CommercialInvoice } from '@/types/database'
@@ -16,6 +18,9 @@ export default async function FaturasPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(50)
+
+  const admin = createServiceRoleAdmin()
+  const rows = await enrichCommercialInvoices(admin, (data ?? []) as CommercialInvoice[])
 
   return (
     <div className="space-y-6">
@@ -40,7 +45,7 @@ export default async function FaturasPage() {
         </div>
       )}
 
-      <FaturasTable invoices={(data ?? []) as CommercialInvoice[]} />
+      <FaturasTable rows={rows} />
     </div>
   )
 }

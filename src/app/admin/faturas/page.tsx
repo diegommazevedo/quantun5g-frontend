@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { enrichCommercialInvoices } from '@/lib/billing/enrich-commercial-invoices'
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { FaturasTable } from '@/components/billing/FaturasTable'
 import type { CommercialInvoice } from '@/types/database'
@@ -10,6 +11,8 @@ export default async function AdminFaturasPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(200)
+
+  const rows = await enrichCommercialInvoices(admin, (data ?? []) as CommercialInvoice[])
 
   return (
     <div className="space-y-6">
@@ -32,7 +35,7 @@ export default async function AdminFaturasPage() {
         </div>
       )}
 
-      <FaturasTable invoices={(data ?? []) as CommercialInvoice[]} adminMode />
+      <FaturasTable rows={rows} adminMode />
 
       <p className="text-xs text-zinc-500">
         Checkout online (Asaas) continua em{' '}

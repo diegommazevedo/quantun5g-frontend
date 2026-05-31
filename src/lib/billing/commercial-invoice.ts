@@ -59,6 +59,7 @@ export interface CreateCommercialInvoiceInput {
   clientCnpj?: string | null
   clientWhatsapp?: string | null
   clientCompanyName?: string | null
+  clientEmail?: string | null
   /** Quantidade de CNPJs/empresas que o cliente poderá cadastrar (plano base = 1). */
   companyCnpjSlots?: number
 }
@@ -103,6 +104,7 @@ export async function createCommercialInvoice(
   if (input.clientCnpj) clientMeta.client_cnpj = input.clientCnpj.replace(/\D/g, '')
   if (input.clientWhatsapp) clientMeta.client_whatsapp = input.clientWhatsapp.replace(/\D/g, '')
   if (input.clientCompanyName) clientMeta.client_company_name = input.clientCompanyName
+  if (input.clientEmail) clientMeta.client_email = input.clientEmail.trim().toLowerCase()
 
   let row: Record<string, unknown>
 
