@@ -5,16 +5,19 @@ import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { AppSidebar } from '@/components/navigation/AppSidebar'
 import { ContextSubnav } from '@/components/navigation/ContextSubnav'
+import { UserAccountBlock } from '@/components/navigation/UserAccountBlock'
 import { sidebarRoleLabel } from '@/lib/auth/roles'
 
 interface Props {
   children: React.ReactNode
   displayName: string
+  userEmail: string | null
   role: string
   modulePentagrama: boolean
   moduleNr01: boolean
   contentMaxWidth?: string
   logoutForm: React.ReactNode
+  logoutFormHeader: React.ReactNode
 }
 
 function MenuButton({ open, onClick }: { open: boolean; onClick: () => void }) {
@@ -42,11 +45,13 @@ function MenuButton({ open, onClick }: { open: boolean; onClick: () => void }) {
 export function AppShell({
   children,
   displayName,
+  userEmail,
   role,
   modulePentagrama,
   moduleNr01,
   contentMaxWidth = 'max-w-5xl',
   logoutForm,
+  logoutFormHeader,
 }: Props) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -71,12 +76,13 @@ export function AppShell({
   }, [mobileOpen, closeMobile])
 
   const sidebarFooter = (
-    <div className="shrink-0 border-t border-zinc-100 px-4 py-4">
-      <div className="mb-3 min-w-0">
-        <p className="truncate text-sm font-medium leading-tight text-zinc-800">{displayName}</p>
-        <p className="mt-0.5 text-xs text-zinc-400">{sidebarRoleLabel(role)}</p>
-      </div>
-      {logoutForm}
+    <div className="shrink-0 border-t border-zinc-100 px-3 py-3">
+      <UserAccountBlock
+        displayName={displayName}
+        email={userEmail}
+        role={role}
+        logoutForm={logoutForm}
+      />
     </div>
   )
 
@@ -121,12 +127,37 @@ export function AppShell({
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar */}
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-zinc-200 bg-white px-4 md:hidden">
-          <MenuButton open={mobileOpen} onClick={() => setMobileOpen((v) => !v)} />
-          <Link href="/dashboard" className="min-w-0 flex-1 truncate text-sm font-semibold text-zinc-900">
-            Quantum5G
-          </Link>
+        {/* Mobile top bar — menu + usuário + sair */}
+        <header className="flex shrink-0 flex-col border-b border-zinc-200 bg-white md:hidden">
+          <div className="flex h-12 items-center gap-2 px-3">
+            <MenuButton open={mobileOpen} onClick={() => setMobileOpen((v) => !v)} />
+            <UserAccountBlock
+              displayName={displayName}
+              email={userEmail}
+              role={role}
+              logoutForm={logoutFormHeader}
+              compact
+            />
+          </div>
+        </header>
+
+        {/* Desktop — conta sempre visível */}
+        <header className="hidden shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-4 py-2.5 md:flex">
+          <p className="text-xs text-zinc-500">
+            Logado como{' '}
+            <span className="font-medium text-zinc-800">{sidebarRoleLabel(role)}</span>
+          </p>
+          <div className="flex min-w-0 max-w-md flex-1 items-center justify-end gap-3">
+            <div className="min-w-0 text-right">
+              <p className="truncate text-sm font-semibold text-zinc-900">{displayName}</p>
+              {userEmail && (
+                <p className="truncate text-xs text-zinc-500" title={userEmail}>
+                  {userEmail}
+                </p>
+              )}
+            </div>
+            {logoutFormHeader}
+          </div>
         </header>
 
         <ContextSubnav />

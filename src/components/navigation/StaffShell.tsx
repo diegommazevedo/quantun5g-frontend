@@ -1,9 +1,9 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { logout } from '@/app/(auth)/login/actions'
 import { profileHasModule } from '@/lib/auth/modules'
 import { AppShell } from '@/components/navigation/AppShell'
+import { LogoutButton } from '@/components/navigation/LogoutButton'
 import { AgentePanelDynamic } from '@/components/agente/AgentePanelDynamic'
 import type { Profile, UserRole } from '@/types/database'
 
@@ -13,19 +13,6 @@ interface Props {
   showAgent?: boolean
   requireAdmin?: boolean
   requireModuleNr01?: boolean
-}
-
-function LogoutButton() {
-  return (
-    <form action={logout}>
-      <button
-        type="submit"
-        className="w-full rounded-md px-2 py-1.5 text-left text-xs text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-      >
-        Sair
-      </button>
-    </form>
-  )
 }
 
 async function ShellWithProfile({
@@ -59,17 +46,20 @@ async function ShellWithProfile({
   }
 
   const displayName = p?.name ?? user.email ?? 'Usuário'
+  const userEmail = user.email ?? null
   const role = (p?.role ?? 'consultant') as UserRole
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-zinc-50">
       <AppShell
         displayName={displayName}
+        userEmail={userEmail}
         role={role}
         modulePentagrama={p?.module_pentagrama ?? true}
         moduleNr01={p?.module_nr01 ?? true}
         contentMaxWidth={contentMaxWidth}
-        logoutForm={<LogoutButton />}
+        logoutForm={<LogoutButton variant="sidebar" />}
+        logoutFormHeader={<LogoutButton variant="header" />}
       >
         {children}
       </AppShell>
