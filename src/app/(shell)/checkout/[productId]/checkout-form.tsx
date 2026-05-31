@@ -64,10 +64,14 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isNr01) {
-      setTierId(resolveTierFromHeadcount(headcount) as Nr01TierId)
+    if (!isNr01) return
+    if (planLocked) {
+      const fromPlan = parseTierPlanId(initialPlanId)
+      if (fromPlan) setTierId(fromPlan)
+      return
     }
-  }, [headcount, isNr01])
+    setTierId(resolveTierFromHeadcount(headcount) as Nr01TierId)
+  }, [headcount, isNr01, planLocked, initialPlanId])
 
   const pricing = useMemo(() => {
     if (isNr01) {
@@ -164,7 +168,8 @@ export function CheckoutForm({
       onSubmit={handleSubmit}
       className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
     >
-      {isNr01 && offer && pricing ? (
+      {isNr01 ? (
+        pricing && offer ? (
         <>
           <section className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
@@ -252,6 +257,15 @@ export function CheckoutForm({
 
           <p className="text-xs text-slate-500 leading-relaxed">{NR01_RT_NOTICE}</p>
         </>
+        ) : (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Faixa indisponível para checkout online (ex.: acima de 1.000 trabalhadores). Contacte{' '}
+            <a href="mailto:contato@quantun5g.com" className="underline">
+              contato@quantun5g.com
+            </a>
+            .
+          </p>
+        )
       ) : (
         <fieldset>
           <legend className="text-sm font-medium text-slate-700">Plano</legend>
