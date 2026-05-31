@@ -53,7 +53,7 @@ const KEYS = [
 ]
 
 const OVERRIDES = {
-  NEXT_PUBLIC_APP_URL: 'https://quantun5g.app',
+  NEXT_PUBLIC_APP_URL: 'https://www.quantun5g.app',
 }
 
 const SENSITIVE = new Set([

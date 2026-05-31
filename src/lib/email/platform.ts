@@ -15,11 +15,12 @@ const PLATFORM_FROM =
   process.env.NR01_EMAIL_FROM ??
   'Quantum5G <onboarding@resend.dev>'
 
-export function platformEmailFrom(module: 'pentagrama' | 'nr01'): string {
+export function platformEmailFrom(module: 'pentagrama' | 'nr01' | 'platform'): string {
+  if (module === 'platform') return PLATFORM_FROM
   if (module === 'pentagrama') {
     return process.env.PENTAGRAMA_EMAIL_FROM ?? PLATFORM_FROM
   }
-  return PLATFORM_FROM
+  return process.env.NR01_EMAIL_FROM ?? PLATFORM_FROM
 }
 
 export interface SurveyInviteEmailArgs {
