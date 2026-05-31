@@ -47,6 +47,8 @@ export async function updateSession(request: NextRequest) {
     '/empresas',
     '/relatorio',
     '/admin',
+    '/contratacao',
+    '/faturas',
     '/nr01/dashboard',
     '/nr01/avaliacao',
   ]
@@ -59,15 +61,21 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = pathname === '/login'
 
   // Só valida com getUser() em rotas que realmente precisam de decisão de auth
-  const staffOnlyPrefixes = ['/empresas', '/diagnostico', '/nr01/dashboard', '/nr01/avaliacao']
+  const staffOnlyPrefixes = ['/empresas']
+  const pentagramaAppPrefixes = ['/diagnostico', '/relatorio']
+  const nr01AppPrefixes = ['/nr01/dashboard', '/nr01/avaliacao']
   const needsStaff = staffOnlyPrefixes.some((p) => pathname.startsWith(p))
+  const needsPentagramaApp =
+    pathname === '/dashboard' ||
+    pentagramaAppPrefixes.some((p) => pathname.startsWith(p))
+  const needsNr01Access = nr01AppPrefixes.some((p) => pathname.startsWith(p))
 
-  if (isProtected || isAuthPage || needsStaff) {
+  if (isProtected || isAuthPage || needsStaff || needsNr01Access || needsPentagramaApp) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user && (isProtected || needsStaff)) {
+    if (!user && (isProtected || needsStaff || needsNr01Access || needsPentagramaApp)) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
@@ -75,14 +83,20 @@ export async function updateSession(request: NextRequest) {
 
     if (user && isAuthPage) {
       const url = request.nextUrl.clone()
-      url.pathname = '/'
+      url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
 
-    if (user && needsStaff) {
+    if (user && pathname === '/') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+
+    if (user && (needsStaff || needsNr01Access || needsPentagramaApp)) {
       const { data: profileRaw } = await supabase
         .from('profiles')
-        .select('role, is_active, module_nr01')
+        .select('role, is_active, module_nr01, module_pentagrama')
         .eq('id', user.id)
         .single()
 
@@ -90,6 +104,7 @@ export async function updateSession(request: NextRequest) {
         role: string
         is_active: boolean
         module_nr01: boolean
+        module_pentagrama: boolean
       } | null
 
       if (profile?.is_active === false) {
@@ -99,25 +114,50 @@ export async function updateSession(request: NextRequest) {
       }
 
       const role = profile?.role ?? 'consultant'
-      if (role !== 'admin' && role !== 'consultant') {
+
+      if (needsStaff && role !== 'admin' && role !== 'consultant') {
         const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
+        url.pathname = '/faturas'
+        url.searchParams.set('error', 'Cadastro de empresas é feito pelo consultor responsável.')
+        return NextResponse.redirect(url)
+      }
+
+      if (
+        needsPentagramaApp &&
+        role === 'leader' &&
+        profile &&
+        profile.module_pentagrama === false
+      ) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/faturas'
         url.searchParams.set(
           'error',
-          'Perfil de liderança (IL): sem acesso a empresas e diagnósticos. Solicite papel Consultor ou Admin.',
+          'Módulo Pentagrama não habilitado. Emita fatura ou aguarde pagamento.',
         )
         return NextResponse.redirect(url)
       }
 
       if (
-        pathname.startsWith('/nr01') &&
+        needsPentagramaApp &&
+        profile &&
+        profile.module_pentagrama === false &&
+        role === 'consultant'
+      ) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/contratacao'
+        url.searchParams.set('error', 'Módulo Pentagrama não habilitado no seu perfil.')
+        return NextResponse.redirect(url)
+      }
+
+      if (
+        needsNr01Access &&
         profile &&
         profile.module_nr01 === false &&
         role !== 'admin'
       ) {
         const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
-        url.searchParams.set('error', 'Módulo NR-01 não habilitado para seu usuário.')
+        url.pathname = role === 'leader' ? '/faturas' : '/dashboard'
+        url.searchParams.set('error', 'Módulo NR-01 não habilitado. Emita fatura ou aguarde pagamento.')
         return NextResponse.redirect(url)
       }
     }

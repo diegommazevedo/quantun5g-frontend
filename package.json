@@ -15,7 +15,11 @@
     "resend:verify": "node --env-file=.env.local scripts/resend-remote.mjs verify",
     "resend:send-test": "node --env-file=.env.local scripts/resend-remote.mjs send-test",
     "resend:setup": "node --env-file=.env.local scripts/verify-resend-setup.mjs",
-    "vercel:sync-env": "node scripts/sync-vercel-production-env.mjs"
+    "vercel:sync-env": "node scripts/sync-vercel-production-env.mjs",
+    "kiwify:validate": "node --env-file=.env.local scripts/validate-kiwify-bridge.mjs",
+    "kiwify:setup": "node --env-file=.env.local scripts/kiwify-setup.mjs",
+    "kiwify:sync-map": "node --env-file=.env.local scripts/kiwify-sync-product-map.mjs",
+    "kiwify:planilha": "node scripts/build-nr01-kiwify-planilha.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium-min": "^147.0.1",

@@ -16,6 +16,10 @@ import { createHash, timingSafeEqual } from 'crypto'
 
 const DEFAULT_BASE = 'https://api-sandbox.asaas.com/v3'
 
+export function isAsaasConfigured(): boolean {
+  return Boolean(process.env.ASAAS_API_KEY?.trim())
+}
+
 function getApiKey(): string {
   const key = process.env.ASAAS_API_KEY
   if (!key) throw new Error('ASAAS_API_KEY não configurado')

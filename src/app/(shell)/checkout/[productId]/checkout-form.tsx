@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
   PENTAGRAMA_GINGER_ADDON,
@@ -62,6 +63,7 @@ export function CheckoutForm({
   const [email, setEmail] = useState(userEmail)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isNr01) return
@@ -128,6 +130,7 @@ export function CheckoutForm({
     e.preventDefault()
     if (!pricing) return
     setError(null)
+    setFallbackUrl(null)
     setSubmitting(true)
     try {
       const body = isNr01
@@ -150,8 +153,16 @@ export function CheckoutForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Erro ao processar checkout')
+      const data = (await res.json()) as {
+        error?: string
+        paymentUrl?: string
+        fallbackUrl?: string
+        code?: string
+      }
+      if (!res.ok) {
+        if (data.fallbackUrl) setFallbackUrl(data.fallbackUrl)
+        throw new Error(data.error ?? 'Erro ao processar checkout')
+      }
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl
         return
@@ -329,7 +340,21 @@ export function CheckoutForm({
         <Field label="Telefone" value={phone} onChange={setPhone} />
       </div>
 
-      {error ? <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p> : null}
+      {error ? (
+        <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <p>{error}</p>
+          {fallbackUrl || error.includes('ASAAS') || error.includes('fatura') ? (
+            <p>
+              <Link
+                href={fallbackUrl ?? '/contratacao'}
+                className="font-semibold text-red-900 underline"
+              >
+                Emitir fatura presencial (porta a porta) →
+              </Link>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <button
         type="submit"

@@ -35,6 +35,8 @@ try {
     "SELECT column_name FROM information_schema.columns WHERE table_name='companies' AND column_name='cnpj'",
     "SELECT to_regclass('public.company_contacts') AS company_contacts",
     "SELECT column_name FROM information_schema.columns WHERE table_name='profiles' AND column_name='module_nr01'",
+    "SELECT to_regclass('public.commercial_invoices') AS commercial_invoices",
+    "SELECT column_name FROM information_schema.columns WHERE table_name='companies' AND column_name='account_user_id'",
   ]
   for (const q of checks) {
     const { rows } = await client.query(q)

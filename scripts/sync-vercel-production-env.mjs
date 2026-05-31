@@ -34,6 +34,15 @@ const local = parseEnv(join(root, '.env.local'))
 /** Produção: URL pública; demais chaves vêm do .env.local local. */
 const KEYS = [
   'NEXT_PUBLIC_APP_URL',
+  'ASAAS_API_KEY',
+  'ASAAS_API_BASE',
+  'ASAAS_WEBHOOK_TOKEN',
+  'BILLING_PROVIDER',
+  'KIWIFY_CLIENT_ID',
+  'KIWIFY_CLIENT_SECRET',
+  'KIWIFY_CLIENT_SECRET_API_KEY',
+  'KIWIFY_ACCOUNT_ID',
+  'KIWIFY_WEBHOOK_TOKEN',
   'RESEND_API_KEY',
   'RESEND_WEBHOOK_SECRET',
   'QUANTUM_EMAIL_FROM',
@@ -48,6 +57,11 @@ const OVERRIDES = {
 }
 
 const SENSITIVE = new Set([
+  'ASAAS_API_KEY',
+  'ASAAS_WEBHOOK_TOKEN',
+  'KIWIFY_CLIENT_SECRET',
+  'KIWIFY_CLIENT_SECRET_API_KEY',
+  'KIWIFY_WEBHOOK_TOKEN',
   'RESEND_API_KEY',
   'RESEND_WEBHOOK_SECRET',
   'LEAD_HMAC_SECRET',
@@ -57,7 +71,10 @@ const SENSITIVE = new Set([
 console.log('Quantum5G — sync env → Vercel Production\n')
 
 for (const key of KEYS) {
-  const value = OVERRIDES[key] ?? local[key]?.trim()
+  let value = OVERRIDES[key] ?? local[key]?.trim()
+  if (!value && key === 'KIWIFY_CLIENT_SECRET') {
+    value = local.KIWIFY_CLIENT_SECRET_API_KEY?.trim()
+  }
   if (!value) {
     console.warn(`⚠ skip ${key} (ausente)`)
     continue

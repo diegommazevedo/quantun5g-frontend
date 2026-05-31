@@ -1,0 +1,621 @@
+{
+  "generated_at": "2026-05-31T18:52:13.847Z",
+  "note": "API Kiwify não expõe POST /products — criar manualmente na dashboard e preencher config/kiwify-nr01-product-map.json",
+  "products": [
+    {
+      "sku": "q5g-nr01-t01-anual_parcelado-base",
+      "tier_id": "t01",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 0–5 trabalhadores",
+      "price_brl": "R$ 2.460,00",
+      "price_cents": 246000,
+      "installments": 12,
+      "installment_brl": "R$ 205,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t01-anual_vista-base",
+      "tier_id": "t01",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 0–5 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 2.214,00",
+      "price_cents": 221400,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t01-anual_parcelado-com_ginger",
+      "tier_id": "t01",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 0–5 trabalhadores",
+      "price_brl": "R$ 3.690,00",
+      "price_cents": 369000,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t01-anual_vista-com_ginger",
+      "tier_id": "t01",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 0–5 trabalhadores (à vista)",
+      "price_brl": "R$ 3.321,00",
+      "price_cents": 332100
+    },
+    {
+      "sku": "q5g-nr01-t02-anual_parcelado-base",
+      "tier_id": "t02",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 6–10 trabalhadores",
+      "price_brl": "R$ 3.624,00",
+      "price_cents": 362400,
+      "installments": 12,
+      "installment_brl": "R$ 302,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t02-anual_vista-base",
+      "tier_id": "t02",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 6–10 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 3.261,60",
+      "price_cents": 326160,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t02-anual_parcelado-com_ginger",
+      "tier_id": "t02",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 6–10 trabalhadores",
+      "price_brl": "R$ 5.436,00",
+      "price_cents": 543600,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t02-anual_vista-com_ginger",
+      "tier_id": "t02",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 6–10 trabalhadores (à vista)",
+      "price_brl": "R$ 4.892,40",
+      "price_cents": 489240
+    },
+    {
+      "sku": "q5g-nr01-t03-anual_parcelado-base",
+      "tier_id": "t03",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 11–15 trabalhadores",
+      "price_brl": "R$ 4.212,00",
+      "price_cents": 421200,
+      "installments": 12,
+      "installment_brl": "R$ 351,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t03-anual_vista-base",
+      "tier_id": "t03",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 11–15 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 3.790,80",
+      "price_cents": 379080,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t03-anual_parcelado-com_ginger",
+      "tier_id": "t03",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 11–15 trabalhadores",
+      "price_brl": "R$ 6.318,00",
+      "price_cents": 631800,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t03-anual_vista-com_ginger",
+      "tier_id": "t03",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 11–15 trabalhadores (à vista)",
+      "price_brl": "R$ 5.686,20",
+      "price_cents": 568620
+    },
+    {
+      "sku": "q5g-nr01-t04-anual_parcelado-base",
+      "tier_id": "t04",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 16–20 trabalhadores",
+      "price_brl": "R$ 4.800,00",
+      "price_cents": 480000,
+      "installments": 12,
+      "installment_brl": "R$ 400,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t04-anual_vista-base",
+      "tier_id": "t04",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 16–20 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 4.320,00",
+      "price_cents": 432000,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t04-anual_parcelado-com_ginger",
+      "tier_id": "t04",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 16–20 trabalhadores",
+      "price_brl": "R$ 7.200,00",
+      "price_cents": 720000,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t04-anual_vista-com_ginger",
+      "tier_id": "t04",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 16–20 trabalhadores (à vista)",
+      "price_brl": "R$ 6.480,00",
+      "price_cents": 648000
+    },
+    {
+      "sku": "q5g-nr01-t05-anual_parcelado-base",
+      "tier_id": "t05",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 21–30 trabalhadores",
+      "price_brl": "R$ 5.736,00",
+      "price_cents": 573600,
+      "installments": 12,
+      "installment_brl": "R$ 478,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t05-anual_vista-base",
+      "tier_id": "t05",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 21–30 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 5.162,40",
+      "price_cents": 516240,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t05-anual_parcelado-com_ginger",
+      "tier_id": "t05",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 21–30 trabalhadores",
+      "price_brl": "R$ 8.604,00",
+      "price_cents": 860400,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t05-anual_vista-com_ginger",
+      "tier_id": "t05",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 21–30 trabalhadores (à vista)",
+      "price_brl": "R$ 7.743,60",
+      "price_cents": 774360
+    },
+    {
+      "sku": "q5g-nr01-t06-anual_parcelado-base",
+      "tier_id": "t06",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 31–40 trabalhadores",
+      "price_brl": "R$ 6.552,00",
+      "price_cents": 655200,
+      "installments": 12,
+      "installment_brl": "R$ 546,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t06-anual_vista-base",
+      "tier_id": "t06",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 31–40 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 5.896,80",
+      "price_cents": 589680,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t06-anual_parcelado-com_ginger",
+      "tier_id": "t06",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 31–40 trabalhadores",
+      "price_brl": "R$ 9.828,00",
+      "price_cents": 982800,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t06-anual_vista-com_ginger",
+      "tier_id": "t06",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 31–40 trabalhadores (à vista)",
+      "price_brl": "R$ 8.845,20",
+      "price_cents": 884520
+    },
+    {
+      "sku": "q5g-nr01-t07-anual_parcelado-base",
+      "tier_id": "t07",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 41–50 trabalhadores",
+      "price_brl": "R$ 7.368,00",
+      "price_cents": 736800,
+      "installments": 12,
+      "installment_brl": "R$ 614,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t07-anual_vista-base",
+      "tier_id": "t07",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 41–50 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 6.631,20",
+      "price_cents": 663120,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t07-anual_parcelado-com_ginger",
+      "tier_id": "t07",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 41–50 trabalhadores",
+      "price_brl": "R$ 11.052,00",
+      "price_cents": 1105200,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t07-anual_vista-com_ginger",
+      "tier_id": "t07",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 41–50 trabalhadores (à vista)",
+      "price_brl": "R$ 9.946,80",
+      "price_cents": 994680
+    },
+    {
+      "sku": "q5g-nr01-t08-anual_parcelado-base",
+      "tier_id": "t08",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 51–60 trabalhadores",
+      "price_brl": "R$ 8.076,00",
+      "price_cents": 807600,
+      "installments": 12,
+      "installment_brl": "R$ 673,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t08-anual_vista-base",
+      "tier_id": "t08",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 51–60 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 7.268,40",
+      "price_cents": 726840,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t08-anual_parcelado-com_ginger",
+      "tier_id": "t08",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 51–60 trabalhadores",
+      "price_brl": "R$ 12.114,00",
+      "price_cents": 1211400,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t08-anual_vista-com_ginger",
+      "tier_id": "t08",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 51–60 trabalhadores (à vista)",
+      "price_brl": "R$ 10.902,60",
+      "price_cents": 1090260
+    },
+    {
+      "sku": "q5g-nr01-t09-anual_parcelado-base",
+      "tier_id": "t09",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 61–80 trabalhadores",
+      "price_brl": "R$ 9.600,00",
+      "price_cents": 960000,
+      "installments": 12,
+      "installment_brl": "R$ 800,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t09-anual_vista-base",
+      "tier_id": "t09",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 61–80 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 8.640,00",
+      "price_cents": 864000,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t09-anual_parcelado-com_ginger",
+      "tier_id": "t09",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 61–80 trabalhadores",
+      "price_brl": "R$ 14.400,00",
+      "price_cents": 1440000,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t09-anual_vista-com_ginger",
+      "tier_id": "t09",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 61–80 trabalhadores (à vista)",
+      "price_brl": "R$ 12.960,00",
+      "price_cents": 1296000
+    },
+    {
+      "sku": "q5g-nr01-t10-anual_parcelado-base",
+      "tier_id": "t10",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 81–100 trabalhadores",
+      "price_brl": "R$ 11.004,00",
+      "price_cents": 1100400,
+      "installments": 12,
+      "installment_brl": "R$ 917,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t10-anual_vista-base",
+      "tier_id": "t10",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 81–100 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 9.903,60",
+      "price_cents": 990360,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t10-anual_parcelado-com_ginger",
+      "tier_id": "t10",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 81–100 trabalhadores",
+      "price_brl": "R$ 16.506,00",
+      "price_cents": 1650600,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t10-anual_vista-com_ginger",
+      "tier_id": "t10",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 81–100 trabalhadores (à vista)",
+      "price_brl": "R$ 14.855,40",
+      "price_cents": 1485540
+    },
+    {
+      "sku": "q5g-nr01-t11-anual_parcelado-base",
+      "tier_id": "t11",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 101–200 trabalhadores",
+      "price_brl": "R$ 17.556,00",
+      "price_cents": 1755600,
+      "installments": 12,
+      "installment_brl": "R$ 1.463,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t11-anual_vista-base",
+      "tier_id": "t11",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 101–200 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 15.800,40",
+      "price_cents": 1580040,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t11-anual_parcelado-com_ginger",
+      "tier_id": "t11",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 101–200 trabalhadores",
+      "price_brl": "R$ 26.334,00",
+      "price_cents": 2633400,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t11-anual_vista-com_ginger",
+      "tier_id": "t11",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 101–200 trabalhadores (à vista)",
+      "price_brl": "R$ 23.700,60",
+      "price_cents": 2370060
+    },
+    {
+      "sku": "q5g-nr01-t12-anual_parcelado-base",
+      "tier_id": "t12",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 201–300 trabalhadores",
+      "price_brl": "R$ 22.812,00",
+      "price_cents": 2281200,
+      "installments": 12,
+      "installment_brl": "R$ 1.901,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t12-anual_vista-base",
+      "tier_id": "t12",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 201–300 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 20.530,80",
+      "price_cents": 2053080,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t12-anual_parcelado-com_ginger",
+      "tier_id": "t12",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 201–300 trabalhadores",
+      "price_brl": "R$ 34.218,00",
+      "price_cents": 3421800,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t12-anual_vista-com_ginger",
+      "tier_id": "t12",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 201–300 trabalhadores (à vista)",
+      "price_brl": "R$ 30.796,20",
+      "price_cents": 3079620
+    },
+    {
+      "sku": "q5g-nr01-t13-anual_parcelado-base",
+      "tier_id": "t13",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 301–500 trabalhadores",
+      "price_brl": "R$ 30.420,00",
+      "price_cents": 3042000,
+      "installments": 12,
+      "installment_brl": "R$ 2.535,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t13-anual_vista-base",
+      "tier_id": "t13",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 301–500 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 27.378,00",
+      "price_cents": 2737800,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t13-anual_parcelado-com_ginger",
+      "tier_id": "t13",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 301–500 trabalhadores",
+      "price_brl": "R$ 45.630,00",
+      "price_cents": 4563000,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t13-anual_vista-com_ginger",
+      "tier_id": "t13",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 301–500 trabalhadores (à vista)",
+      "price_brl": "R$ 41.067,00",
+      "price_cents": 4106700
+    },
+    {
+      "sku": "q5g-nr01-t14-anual_parcelado-base",
+      "tier_id": "t14",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 501–750 trabalhadores",
+      "price_brl": "R$ 39.780,00",
+      "price_cents": 3978000,
+      "installments": 12,
+      "installment_brl": "R$ 3.315,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t14-anual_vista-base",
+      "tier_id": "t14",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 501–750 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 35.802,00",
+      "price_cents": 3580200,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t14-anual_parcelado-com_ginger",
+      "tier_id": "t14",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 501–750 trabalhadores",
+      "price_brl": "R$ 59.670,00",
+      "price_cents": 5967000,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t14-anual_vista-com_ginger",
+      "tier_id": "t14",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 501–750 trabalhadores (à vista)",
+      "price_brl": "R$ 53.703,00",
+      "price_cents": 5370300
+    },
+    {
+      "sku": "q5g-nr01-t15-anual_parcelado-base",
+      "tier_id": "t15",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 751–1.000 trabalhadores",
+      "price_brl": "R$ 49.140,00",
+      "price_cents": 4914000,
+      "installments": 12,
+      "installment_brl": "R$ 4.095,00",
+      "dashboard_instructions": "Produto assinatura anual · 12× cartão · área de membros opcional (acesso via Quantum5G)"
+    },
+    {
+      "sku": "q5g-nr01-t15-anual_vista-base",
+      "tier_id": "t15",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "name": "Quantum5G NR-01 · 751–1.000 trabalhadores (à vista −10%)",
+      "price_brl": "R$ 44.226,00",
+      "price_cents": 4422600,
+      "dashboard_instructions": "Pagamento único anual · desconto 10%"
+    },
+    {
+      "sku": "q5g-nr01-t15-anual_parcelado-com_ginger",
+      "tier_id": "t15",
+      "billing_mode": "anual_parcelado",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 751–1.000 trabalhadores",
+      "price_brl": "R$ 73.710,00",
+      "price_cents": 7371000,
+      "dashboard_instructions": "Base + 50% Pentagrama de Ginger"
+    },
+    {
+      "sku": "q5g-nr01-t15-anual_vista-com_ginger",
+      "tier_id": "t15",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": true,
+      "name": "Quantum5G NR-01 + Pentagrama · 751–1.000 trabalhadores (à vista)",
+      "price_brl": "R$ 66.339,00",
+      "price_cents": 6633900
+    }
+  ]
+}

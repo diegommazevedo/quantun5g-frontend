@@ -60,6 +60,12 @@ ok &&= await probe('survey_invites.resend_email_id', () =>
 ok &&= await probe('email_suppressions', () =>
   supabase.from('email_suppressions').select('id').limit(1),
 )
+ok &&= await probe('companies.account_user_id', () =>
+  supabase.from('companies').select('account_user_id').limit(1),
+)
+ok &&= await probe('commercial_invoices', () =>
+  supabase.from('commercial_invoices').select('id').limit(1),
+)
 
 if (!ok) {
   console.log('\nAplique: supabase/apply-pending-remote.sql no SQL Editor OU')

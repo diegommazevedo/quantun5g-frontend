@@ -35,6 +35,9 @@ interface Props {
   firstName?: string
   stats: DashboardStat[]
   primaryAction: { href: string; label: string }
+  /** Quando false, CTA vira link para contratação/faturas */
+  primaryActionEnabled?: boolean
+  primaryActionLockedHref?: string
   sectionTitle: string
   alert?: ReactNode
   children: ReactNode
@@ -65,6 +68,8 @@ export function ModuleDashboardShell({
   firstName,
   stats,
   primaryAction,
+  primaryActionEnabled = true,
+  primaryActionLockedHref = '/contratacao',
   sectionTitle,
   alert,
   children,
@@ -105,12 +110,22 @@ export function ModuleDashboardShell({
               </p>
             </div>
           </div>
-          <Link
-            href={primaryAction.href}
-            className={`inline-flex shrink-0 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${meta.ctaClass}`}
-          >
-            {primaryAction.label}
-          </Link>
+          {primaryActionEnabled ? (
+            <Link
+              href={primaryAction.href}
+              className={`inline-flex shrink-0 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${meta.ctaClass}`}
+            >
+              {primaryAction.label}
+            </Link>
+          ) : (
+            <Link
+              href={primaryActionLockedHref}
+              className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+              title="Licença NR-01 pendente — emitir fatura ou aguardar confirmação de pagamento"
+            >
+              Licença pendente
+            </Link>
+          )}
         </div>
       </section>
 

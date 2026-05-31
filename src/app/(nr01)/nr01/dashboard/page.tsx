@@ -4,7 +4,10 @@
  */
 
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { userHasNr01License } from '@/lib/billing/nr01-license'
+import { isPlatformStaff } from '@/lib/auth/roles'
 import type { UserRole } from '@/types/database'
 import type { Nr01AssessmentResult, Nr01AssessmentStatus, Nr01RiskLevel } from '@/types/nr01'
 import {
@@ -42,7 +45,16 @@ export default async function Nr01DashboardPage() {
     .returns<{ name: string | null; role: UserRole }[]>()
     .single()
 
-  const isAdmin = profile?.role === 'admin'
+  const role = (profile?.role ?? 'consultant') as UserRole
+  const isAdmin = role === 'admin'
+  const isLeader = role === 'leader'
+
+  let canCreateAssessment = isAdmin || isPlatformStaff(role)
+  if (isLeader) {
+    canCreateAssessment = await userHasNr01License(user.id)
+  } else if (!isAdmin && isPlatformStaff(role)) {
+    canCreateAssessment = true
+  }
 
   const query = supabase
     .from('nr01_assessments')
@@ -53,7 +65,7 @@ export default async function Nr01DashboardPage() {
     `)
     .order('created_at', { ascending: false })
 
-  if (!isAdmin) {
+  if (!isAdmin && !isLeader) {
     query.eq('consultant_id', user.id)
   }
 
@@ -87,7 +99,24 @@ export default async function Nr01DashboardPage() {
       module="nr01"
       firstName={firstName}
       primaryAction={{ href: '/nr01/avaliacao/nova', label: '+ Nova avaliação' }}
+      primaryActionEnabled={canCreateAssessment}
+      primaryActionLockedHref="/contratacao"
       sectionTitle="Avaliações"
+      alert={
+        !canCreateAssessment && !error ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Licença NR-01 pendente.{' '}
+            <Link href="/contratacao" className="font-semibold underline">
+              Emitir fatura
+            </Link>{' '}
+            ou aguarde o administrador marcar o pagamento presencial como paga.
+          </div>
+        ) : error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error.message}
+          </div>
+        ) : undefined
+      }
       stats={[
         { label: 'Total', value: total },
         {
@@ -103,19 +132,15 @@ export default async function Nr01DashboardPage() {
           hint: 'Laudo e evidências disponíveis',
         },
       ]}
-      alert={
-        error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error.message}
-          </div>
-        ) : undefined
-      }
     >
       {rows.length === 0 ? (
         <DashboardEmptyState
           message="Nenhuma avaliação NR-01 ainda."
           hint="Vincule a uma empresa, abra a coleta e acompanhe adesão e ISO aqui."
-          action={{ href: '/nr01/avaliacao/nova', label: 'Criar primeira avaliação' }}
+          action={{
+            href: canCreateAssessment ? '/nr01/avaliacao/nova' : '/contratacao',
+            label: canCreateAssessment ? 'Criar primeira avaliação' : 'Contratar / emitir fatura',
+          }}
         />
       ) : (
         <Nr01AssessmentsList rows={rows} />

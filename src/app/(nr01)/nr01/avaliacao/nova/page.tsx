@@ -5,6 +5,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { requireNr01LicenseOrRedirect } from '@/lib/nr01/require-license'
+import type { UserRole } from '@/types/database'
 import { EmpresaGrid } from '@/components/nr01/EmpresaGrid'
 import { enrichCompaniesWithIlCounts } from '@/lib/companies/enrich'
 import { COMPANY_GRID_SELECT } from '@/lib/companies/grid-select'
@@ -20,11 +22,24 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: companies } = await supabase
-    .from('companies')
-    .select(COMPANY_GRID_SELECT)
-    .eq('consultant_id', user.id)
-    .order('name')
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+
+  const role = profile?.role ?? 'consultant'
+  await requireNr01LicenseOrRedirect({ userId: user.id, role })
+
+  let companiesQuery = supabase.from('companies').select(COMPANY_GRID_SELECT).order('name')
+  if (role === 'leader') {
+    companiesQuery = companiesQuery.eq('account_user_id', user.id)
+  } else if (role !== 'admin') {
+    companiesQuery = companiesQuery.eq('consultant_id', user.id)
+  }
+
+  const { data: companies } = await companiesQuery
 
   const empresas = await enrichCompaniesWithIlCounts(supabase, (companies ?? []) as never[])
 

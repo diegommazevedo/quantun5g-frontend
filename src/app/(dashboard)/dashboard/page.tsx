@@ -3,7 +3,10 @@
  * Dashboard gerencial: KPIs + lista de diagnósticos com filtros.
  */
 
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { userHasPentagramaLicense } from '@/lib/billing/pentagrama-license'
+import { isPlatformStaff } from '@/lib/auth/roles'
 import type { UserRole } from '@/types/database'
 import { DiagnosticosList, type DiagRow } from '@/components/dashboard/DiagnosticosList'
 import {
@@ -29,14 +32,21 @@ export default async function DashboardPage({ searchParams }: Props) {
     .returns<{ name: string | null; role: UserRole }[]>()
     .single()
 
-  const isAdmin = profile?.role === 'admin'
+  const role = profile?.role ?? 'consultant'
+  const isAdmin = role === 'admin'
+  const isLeader = role === 'leader'
+
+  let canCreateDiagnostic = isAdmin || isPlatformStaff(role)
+  if (isLeader) {
+    canCreateDiagnostic = await userHasPentagramaLicense(user!.id)
+  }
 
   const diagQuery = supabase
     .from('diagnostics')
     .select('id, name, status, created_at, leader_name, companies(name)')
     .order('created_at', { ascending: false })
 
-  if (!isAdmin) {
+  if (!isAdmin && !isLeader) {
     diagQuery.eq('consultant_id', user!.id)
   }
 
@@ -98,7 +108,24 @@ export default async function DashboardPage({ searchParams }: Props) {
       module="pentagrama"
       firstName={firstName}
       primaryAction={{ href: '/diagnostico/novo', label: '+ Novo diagnóstico' }}
+      primaryActionEnabled={canCreateDiagnostic}
+      primaryActionLockedHref="/contratacao"
       sectionTitle="Diagnósticos"
+      alert={
+        !canCreateDiagnostic && !error ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Licença Pentagrama pendente.{' '}
+            <Link href="/contratacao" className="font-semibold underline">
+              Emitir fatura
+            </Link>{' '}
+            ou aguarde o administrador marcar o pagamento como pago.
+          </div>
+        ) : error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {decodeURIComponent(error)}
+          </div>
+        ) : undefined
+      }
       stats={[
         { label: 'Total', value: total },
         {
@@ -114,19 +141,15 @@ export default async function DashboardPage({ searchParams }: Props) {
           hint: 'Encerrados ou laudo gerado',
         },
       ]}
-      alert={
-        error ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {decodeURIComponent(error)}
-          </div>
-        ) : undefined
-      }
     >
       {diagnosticos.length === 0 ? (
         <DashboardEmptyState
           message="Nenhum diagnóstico ainda."
           hint="Cadastre uma empresa, defina a competência e dispare os convites IL/IC."
-          action={{ href: '/diagnostico/novo', label: 'Criar primeiro diagnóstico' }}
+          action={{
+            href: canCreateDiagnostic ? '/diagnostico/novo' : '/contratacao',
+            label: canCreateDiagnostic ? 'Criar primeiro diagnóstico' : 'Contratar Pentagrama',
+          }}
         />
       ) : (
         <DiagnosticosList diagnosticos={diagnosticos} />

@@ -491,6 +491,33 @@ export interface ActiveSubscriptionRow {
   company_id: string | null
 }
 
+export type CommercialInvoiceStatus = 'emitida' | 'aprovada' | 'paga' | 'cancelada'
+
+export interface CommercialInvoice {
+  id: string
+  invoice_number: string
+  status: CommercialInvoiceStatus
+  user_id: string
+  company_id: string | null
+  consultant_id: string
+  created_by: string
+  product_id: string
+  plan_id: string
+  amount_cents: number
+  billing_mode: 'anual_parcelado' | 'anual_vista'
+  include_pentagrama: boolean
+  headcount_declared: number | null
+  subscription_id: string | null
+  metadata: Record<string, unknown>
+  notes: string | null
+  approved_by: string | null
+  approved_at: string | null
+  paid_by: string | null
+  paid_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ============================================================
 // TIPO: Database (compatível com @supabase/supabase-js)
 // ============================================================
@@ -562,6 +589,14 @@ export type Database = {
         Row: Payment
         Insert: PaymentInsert
         Update: Partial<PaymentInsert>
+        Relationships: []
+      }
+      commercial_invoices: {
+        Row: CommercialInvoice
+        Insert: Omit<CommercialInvoice, 'id' | 'created_at' | 'updated_at' | 'invoice_number'> & {
+          invoice_number?: string
+        }
+        Update: Partial<CommercialInvoice>
         Relationships: []
       }
     }

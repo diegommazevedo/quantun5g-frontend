@@ -1,0 +1,16 @@
+Faixa,Trabalhadores,Nome do produto,Tipo,Moeda,Preço total 12x,Parcela,Nome da oferta (à vista −10%),Preço total à vista,SKU principal,Observações
+t01,0–5,Quantum5G NR-01 · 0–5 trabalhadores,Pagamento único,BRL,2460.00,205.00,Quantum5G NR-01 · 0–5 trabalhadores (à vista −10%),2214.00,nr01_t01,Produto base ja cadastrado na Kiwify; falta oferta a vista
+t02,6–10,Quantum5G NR-01 · 6–10 trabalhadores,Pagamento único,BRL,3624.00,302.00,Quantum5G NR-01 · 6–10 trabalhadores (à vista −10%),3261.60,nr01_t02,
+t03,11–15,Quantum5G NR-01 · 11–15 trabalhadores,Pagamento único,BRL,4212.00,351.00,Quantum5G NR-01 · 11–15 trabalhadores (à vista −10%),3790.80,nr01_t03,
+t04,16–20,Quantum5G NR-01 · 16–20 trabalhadores,Pagamento único,BRL,4800.00,400.00,Quantum5G NR-01 · 16–20 trabalhadores (à vista −10%),4320.00,nr01_t04,
+t05,21–30,Quantum5G NR-01 · 21–30 trabalhadores,Pagamento único,BRL,5736.00,478.00,Quantum5G NR-01 · 21–30 trabalhadores (à vista −10%),5162.40,nr01_t05,
+t06,31–40,Quantum5G NR-01 · 31–40 trabalhadores,Pagamento único,BRL,6552.00,546.00,Quantum5G NR-01 · 31–40 trabalhadores (à vista −10%),5896.80,nr01_t06,
+t07,41–50,Quantum5G NR-01 · 41–50 trabalhadores,Pagamento único,BRL,7368.00,614.00,Quantum5G NR-01 · 41–50 trabalhadores (à vista −10%),6631.20,nr01_t07,
+t08,51–60,Quantum5G NR-01 · 51–60 trabalhadores,Pagamento único,BRL,8076.00,673.00,Quantum5G NR-01 · 51–60 trabalhadores (à vista −10%),7268.40,nr01_t08,
+t09,61–80,Quantum5G NR-01 · 61–80 trabalhadores,Pagamento único,BRL,9600.00,800.00,Quantum5G NR-01 · 61–80 trabalhadores (à vista −10%),8640.00,nr01_t09,
+t10,81–100,Quantum5G NR-01 · 81–100 trabalhadores,Pagamento único,BRL,11004.00,917.00,Quantum5G NR-01 · 81–100 trabalhadores (à vista −10%),9903.60,nr01_t10,
+t11,101–200,Quantum5G NR-01 · 101–200 trabalhadores,Pagamento único,BRL,17556.00,1463.00,Quantum5G NR-01 · 101–200 trabalhadores (à vista −10%),15800.40,nr01_t11,
+t12,201–300,Quantum5G NR-01 · 201–300 trabalhadores,Pagamento único,BRL,22812.00,1901.00,Quantum5G NR-01 · 201–300 trabalhadores (à vista −10%),20530.80,nr01_t12,
+t13,301–500,Quantum5G NR-01 · 301–500 trabalhadores,Pagamento único,BRL,30420.00,2535.00,Quantum5G NR-01 · 301–500 trabalhadores (à vista −10%),27378.00,nr01_t13,
+t14,501–750,Quantum5G NR-01 · 501–750 trabalhadores,Pagamento único,BRL,39780.00,3315.00,Quantum5G NR-01 · 501–750 trabalhadores (à vista −10%),35802.00,nr01_t14,
+t15,751–1.000,Quantum5G NR-01 · 751–1.000 trabalhadores,Pagamento único,BRL,49140.00,4095.00,Quantum5G NR-01 · 751–1.000 trabalhadores (à vista −10%),44226.00,nr01_t15,

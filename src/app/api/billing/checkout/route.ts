@@ -6,7 +6,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
-import { findOrCreateCustomer, createPayment } from '@/lib/billing/asaas-client'
+import { findOrCreateCustomer, createPayment, isAsaasConfigured } from '@/lib/billing/asaas-client'
+import { getBillingProvider, isKiwifyBillingEnabled } from '@/lib/billing/billing-provider'
+import { buildKiwifyCheckoutRedirectUrl } from '@/lib/billing/kiwify-checkout'
+import { isKiwifyProductMapReady } from '@/lib/billing/kiwify-product-map'
 import { resolveActivePlan } from '@/lib/billing/resolve-plan'
 import {
   PENTAGRAMA_GINGER_ADDON,
@@ -36,8 +39,8 @@ interface CheckoutBody {
   }
 }
 
-function bad(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status })
+function bad(message: string, status = 400, extra?: Record<string, unknown>) {
+  return NextResponse.json({ error: message, ...extra }, { status })
 }
 
 export async function POST(req: NextRequest) {
@@ -105,19 +108,17 @@ export async function POST(req: NextRequest) {
   const plan = await resolveActivePlan(productId, resolvedPlanId)
   if (!plan && productId !== 'nr01') return bad('Plano não encontrado ou inativo', 404)
 
-  const customer = await findOrCreateCustomer({
-    name: customerData.name.trim(),
-    cpfCnpj: customerData.cpfCnpj.replace(/\D/g, ''),
-    email: customerData.email.trim(),
-    phone: customerData.phone?.trim(),
-  }).catch((err: Error) => ({ __error: err.message } as { __error: string }))
-
-  if ('__error' in customer) {
-    return bad(`Falha no Asaas (customer): ${customer.__error}`, 502)
-  }
-
   const subscriptionId = randomUUID()
   const adminUntyped = createServiceRoleAdmin()
+
+  const gateway = getBillingProvider()
+  const useKiwify =
+    gateway === 'kiwify' && productId === 'nr01' && isKiwifyProductMapReady()
+
+  const tierIdForKiwify =
+    productId === 'nr01'
+      ? ((body.tierId ?? parseTierPlanId(planId ?? '')) as Nr01TierId | null)
+      : null
 
   const insertPayload: SubscriptionInsert = {
     id: subscriptionId,
@@ -129,14 +130,72 @@ export async function POST(req: NextRequest) {
     starts_at: null,
     expires_at: null,
     assessments_remaining: 0,
-    asaas_customer_id: customer.id,
+    asaas_customer_id: null,
     asaas_payment_id: null,
     asaas_subscription_id: null,
-    metadata,
+    metadata: {
+      ...metadata,
+      gateway: useKiwify ? 'kiwify' : 'asaas',
+    },
   }
 
   const { error: subErr } = await adminUntyped.from('subscriptions').insert(insertPayload)
   if (subErr) return bad(`Falha ao criar subscription: ${subErr.message}`, 500)
+
+  if (useKiwify && tierIdForKiwify) {
+    try {
+      const paymentUrl = buildKiwifyCheckoutRedirectUrl({
+        subscriptionId,
+        tierId: tierIdForKiwify,
+        billingMode,
+        includePentagrama,
+        customerEmail: customerData.email.trim(),
+      })
+      return NextResponse.json({
+        subscriptionId,
+        paymentUrl,
+        gateway: 'kiwify',
+        skuId: metadata.sku_id ?? null,
+      })
+    } catch (err) {
+      await adminUntyped.from('subscriptions').update({ status: 'failed' }).eq('id', subscriptionId)
+      return bad(err instanceof Error ? err.message : 'Checkout Kiwify indisponível', 502)
+    }
+  }
+
+  if (isKiwifyBillingEnabled() && productId === 'nr01' && !isKiwifyProductMapReady()) {
+    await adminUntyped.from('subscriptions').delete().eq('id', subscriptionId)
+    return bad(
+      'BILLING_PROVIDER=kiwify mas config/kiwify-nr01-product-map.json está vazio. Use Asaas ou preencha o mapa.',
+      503,
+    )
+  }
+
+  if (!isAsaasConfigured()) {
+    await adminUntyped.from('subscriptions').delete().eq('id', subscriptionId)
+    return bad(
+      'Pagamento online indisponível: ASAAS_API_KEY não está configurado na Vercel. Use emissão de fatura presencial.',
+      503,
+      { code: 'asaas_not_configured', fallbackUrl: '/contratacao' },
+    )
+  }
+
+  const customer = await findOrCreateCustomer({
+    name: customerData.name.trim(),
+    cpfCnpj: customerData.cpfCnpj.replace(/\D/g, ''),
+    email: customerData.email.trim(),
+    phone: customerData.phone?.trim(),
+  }).catch((err: Error) => ({ __error: err.message } as { __error: string }))
+
+  if ('__error' in customer) {
+    await adminUntyped.from('subscriptions').update({ status: 'failed' }).eq('id', subscriptionId)
+    return bad(`Falha no Asaas (customer): ${customer.__error}`, 502)
+  }
+
+  await adminUntyped
+    .from('subscriptions')
+    .update({ asaas_customer_id: customer.id })
+    .eq('id', subscriptionId)
 
   const dueDate = (() => {
     const d = new Date()
@@ -175,6 +234,7 @@ export async function POST(req: NextRequest) {
     subscriptionId,
     paymentUrl,
     asaasPaymentId: payment.id,
+    gateway: 'asaas',
     skuId: metadata.sku_id ?? null,
   })
 }
