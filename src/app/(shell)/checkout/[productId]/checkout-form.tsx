@@ -103,11 +103,17 @@ export function CheckoutForm({
         email?: string
         phone?: string
         cpfCnpj?: string
+        headcountDeclared?: number
+        tierId?: Nr01TierId
       }
       if (data.name) setName(data.name)
       if (data.email) setEmail(data.email)
       if (data.phone) setPhone(data.phone)
       if (data.cpfCnpj) setCpfCnpj(data.cpfCnpj)
+      if (typeof data.headcountDeclared === 'number' && data.headcountDeclared > 0) {
+        setHeadcount(Math.round(data.headcountDeclared))
+      }
+      if (data.tierId) setTierId(data.tierId)
       sessionStorage.removeItem(CHECKOUT_PREFILL_KEY)
     } catch {
       /* ignore */

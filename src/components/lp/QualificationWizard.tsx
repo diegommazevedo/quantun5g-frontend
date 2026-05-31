@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getOfferByTier, NR01_RT_LAUDO_NOTICE, type Nr01WizardTier } from '@/constants/lp-nr01-offers'
 import { PlanOfferDetail } from '@/components/lp/PlanOfferDetail'
+import { buildNr01CheckoutUrl } from '@/lib/billing/checkout-url'
 
 const BG = '#0B1A2F'
 const ACCENT = '#B8945A'
@@ -93,7 +94,7 @@ export function QualificationWizard({
     }
 
     setLoading(true)
-    const checkoutUrl = `/checkout/nr01?tier=${encodeURIComponent(tier)}&headcount=${collaborators}&plan=${encodeURIComponent(offer.planId)}`
+    const checkoutUrl = buildNr01CheckoutUrl({ tierId: tier })
 
     try {
       const res = await fetch('/api/lp/lead', {
@@ -124,6 +125,8 @@ export function QualificationWizard({
             email: email.trim(),
             phone: phone.trim(),
             cpfCnpj: cnpjDigits,
+            headcountDeclared: collaborators,
+            tierId: tier,
           }),
         )
       } catch {

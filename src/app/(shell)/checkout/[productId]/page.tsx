@@ -8,11 +8,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getActivePlansForProduct, getProductForCheckout } from '@/lib/billing/catalog'
 import {
   isPentagramaAddon,
+  getTier,
   parseTierPlanId,
-  resolveTierFromHeadcount,
   type Nr01BillingMode,
   type Nr01TierId,
 } from '@/lib/billing/nr01-catalog'
+import { parseCheckoutPlanId } from '@/lib/billing/checkout-url'
 import { CheckoutForm } from './checkout-form'
 
 export const dynamic = 'force-dynamic'
@@ -75,8 +76,16 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
     )
   }
 
-  const headcount = sp.headcount ? Math.max(1, parseInt(sp.headcount, 10) || 50) : 50
-  const tierFromQuery = (sp.tier ?? parseTierPlanId(sp.plan ?? '') ?? resolveTierFromHeadcount(headcount)) as Nr01TierId
+  const tierFromQuery = (parseCheckoutPlanId(sp.plan) ??
+    (sp.tier as Nr01TierId | undefined) ??
+    't03') as Nr01TierId
+  const tierMeta = getTier(tierFromQuery)
+  const headcountLegacy = sp.headcount ? Math.max(1, parseInt(sp.headcount, 10) || 50) : null
+  const headcount =
+    headcountLegacy ??
+    (tierMeta.workerMax != null
+      ? Math.round((tierMeta.workerMin + tierMeta.workerMax) / 2)
+      : Math.max(tierMeta.workerMin, 50))
   const billingMode: Nr01BillingMode =
     sp.billing === 'anual_vista' ? 'anual_vista' : 'anual_parcelado'
   const includePentagrama =
@@ -87,7 +96,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
       ? sp.plan
       : plans.find((p) => p.id === `nr01_${tierFromQuery}`)?.id ?? plans[0]?.id ?? `nr01_${tierFromQuery}`
 
-  const planLocked = Boolean(sp.plan || sp.tier)
+  const planLocked = Boolean(sp.plan)
   const gingerLocked = includePentagrama && Boolean(sp.addon || sp.ginger)
 
   const vendasOrigin =
