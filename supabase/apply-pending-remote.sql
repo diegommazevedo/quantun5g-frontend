@@ -436,5 +436,32 @@ CREATE POLICY nr01_assessments_select_leader ON nr01_assessments
     )
   );
 
--- ── 6. Recarrega cache do PostgREST (corrige "schema cache") ─────────────────
+-- ── 6. hybrid_reports (devolutiva Pentagrama × NR-01 v1.0) ───────────────────
+CREATE TABLE IF NOT EXISTS hybrid_reports (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  assessment_id     uuid NOT NULL REFERENCES nr01_assessments(id) ON DELETE CASCADE,
+  diagnostic_id     uuid NOT NULL REFERENCES diagnostics(id) ON DELETE CASCADE,
+  crosswalk_version text NOT NULL DEFAULT '1.0.0',
+  payload           jsonb NOT NULL,
+  payload_sha256    text NOT NULL,
+  generated_at      timestamptz NOT NULL DEFAULT now(),
+  generated_by      uuid REFERENCES profiles(id),
+  UNIQUE (assessment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_hybrid_reports_diagnostic ON hybrid_reports(diagnostic_id);
+
+ALTER TABLE hybrid_reports ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "hybrid_report_select" ON hybrid_reports;
+DROP POLICY IF EXISTS "hybrid_report_write" ON hybrid_reports;
+
+CREATE POLICY "hybrid_report_select" ON hybrid_reports
+  FOR SELECT USING (nr01_owns_assessment(assessment_id));
+
+CREATE POLICY "hybrid_report_write" ON hybrid_reports
+  FOR ALL USING (nr01_owns_assessment(assessment_id))
+  WITH CHECK (nr01_owns_assessment(assessment_id));
+
+-- ── 7. Recarrega cache do PostgREST (corrige "schema cache") ─────────────────
 NOTIFY pgrst, 'reload schema';
