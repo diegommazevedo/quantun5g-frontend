@@ -252,6 +252,14 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
               </button>
             </form>
           )}
+          {a.linked_diagnostic_id && (
+            <Link
+              href={`/nr01/avaliacao/${a.id}/hibrido`}
+              className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800"
+            >
+              Devolutiva híbrida →
+            </Link>
+          )}
           <Link
             href={`/nr01/avaliacao/${a.id}/plano`}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"

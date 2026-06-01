@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "author": "Quantum5G — curadoria método Ginger × NR-01/GRO",
+  "pentagrama_dimensions": ["fisica", "afetiva", "racional", "social", "cultural"],
+  "links": [
+    { "pentagrama": "fisica", "nr01": "carga_trabalho", "weight": 0.45 },
+    { "pentagrama": "fisica", "nr01": "saude_bem_estar", "weight": 0.35 },
+    { "pentagrama": "fisica", "nr01": "organizacao_trabalho", "weight": 0.2 },
+    { "pentagrama": "afetiva", "nr01": "exigencias_emocionais", "weight": 0.5 },
+    { "pentagrama": "afetiva", "nr01": "relacoes_interpessoais", "weight": 0.3 },
+    { "pentagrama": "afetiva", "nr01": "assedio_violencia", "weight": 0.2 },
+    { "pentagrama": "racional", "nr01": "controle_autonomia", "weight": 0.5 },
+    { "pentagrama": "racional", "nr01": "organizacao_trabalho", "weight": 0.5 },
+    { "pentagrama": "social", "nr01": "relacoes_interpessoais", "weight": 0.45 },
+    { "pentagrama": "social", "nr01": "lideranca_gestao", "weight": 0.55 },
+    { "pentagrama": "cultural", "nr01": "reconhecimento", "weight": 0.4 },
+    { "pentagrama": "cultural", "nr01": "lideranca_gestao", "weight": 0.35 },
+    { "pentagrama": "cultural", "nr01": "estabilidade_seguranca", "weight": 0.25 }
+  ],
+  "signal_thresholds": {
+    "gap_negativo_pct": -10,
+    "pentagrama_stress_niveis": ["critico", "vulneravel"],
+    "nr01_stress_levels": ["elevado", "critico", "atencao"]
+  }
+}
