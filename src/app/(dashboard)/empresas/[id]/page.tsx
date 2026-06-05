@@ -5,6 +5,8 @@ import type { Company, CompanyContact } from '@/types/database'
 import { atualizarEmpresa } from '@/app/(dashboard)/empresas/actions'
 import { EmpresaFormFields } from '@/components/companies/EmpresaFormFields'
 import { safeRedirectPath } from '@/lib/auth/safe-redirect'
+import { isPlatformStaff } from '@/lib/auth/roles'
+import type { UserRole } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -26,7 +28,25 @@ export default async function EditarEmpresaPage({ params, searchParams }: Props)
     .eq('consultant_id', user.id)
     .single()
   if (!data) notFound()
-  const company = data as Company
+  const company = data as Company & { account_user_id?: string | null }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+  const isStaff = isPlatformStaff(profile?.role ?? 'consultant')
+
+  let payerEmailDefault: string | null = null
+  if (company.account_user_id) {
+    const { data: payer } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', company.account_user_id)
+      .maybeSingle()
+    payerEmailDefault = (payer as { email: string | null } | null)?.email ?? null
+  }
 
   const { data: leadersData } = await supabase
     .from('company_contacts')
@@ -82,7 +102,13 @@ export default async function EditarEmpresaPage({ params, searchParams }: Props)
       <form action={atualizarEmpresa} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6">
         <input type="hidden" name="company_id" value={company.id} />
         {retorno ? <input type="hidden" name="retorno" value={retorno} /> : null}
-        <EmpresaFormFields company={company} ilLeaders={ilLeaders} collaborators={collaborators} />
+        <EmpresaFormFields
+          company={company}
+          ilLeaders={ilLeaders}
+          collaborators={collaborators}
+          showPayerEmail={isStaff}
+          payerEmailDefault={payerEmailDefault}
+        />
         <button
           type="submit"
           className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700"

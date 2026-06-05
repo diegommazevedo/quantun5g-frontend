@@ -436,6 +436,13 @@ CREATE POLICY nr01_assessments_select_leader ON nr01_assessments
     )
   );
 
+DROP POLICY IF EXISTS "companies_select_leader" ON companies;
+CREATE POLICY "companies_select_leader" ON companies
+  FOR SELECT USING (
+    get_my_role() = 'leader'
+    AND account_user_id = auth.uid()
+  );
+
 -- ── 6. hybrid_reports (devolutiva Pentagrama × NR-01 v1.0) ───────────────────
 CREATE TABLE IF NOT EXISTS hybrid_reports (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -25,16 +25,27 @@ import {
   COMPANY_CNPJ_SLOTS_MAX,
   parseCompanyCnpjSlots,
 } from '@/lib/licensing/company-cnpj-slots'
+import type { CommercialPlan } from '@/lib/licensing/model'
 import type { UserRole } from '@/types/database'
 
 interface Props {
   role: UserRole
   userEmail: string
+  plan?: CommercialPlan
+  licensingV2?: boolean
 }
 
-export function CommercialInvoiceForm({ role, userEmail }: Props) {
+export function CommercialInvoiceForm({
+  role,
+  userEmail,
+  plan = 'b2c',
+  licensingV2 = false,
+}: Props) {
   const router = useRouter()
   const isStaff = role === 'admin' || role === 'consultant'
+  const selfLicense =
+    licensingV2 && (role === 'consultant' || role === 'leader')
+  const showClientFields = isStaff && !selfLicense
   const [modNr01, setModNr01] = useState(true)
   const [modPentagrama, setModPentagrama] = useState(false)
   const [tierId, setTierId] = useState<Nr01TierId>('t03')
@@ -46,7 +57,9 @@ export function CommercialInvoiceForm({ role, userEmail }: Props) {
   const [targetName, setTargetName] = useState('')
   const [cnpj, setCnpj] = useState('')
   const [cnpjError, setCnpjError] = useState<string | null>(null)
-  const [companyCnpjSlots, setCompanyCnpjSlots] = useState(COMPANY_CNPJ_SLOTS_DEFAULT)
+  const [companyCnpjSlots, setCompanyCnpjSlots] = useState(
+    plan === 'b2b' ? Math.max(2, COMPANY_CNPJ_SLOTS_DEFAULT) : COMPANY_CNPJ_SLOTS_DEFAULT,
+  )
   const [whatsapp, setWhatsapp] = useState('')
   const [autoInvite, setAutoInvite] = useState(true)
   const [notes, setNotes] = useState('')
@@ -175,7 +188,7 @@ export function CommercialInvoiceForm({ role, userEmail }: Props) {
           clientCnpj: cnpj,
           companyCnpjSlots: parseCompanyCnpjSlots(companyCnpjSlots),
           clientWhatsapp: wa,
-          ...(isStaff
+          ...(showClientFields
             ? {
                 targetUserEmail: targetEmail.trim(),
                 targetUserName: targetName.trim() || undefined,
@@ -184,8 +197,9 @@ export function CommercialInvoiceForm({ role, userEmail }: Props) {
             : {
                 targetUserEmail: userEmail,
                 targetUserName: targetName.trim() || undefined,
-                autoInvite: true,
+                autoInvite: selfLicense ? false : true,
               }),
+          commercialPlan: plan,
         }),
       })
       const data = (await res.json()) as {
@@ -284,15 +298,16 @@ export function CommercialInvoiceForm({ role, userEmail }: Props) {
             required
           />
           <p className="mt-1 text-xs text-zinc-500">
-            Cada plano cobre 1 CNPJ. Se o cliente tiver mais empresas, informe a quantidade — isso
-            limita quantos CNPJs ele poderá cadastrar na plataforma após o pagamento.
+            {selfLicense
+              ? 'Quantos CNPJs você poderá cadastrar após o pagamento (B2B = grupos como Pasola).'
+              : 'Cada plano cobre 1 CNPJ. Grupos multi-empresa: informe a quantidade total de CNPJs.'}
           </p>
         </div>
 
-        {isStaff ? (
+        {showClientFields ? (
           <>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-zinc-700">E-mail do líder *</label>
+              <label className="block text-sm font-medium text-zinc-700">E-mail do cliente *</label>
               <input
                 type="email"
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
@@ -313,7 +328,7 @@ export function CommercialInvoiceForm({ role, userEmail }: Props) {
           </>
         ) : (
           <p className="sm:col-span-2 text-sm text-zinc-600">
-            Fatura para <span className="font-medium">{userEmail}</span>
+            Fatura em seu nome: <span className="font-medium">{userEmail}</span>
           </p>
         )}
 
@@ -341,7 +356,7 @@ export function CommercialInvoiceForm({ role, userEmail }: Props) {
         </div>
       </div>
 
-      {isStaff && (
+      {showClientFields && (
         <label className="flex cursor-pointer items-start gap-2 text-sm">
           <input
             type="checkbox"

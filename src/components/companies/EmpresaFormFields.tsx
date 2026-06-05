@@ -13,11 +13,40 @@ interface Props {
   company?: Company
   ilLeaders?: IlLeaderRow[]
   collaborators?: CollaboratorRow[]
+  /** Consultor/admin: vincula CNPJ ao usuário pagante (limite de slots do contrato). */
+  showPayerEmail?: boolean
+  payerEmailDefault?: string | null
 }
 
-export function EmpresaFormFields({ company, ilLeaders, collaborators }: Props) {
+export function EmpresaFormFields({
+  company,
+  ilLeaders,
+  collaborators,
+  showPayerEmail,
+  payerEmailDefault,
+}: Props) {
   return (
     <>
+      {showPayerEmail && (
+        <div className="space-y-1.5 rounded-lg border border-violet-200 bg-violet-50/50 p-4">
+          <label htmlFor="account_user_email" className="block text-sm font-medium text-violet-900">
+            E-mail pagante legado (admin — multi-CNPJ antigo)
+          </label>
+          <input
+            id="account_user_email"
+            name="account_user_email"
+            type="email"
+            defaultValue={payerEmailDefault ?? ''}
+            placeholder="lider@grupopasola.com.br"
+            className="block w-full rounded-lg border border-violet-200 px-3 py-2.5 text-sm"
+          />
+          <p className="text-xs text-violet-800">
+            Somente migração Pasola/legado. Em LICENSING_V2 os slots ficam no consultor licenciado;
+            deixe vazio em cadastros novos.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <label htmlFor="name" className="block text-sm font-medium text-zinc-700">
           Nome / razão social *

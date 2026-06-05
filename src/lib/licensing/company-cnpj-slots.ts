@@ -1,9 +1,13 @@
 /**
  * Limite de empresas (CNPJs) por contrato — plano base = 1 CNPJ.
  * Persistido em metadata de fatura/assinatura; sem coluna extra no banco (80/20).
+ *
+ * V2: limite e contagem pelo consultor licenciado (`consultant_id`).
+ * Legado: contagem por `account_user_id` (líder pagante).
  */
 
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
+import { isLicensingV2 } from '@/lib/licensing/model'
 
 export const COMPANY_CNPJ_SLOTS_META_KEY = 'company_cnpj_slots' as const
 export const COMPANY_CNPJ_SLOTS_DEFAULT = 1
@@ -76,6 +80,45 @@ export async function countLeaderCompanies(leaderUserId: string): Promise<number
   return count ?? 0
 }
 
+export async function countConsultantCompanies(consultantUserId: string): Promise<number> {
+  const admin = createServiceRoleAdmin()
+  const { count, error } = await admin
+    .from('companies')
+    .select('id', { count: 'exact', head: true })
+    .eq('consultant_id', consultantUserId)
+
+  if (error) throw new Error(error.message)
+  return count ?? 0
+}
+
+export interface CompanyCnpjSlotsUsage {
+  limit: number
+  used: number
+  remaining: number
+}
+
+export async function getCompanyCnpjSlotsUsage(leaderUserId: string): Promise<CompanyCnpjSlotsUsage> {
+  const limit = await getCompanyCnpjSlotsLimitForUser(leaderUserId)
+  const used = await countLeaderCompanies(leaderUserId)
+  return { limit, used, remaining: Math.max(0, limit - used) }
+}
+
+export async function getCompanyCnpjSlotsUsageForConsultant(
+  consultantUserId: string,
+): Promise<CompanyCnpjSlotsUsage> {
+  const limit = await getCompanyCnpjSlotsLimitForUser(consultantUserId)
+  const used = await countConsultantCompanies(consultantUserId)
+  return { limit, used, remaining: Math.max(0, limit - used) }
+}
+
+/** Uso vigente conforme flag V2 (consultor) ou legado (líder pagante). */
+export async function getCompanyCnpjSlotsUsageForActor(
+  userId: string,
+): Promise<CompanyCnpjSlotsUsage> {
+  if (isLicensingV2()) return getCompanyCnpjSlotsUsageForConsultant(userId)
+  return getCompanyCnpjSlotsUsage(userId)
+}
+
 /** Bloqueia novo CNPJ quando o líder já atingiu o limite contratado. */
 export async function assertCanAddLeaderCompany(
   leaderUserId: string,
@@ -90,6 +133,24 @@ export async function assertCanAddLeaderCompany(
     throw new Error(
       `Limite de ${formatCompanyCnpjSlotsShort(limit)} atingido para este cliente. ` +
         'Emita nova fatura com quantidade maior ou cadastre outro CNPJ em contrato com slots disponíveis.',
+    )
+  }
+}
+
+/** V2 — bloqueia novo CNPJ quando o consultor licenciado atingiu o limite. */
+export async function assertCanAddConsultantCompany(
+  consultantUserId: string,
+  opts?: { slotsFromCurrentContract?: number },
+): Promise<void> {
+  const resolved = await getCompanyCnpjSlotsLimitForUser(consultantUserId)
+  const limit = opts?.slotsFromCurrentContract
+    ? Math.max(resolved, parseCompanyCnpjSlots(opts.slotsFromCurrentContract))
+    : resolved
+  const count = await countConsultantCompanies(consultantUserId)
+  if (count >= limit) {
+    throw new Error(
+      `Limite de ${formatCompanyCnpjSlotsShort(limit)} atingido na sua licença. ` +
+        'Emita nova fatura em Contratação (plano B2B para grupos multi-CNPJ).',
     )
   }
 }

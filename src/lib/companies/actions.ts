@@ -14,12 +14,44 @@ import { parseIlLeadersJson, validateIlLeaders } from '@/lib/companies/il-leader
 import { parseContactsJson, type ContactInput } from '@/lib/companies/contacts'
 import { companyHasTechnicalLead } from '@/lib/nr01/technical-lead'
 import { safeRedirectPath } from '@/lib/auth/safe-redirect'
+import { isPlatformStaff } from '@/lib/auth/roles'
+import type { UserRole } from '@/types/database'
+import { assignCompanyAccountUser, resolveUserIdByEmail } from '@/lib/companies/assign-account-user'
+import { isLicensingV2 } from '@/lib/licensing/model'
+import { assertCanAddConsultantCompany } from '@/lib/licensing/company-cnpj-slots'
 
 async function authConsultant() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  return { supabase, user }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
+  if (!isPlatformStaff(role) && role !== 'leader') redirect('/dashboard')
+  return { supabase, user, role }
+}
+
+async function maybeAssignPayerFromForm(
+  formData: FormData,
+  role: UserRole,
+  companyId: string,
+  onError: (message: string) => never,
+): Promise<void> {
+  const payerEmail = (formData.get('account_user_email') as string)?.trim()
+  if (!payerEmail || !isPlatformStaff(role)) return
+  const leaderId = await resolveUserIdByEmail(payerEmail)
+  if (!leaderId) {
+    onError('E-mail do cliente pagante não encontrado no sistema.')
+  }
+  try {
+    await assignCompanyAccountUser(companyId, leaderId)
+  } catch (e) {
+    onError(e instanceof Error ? e.message : 'Falha ao vincular cliente')
+  }
 }
 
 /** Mensagens amigáveis quando o remoto não recebeu migrations. */
@@ -290,7 +322,7 @@ function editEmpresaErrorUrl(id: string, error: string, retorno?: string) {
 }
 
 export async function criarEmpresa(formData: FormData) {
-  const { supabase, user } = await authConsultant()
+  const { supabase, user, role } = await authConsultant()
   const retorno = safeRedirectPath((formData.get('retorno') as string) || null)
   const fields = companyFormFields(formData)
 
@@ -302,6 +334,14 @@ export async function criarEmpresa(formData: FormData) {
 
   const dup = await assertNoDuplicate(supabase, user.id, fields.name, fields.cnpj)
   if (dup) redirect(novaEmpresaErrorUrl(retorno, dup))
+
+  if (isLicensingV2() && isPlatformStaff(role)) {
+    try {
+      await assertCanAddConsultantCompany(user.id)
+    } catch (e) {
+      redirect(novaEmpresaErrorUrl(retorno, e instanceof Error ? e.message : 'Limite de CNPJs atingido'))
+    }
+  }
 
   const insert: CompanyInsert = {
     name: fields.name,
@@ -340,6 +380,11 @@ export async function criarEmpresa(formData: FormData) {
     const syncColErr = await syncCollaborators(supabase, companyId, fields.collaborators)
     if (syncColErr) redirect(novaEmpresaErrorUrl(retorno, syncColErr))
   }
+
+  await maybeAssignPayerFromForm(formData, role, companyId, (msg) =>
+    redirect(novaEmpresaErrorUrl(retorno, msg)),
+  )
+
   revalidateEmpresaPaths(companyId)
 
   if (retorno) redirect(retorno)
@@ -347,7 +392,7 @@ export async function criarEmpresa(formData: FormData) {
 }
 
 export async function atualizarEmpresa(formData: FormData) {
-  const { supabase, user } = await authConsultant()
+  const { supabase, user, role } = await authConsultant()
   const id = formData.get('company_id') as string
   const retorno = safeRedirectPath((formData.get('retorno') as string) || null)
   const fields = companyFormFields(formData)
@@ -394,6 +439,11 @@ export async function atualizarEmpresa(formData: FormData) {
   if (syncLeaderErr) redirect(editEmpresaErrorUrl(id, syncLeaderErr, retorno ?? undefined))
   const syncColErr = await syncCollaborators(supabase, id, fields.collaborators)
   if (syncColErr) redirect(editEmpresaErrorUrl(id, syncColErr, retorno ?? undefined))
+
+  await maybeAssignPayerFromForm(formData, role, id, (msg) =>
+    redirect(editEmpresaErrorUrl(id, msg, retorno ?? undefined)),
+  )
+
   revalidateEmpresaPaths(id)
 
   if (retorno) redirect(retorno)

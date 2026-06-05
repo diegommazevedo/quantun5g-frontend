@@ -32,11 +32,12 @@ export function IlLeadersEditor({ initial, minRows = 1 }: Props) {
   return (
     <fieldset className="space-y-4 rounded-xl border border-purple-100 bg-purple-50/40 p-4">
       <legend className="px-1 text-sm font-semibold text-purple-900">
-        Liderança IL (LID) — um ou mais
+        Contatos IL — um ou mais
       </legend>
       <p className="text-xs text-purple-800/90">
-        Pessoas da liderança que podem responder o Instrumento de Liderança (IL). Ao criar um
-        diagnóstico Pentagrama, você escolhe qual líder receberá o link desta rodada.
+        Contatos de pesquisa que respondem o Instrumento de Liderança (IL) via link/token — não
+        precisam de login na plataforma. Ao criar um diagnóstico, escolha qual contato receberá o
+        link desta rodada.
       </p>
 
       <input type="hidden" name="il_leaders_json" value={JSON.stringify(rows)} />

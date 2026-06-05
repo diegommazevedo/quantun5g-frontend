@@ -7,6 +7,7 @@
 
 
 import { isPlatformStaff } from '@/lib/auth/roles'
+import { isLicensingV2 } from '@/lib/licensing/model'
 
 
 
@@ -104,7 +105,7 @@ export interface ContextSubnav {
 const CONSULTA_ITEMS: NavItem[] = [
   {
     href: '/contratacao',
-    label: 'Emitir fatura (presencial)',
+    label: isLicensingV2() ? 'Contratar licença' : 'Emitir fatura (presencial)',
     icon: 'credit',
     match: '/contratacao',
     alwaysShow: true,
@@ -323,12 +324,10 @@ export function buildNavSections(opts: {
   const { role, modulePentagrama, moduleNr01 } = opts
 
   const staff = isPlatformStaff(role)
-
   const isAdmin = role === 'admin'
+  const v2Operator = isLicensingV2() && role === 'leader'
 
-
-
-  const source = staff ? STAFF_SECTIONS : LEADER_SECTIONS
+  const source = staff || v2Operator ? STAFF_SECTIONS : LEADER_SECTIONS
 
   const sections: NavSection[] = []
 

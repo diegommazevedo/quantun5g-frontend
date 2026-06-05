@@ -9,6 +9,7 @@ import {
   userNotFoundMessage,
 } from '@/lib/auth/resolve-user-by-email'
 import type { UserRole } from '@/types/database'
+import { isLicensingV2 } from '@/lib/licensing/model'
 
 export async function resolveCommercialInvoiceTargets(params: {
   actorId: string
@@ -29,6 +30,19 @@ export async function resolveCommercialInvoiceTargets(params: {
   emailSent: boolean
 }> {
   const admin = createServiceRoleAdmin()
+
+  if (
+    isLicensingV2() &&
+    (params.actorRole === 'consultant' || params.actorRole === 'leader')
+  ) {
+    return {
+      userId: params.actorId,
+      consultantId: params.actorId,
+      companyId: params.companyId ?? null,
+      inviteSent: false,
+      emailSent: false,
+    }
+  }
 
   if (params.actorRole === 'leader') {
     let consultantId: string | null = null
