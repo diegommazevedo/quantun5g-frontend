@@ -436,10 +436,11 @@ CREATE POLICY nr01_assessments_select_leader ON nr01_assessments
     )
   );
 
+DROP POLICY IF EXISTS companies_select_leader ON companies;
 DROP POLICY IF EXISTS "companies_select_leader" ON companies;
-CREATE POLICY "companies_select_leader" ON companies
+CREATE POLICY companies_select_leader ON companies
   FOR SELECT USING (
-    get_my_role() = 'leader'
+    auth_role() = 'leader'
     AND account_user_id = auth.uid()
   );
 

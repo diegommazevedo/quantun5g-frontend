@@ -3,18 +3,21 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { CompanyContactRole } from '@/types/database'
+import type { CompanyContactRole, UserRole } from '@/types/database'
+import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 
 async function authCompany(companyId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  const { data: co } = await supabase
-    .from('companies')
-    .select('id')
-    .eq('id', companyId)
-    .eq('consultant_id', user.id)
-    .maybeSingle()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
+  const { data: co } = await fetchCompanyForActor(supabase, user.id, role, companyId, 'id')
   if (!co) redirect('/empresas')
   return { supabase, user }
 }

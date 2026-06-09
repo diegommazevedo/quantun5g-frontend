@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { Company, CompanyContact } from '@/types/database'
+import type { Company, CompanyContact, UserRole } from '@/types/database'
+import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import { TeamContactsManager } from '@/components/companies/TeamContactsManager'
 import { EmailSuppressionsPanel } from '@/components/companies/EmailSuppressionsPanel'
 import { loadSuppressionDetailsForEmails } from '@/lib/email/suppression'
@@ -19,12 +20,15 @@ export default async function EmpresaEquipePage({ params, searchParams }: Props)
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: company } = await supabase
-    .from('companies')
-    .select('*')
-    .eq('id', id)
-    .eq('consultant_id', user.id)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
     .single()
+  const role = profile?.role ?? 'consultant'
+
+  const { data: company } = await fetchCompanyForActor<Company>(supabase, user.id, role, id, '*')
   if (!company) notFound()
 
   const { data: contacts } = await supabase
@@ -34,7 +38,7 @@ export default async function EmpresaEquipePage({ params, searchParams }: Props)
     .order('contact_role')
     .order('full_name')
 
-  const co = company as Company
+  const co = company
   const list = (contacts ?? []) as CompanyContact[]
 
   const suppressionMap = await loadSuppressionDetailsForEmails(

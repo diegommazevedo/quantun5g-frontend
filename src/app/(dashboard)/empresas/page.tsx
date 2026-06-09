@@ -9,6 +9,7 @@ import type { Company } from '@/types/database'
 import { EmpresaGrid } from '@/components/nr01/EmpresaGrid'
 import { enrichCompaniesWithIlCounts } from '@/lib/companies/enrich'
 import { COMPANY_GRID_SELECT } from '@/lib/companies/grid-select'
+import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { getCompanyCnpjSlotsUsageForActor } from '@/lib/licensing/company-cnpj-slots'
 import { CnpjSlotsBanner } from '@/components/licensing/CnpjSlotsBanner'
@@ -30,11 +31,15 @@ export default async function EmpresasPage() {
   const showSlots = isLicensingV2() && isPlatformStaff(role)
   const slotsUsage = showSlots ? await getCompanyCnpjSlotsUsageForActor(user.id) : null
 
-  const { data: companies } = await supabase
-    .from('companies')
-    .select(COMPANY_GRID_SELECT)
-    .eq('consultant_id', user.id)
-    .order('name')
+  const { data: companies, error: listErr } = await fetchCompaniesForActor<Company>(
+    supabase,
+    user.id,
+    role,
+    COMPANY_GRID_SELECT,
+  )
+  if (listErr) {
+    console.error('[empresas] list:', listErr.message)
+  }
 
   const empresas = await enrichCompaniesWithIlCounts(supabase, (companies ?? []) as Company[])
 

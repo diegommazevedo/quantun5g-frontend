@@ -6,6 +6,8 @@ import { atualizarEmpresa } from '@/app/(dashboard)/empresas/actions'
 import { EmpresaFormFields } from '@/components/companies/EmpresaFormFields'
 import { safeRedirectPath } from '@/lib/auth/safe-redirect'
 import { isPlatformStaff } from '@/lib/auth/roles'
+import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
+import { isLicensingV2 } from '@/lib/licensing/model'
 import type { UserRole } from '@/types/database'
 
 interface Props {
@@ -21,22 +23,24 @@ export default async function EditarEmpresaPage({ params, searchParams }: Props)
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data } = await supabase
-    .from('companies')
-    .select('*')
-    .eq('id', id)
-    .eq('consultant_id', user.id)
-    .single()
-  if (!data) notFound()
-  const company = data as Company & { account_user_id?: string | null }
-
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .returns<{ role: UserRole }[]>()
     .single()
-  const isStaff = isPlatformStaff(profile?.role ?? 'consultant')
+  const role = profile?.role ?? 'consultant'
+  const isStaff = isPlatformStaff(role)
+
+  const { data } = await fetchCompanyForActor<Company & { account_user_id?: string | null }>(
+    supabase,
+    user.id,
+    role,
+    id,
+    '*',
+  )
+  if (!data) notFound()
+  const company = data
 
   let payerEmailDefault: string | null = null
   if (company.account_user_id) {
@@ -106,7 +110,7 @@ export default async function EditarEmpresaPage({ params, searchParams }: Props)
           company={company}
           ilLeaders={ilLeaders}
           collaborators={collaborators}
-          showPayerEmail={isStaff}
+          showPayerEmail={isStaff && (!isLicensingV2() || role === 'admin')}
           payerEmailDefault={payerEmailDefault}
         />
         <button
