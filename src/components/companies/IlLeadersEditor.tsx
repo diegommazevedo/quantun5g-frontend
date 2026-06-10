@@ -34,7 +34,7 @@ export function IlLeadersEditor({ initial, minRows = 1 }: Props) {
       <legend className="px-1 text-sm font-semibold text-purple-900">
         Contatos IL — um ou mais
       </legend>
-      <p className="text-xs text-purple-800/90">
+      <p className="text-xs text-q-muted">
         Contatos de pesquisa que respondem o Instrumento de Liderança (IL) via link/token — não
         precisam de login na plataforma. Ao criar um diagnóstico, escolha qual contato receberá o
         link desta rodada.
@@ -49,7 +49,7 @@ export function IlLeadersEditor({ initial, minRows = 1 }: Props) {
             className="grid grid-cols-1 gap-3 rounded-lg border border-purple-100 bg-white p-3 sm:grid-cols-[1fr_1fr_auto]"
           >
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-zinc-600">Nome *</label>
+              <label className="block text-xs font-medium text-q-muted">Nome *</label>
               <input
                 type="text"
                 required
@@ -60,7 +60,7 @@ export function IlLeadersEditor({ initial, minRows = 1 }: Props) {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-zinc-600">E-mail *</label>
+              <label className="block text-xs font-medium text-q-muted">E-mail *</label>
               <input
                 type="email"
                 required
@@ -75,7 +75,7 @@ export function IlLeadersEditor({ initial, minRows = 1 }: Props) {
                 type="button"
                 onClick={() => removeRow(index)}
                 disabled={rows.length <= minRows}
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
+                className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-q-muted hover:bg-zinc-50 hover:text-q-text disabled:opacity-40"
               >
                 Remover
               </button>
@@ -87,7 +87,7 @@ export function IlLeadersEditor({ initial, minRows = 1 }: Props) {
       <button
         type="button"
         onClick={addRow}
-        className="text-sm font-medium text-purple-900 hover:underline"
+        className="text-sm font-medium text-sky-700 hover:underline"
       >
         + Adicionar outro líder
       </button>

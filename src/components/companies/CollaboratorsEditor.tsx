@@ -39,7 +39,7 @@ export function CollaboratorsEditor({ initial }: Props) {
       <legend className="px-1 text-sm font-semibold text-blue-900">
         Colaboradores IC — lista de transmissão por e-mail
       </legend>
-      <p className="text-xs text-blue-800/90">
+      <p className="text-xs text-q-muted">
         Pessoas que recebem o convite do <strong>Instrumento de Colaboradores (IC)</strong> no Pentagrama.
         No <strong>NR-01</strong>, líderes e colaboradores ativos entram na mesma lista de disparo.
         Você pode incluir agora ou depois em{' '}
@@ -55,7 +55,7 @@ export function CollaboratorsEditor({ initial }: Props) {
             className="grid grid-cols-1 gap-3 rounded-lg border border-blue-100 bg-white p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
           >
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-zinc-600">Nome</label>
+              <label className="block text-xs font-medium text-q-muted">Nome</label>
               <input
                 type="text"
                 value={row.full_name}
@@ -65,7 +65,7 @@ export function CollaboratorsEditor({ initial }: Props) {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-zinc-600">E-mail</label>
+              <label className="block text-xs font-medium text-q-muted">E-mail</label>
               <input
                 type="email"
                 value={row.email}
@@ -75,7 +75,7 @@ export function CollaboratorsEditor({ initial }: Props) {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-zinc-600">Cargo (opc.)</label>
+              <label className="block text-xs font-medium text-q-muted">Cargo (opc.)</label>
               <input
                 type="text"
                 value={row.job_title ?? ''}
@@ -88,7 +88,7 @@ export function CollaboratorsEditor({ initial }: Props) {
               <button
                 type="button"
                 onClick={() => removeRow(index)}
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:bg-zinc-50"
+                className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-q-muted hover:bg-zinc-50 hover:text-q-text"
               >
                 Remover
               </button>
@@ -97,7 +97,7 @@ export function CollaboratorsEditor({ initial }: Props) {
         ))}
       </div>
 
-      <button type="button" onClick={addRow} className="text-sm font-medium text-blue-900 hover:underline">
+      <button type="button" onClick={addRow} className="text-sm font-medium text-sky-700 hover:underline">
         + Adicionar colaborador
       </button>
     </fieldset>

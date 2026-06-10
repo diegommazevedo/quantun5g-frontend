@@ -84,6 +84,12 @@ body {
 .q-text-muted {
   color: var(--q-text-muted);
 }
+.text-q-muted {
+  color: var(--q-text-muted);
+}
+.text-q-text {
+  color: var(--q-text);
+}
 .q-text-faint {
   color: var(--q-text-faint);
 }
@@ -204,8 +210,35 @@ body {
   border-color: rgb(96 165 250 / 0.35) !important;
 }
 [data-theme="quantum-dark"] .text-blue-800,
-[data-theme="quantum-dark"] .text-blue-900 {
+[data-theme="quantum-dark"] .text-blue-900,
+[data-theme="quantum-dark"] .text-blue-800\/90,
+[data-theme="quantum-dark"] .text-blue-900\/80,
+[data-theme="quantum-dark"] .text-blue-700 {
   color: #bfdbfe !important;
+}
+[data-theme="quantum-dark"] .bg-blue-50\/40,
+[data-theme="quantum-dark"] .bg-blue-50\/50 {
+  background-color: rgb(30 58 138 / 0.28) !important;
+}
+[data-theme="quantum-dark"] .bg-purple-50\/40,
+[data-theme="quantum-dark"] .bg-purple-50\/50 {
+  background-color: rgb(88 28 135 / 0.28) !important;
+}
+[data-theme="quantum-dark"] .border-purple-100 {
+  border-color: rgb(192 132 252 / 0.35) !important;
+}
+[data-theme="quantum-dark"] .text-purple-900,
+[data-theme="quantum-dark"] .text-purple-800,
+[data-theme="quantum-dark"] .text-purple-800\/90,
+[data-theme="quantum-dark"] .text-purple-900\/80 {
+  color: #e9d5ff !important;
+}
+[data-theme="quantum-dark"] .text-violet-800 {
+  color: #ddd6fe !important;
+}
+[data-theme="quantum-dark"] .text-sky-600,
+[data-theme="quantum-dark"] .text-sky-700 {
+  color: #7dd3fc !important;
 }
 [data-theme="quantum-dark"] .bg-violet-50,
 [data-theme="quantum-dark"] .bg-violet-50\/60,

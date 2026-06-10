@@ -33,12 +33,12 @@ export function TeamContactsManager({ companyId, contacts, suppressedEmails }: P
         <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-4">
           <p className="text-xs font-semibold uppercase text-purple-800">Líderes IL</p>
           <p className="mt-1 text-2xl font-bold text-zinc-900">{leaders.length}</p>
-          <p className="text-xs text-purple-900/80">Pentagrama — Instrumento de Liderança</p>
+          <p className="text-xs text-q-muted">Pentagrama — Instrumento de Liderança</p>
         </div>
         <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
           <p className="text-xs font-semibold uppercase text-blue-800">Colaboradores IC</p>
           <p className="mt-1 text-2xl font-bold text-zinc-900">{cols.length}</p>
-          <p className="text-xs text-blue-900/80">Pentagrama — pesquisa vivida</p>
+          <p className="text-xs text-q-muted">Pentagrama — pesquisa vivida</p>
         </div>
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
           <p className="text-xs font-semibold uppercase text-zinc-600">Lista NR-01</p>

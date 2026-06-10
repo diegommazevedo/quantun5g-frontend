@@ -40,7 +40,7 @@ export function EmpresaFormFields({
             placeholder="lider@grupopasola.com.br"
             className="block w-full rounded-lg border border-violet-200 px-3 py-2.5 text-sm"
           />
-          <p className="text-xs text-violet-800">
+          <p className="text-xs text-q-muted">
             Somente migração Pasola/legado. Em LICENSING_V2 os slots ficam no consultor licenciado;
             deixe vazio em cadastros novos.
           </p>
@@ -134,7 +134,7 @@ export function EmpresaFormFields({
         <legend className="px-1 text-sm font-semibold text-blue-900">
           Responsável técnico assinante (RT)
         </legend>
-        <p className="text-xs text-blue-800/90">
+        <p className="text-xs text-q-muted">
           Profissional habilitado que assina laudos desta empresa (NR-01 e referência técnica
           Pentagrama). Obrigatório em todo cadastro.
         </p>
