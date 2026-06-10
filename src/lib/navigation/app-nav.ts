@@ -101,16 +101,16 @@ export interface ContextSubnav {
 
 /** Links de consulta — sempre no menu (porta a porta + checkout online). */
 
-/** Vendas presenciais — checkout online e tabela de planos ocultos até Asaas/planos estarem ativos. */
+/** Comercial 90/10 — só admin vê contratação/faturas no menu; operadores usam o produto. */
 const CONSULTA_ITEMS: NavItem[] = [
   {
     href: '/contratacao',
     label: isLicensingV2() ? 'Contratar licença' : 'Emitir fatura (presencial)',
     icon: 'credit',
     match: '/contratacao',
-    alwaysShow: true,
+    adminOnly: true,
   },
-  { href: '/faturas', label: 'Minhas faturas', icon: 'credit', match: '/faturas', alwaysShow: true },
+  { href: '/faturas', label: 'Minhas faturas', icon: 'credit', match: '/faturas', adminOnly: true },
 ]
 
 
