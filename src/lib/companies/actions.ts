@@ -19,6 +19,7 @@ import type { UserRole } from '@/types/database'
 import { assignCompanyAccountUser, resolveUserIdByEmail } from '@/lib/companies/assign-account-user'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { assertCanAddConsultantCompany } from '@/lib/licensing/company-cnpj-slots'
+import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 
 async function authConsultant() {
   const supabase = await createClient()
@@ -321,6 +322,15 @@ function editEmpresaErrorUrl(id: string, error: string, retorno?: string) {
   return `/empresas/${id}?${params.toString()}`
 }
 
+/** Após salvar — lista de empresas com confirmação visual. */
+function empresasListAfterSaveUrl(companyName: string, retorno?: string | null): string {
+  const params = new URLSearchParams()
+  params.set('saved', '1')
+  params.set('nome', companyName)
+  const base = retorno && retorno.startsWith('/empresas') ? retorno.split('?')[0] : '/empresas'
+  return `${base}?${params.toString()}`
+}
+
 export async function criarEmpresa(formData: FormData) {
   const { supabase, user, role } = await authConsultant()
   const retorno = safeRedirectPath((formData.get('retorno') as string) || null)
@@ -403,12 +413,7 @@ export async function atualizarEmpresa(formData: FormData) {
   const validationErr = validateCompanyPayload(fields)
   if (validationErr) redirect(editEmpresaErrorUrl(id || '', validationErr, retorno ?? undefined))
 
-  const { data: owned } = await supabase
-    .from('companies')
-    .select('id')
-    .eq('id', id)
-    .eq('consultant_id', user.id)
-    .maybeSingle()
+  const { data: owned } = await fetchCompanyForActor(supabase, user.id, role, id, 'id')
   if (!owned) redirect('/empresas')
 
   const dup = await assertNoDuplicate(supabase, user.id, fields.name, fields.cnpj, id)
@@ -446,8 +451,7 @@ export async function atualizarEmpresa(formData: FormData) {
 
   revalidateEmpresaPaths(id)
 
-  if (retorno) redirect(retorno)
-  redirect(`/empresas/${id}`)
+  redirect(empresasListAfterSaveUrl(fields.name, retorno))
 }
 
 /** Helpers usados nos fluxos de nova avaliação / diagnóstico */

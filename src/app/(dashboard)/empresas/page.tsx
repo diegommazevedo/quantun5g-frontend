@@ -16,10 +16,16 @@ import { CnpjSlotsBanner } from '@/components/licensing/CnpjSlotsBanner'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import type { UserRole } from '@/types/database'
 
-export default async function EmpresasPage() {
+interface Props {
+  searchParams: Promise<{ saved?: string; nome?: string }>
+}
+
+export default async function EmpresasPage({ searchParams }: Props) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { saved, nome } = await searchParams
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -64,6 +70,17 @@ export default async function EmpresasPage() {
           </Link>
         </div>
       </div>
+
+      {saved === '1' ? (
+        <div
+          className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+          role="status"
+        >
+          {nome
+            ? `Empresa “${decodeURIComponent(nome)}” atualizada com sucesso.`
+            : 'Alterações salvas com sucesso.'}
+        </div>
+      ) : null}
 
       {slotsUsage ? <CnpjSlotsBanner usage={slotsUsage} /> : null}
 
