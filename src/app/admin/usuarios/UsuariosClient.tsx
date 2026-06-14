@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   criarUsuario,
   atualizarAcessoUsuario,
@@ -87,6 +88,8 @@ export function UsuariosClient({
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [reenviandoId, setReenviandoId] = useState<string | null>(null)
+  const router = useRouter()
 
   const editing = usuarios.find((u) => u.id === editId)
 
@@ -122,14 +125,36 @@ export function UsuariosClient({
     })
   }
 
+  function showFeedback(ok: boolean, message: string) {
+    if (ok) {
+      setErro(null)
+      setSucesso(message)
+    } else {
+      setSucesso(null)
+      setErro(message)
+    }
+  }
+
   async function handleReenviarConvite(userId: string, name: string | null) {
     if (!confirm(`Reenviar convite por e-mail para ${name ?? 'este usuário'}?`)) return
+    setReenviandoId(userId)
     setErro(null)
-    startTransition(async () => {
+    setSucesso(null)
+    try {
       const res = await reenviarConviteUsuario(userId)
-      if (res && 'error' in res) setErro(res.error ?? 'Erro')
-      else setSucesso('Convite reenviado por e-mail Quantum5G.')
-    })
+      if (res && 'error' in res && res.error) {
+        showFeedback(false, res.error)
+      } else if (res && 'success' in res) {
+        showFeedback(true, 'Convite reenviado por e-mail Quantum5G.')
+        router.refresh()
+      } else {
+        showFeedback(false, 'Resposta inesperada do servidor. Tente novamente.')
+      }
+    } catch {
+      showFeedback(false, 'Falha de rede ao reenviar convite. Tente novamente.')
+    } finally {
+      setReenviandoId(null)
+    }
   }
 
   return (
@@ -230,11 +255,11 @@ export function UsuariosClient({
                   {canResend && (
                     <button
                       type="button"
-                      className="text-xs font-medium text-amber-800 hover:underline"
-                      disabled={isPending}
+                      className="text-xs font-medium text-amber-800 hover:underline disabled:opacity-50"
+                      disabled={reenviandoId === u.id}
                       onClick={() => handleReenviarConvite(u.id, u.name)}
                     >
-                      Reenviar convite
+                      {reenviandoId === u.id ? 'Enviando…' : 'Reenviar convite'}
                     </button>
                   )}
                   <button
@@ -310,6 +335,16 @@ export function UsuariosClient({
             className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl space-y-4"
           >
             <h2 className="text-lg font-semibold">Acesso — {editing.name}</h2>
+            {erro && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                {erro}
+              </div>
+            )}
+            {sucesso && (
+              <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+                {sucesso}
+              </div>
+            )}
             <input type="hidden" name="user_id" value={editing.id} />
             <select
               name="role"
@@ -353,11 +388,11 @@ export function UsuariosClient({
                 Convite pendente — o usuário ainda não criou a senha.
                 <button
                   type="button"
-                  className="ml-2 font-semibold underline"
-                  disabled={isPending}
+                  className="ml-2 font-semibold underline disabled:opacity-50"
+                  disabled={reenviandoId === editing.id}
                   onClick={() => handleReenviarConvite(editing.id, editing.name)}
                 >
-                  Reenviar convite
+                  {reenviandoId === editing.id ? 'Enviando…' : 'Reenviar convite'}
                 </button>
               </div>
             )}

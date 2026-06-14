@@ -229,7 +229,7 @@ export async function invitePlatformUser(
   }
 }
 
-/** Reenvio de link de acesso (recuperação) com o mesmo template da plataforma. */
+/** Reenvio de link de acesso com o mesmo template da plataforma. */
 export async function resendPlatformAccessLink(params: {
   userId: string
   email: string
@@ -239,18 +239,34 @@ export async function resendPlatformAccessLink(params: {
 }): Promise<{ emailSent: boolean; error?: string }> {
   const redirectTo = buildAuthCallbackUrl(params.nextPath ?? '/convite/ativar')
   const admin = createServiceRoleAdmin()
+  const normalized = normalizeEmail(params.email)
 
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: 'recovery',
-    email: normalizeEmail(params.email),
-    options: { redirectTo },
-  })
-
-  if (error || !data.properties?.action_link) {
-    return { emailSent: false, error: error?.message ?? 'Link não gerado' }
+  async function linkFrom(
+    type: 'invite' | 'recovery' | 'magiclink',
+  ): Promise<string | null> {
+    const { data, error } = await admin.auth.admin.generateLink({
+      type,
+      email: normalized,
+      options: {
+        redirectTo,
+        ...(type === 'invite'
+          ? { data: { role: params.role, name: params.name } }
+          : {}),
+      },
+    })
+    if (error || !data.properties?.action_link) return null
+    return finalizeActionLink(data.properties.action_link, redirectTo)
   }
 
-  const actionLink = finalizeActionLink(data.properties.action_link, redirectTo)
+  let actionLink =
+    (await linkFrom('invite')) ??
+    (await linkFrom('recovery')) ??
+    (await linkFrom('magiclink'))
+
+  if (!actionLink) {
+    return { emailSent: false, error: 'Não foi possível gerar o link de ativação.' }
+  }
+
   const mail = await sendPlatformInviteEmail({
     email: params.email,
     name: params.name,

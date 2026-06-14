@@ -264,44 +264,49 @@ export async function toggleUsuarioAtivo(userId: string, ativo: boolean) {
 }
 
 export async function reenviarConviteUsuario(userId: string) {
-  const gate = await requireAdmin()
-  if ('error' in gate) return gate
+  try {
+    const gate = await requireAdmin()
+    if ('error' in gate) return gate
 
-  if (!userId) return { error: 'Usuário inválido.' }
+    if (!userId) return { error: 'Usuário inválido.' }
 
-  const admin = adminClient()
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('name, email, role, is_active')
-    .eq('id', userId)
-    .maybeSingle()
+    const admin = adminClient()
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('name, email, role, is_active')
+      .eq('id', userId)
+      .maybeSingle()
 
-  const row = profile as {
-    name: string | null
-    email: string | null
-    role: UserRole
-    is_active: boolean
-  } | null
+    const row = profile as {
+      name: string | null
+      email: string | null
+      role: UserRole
+      is_active: boolean
+    } | null
 
-  if (!row?.email) return { error: 'Usuário não encontrado.' }
-  if (!row.is_active) return { error: 'Usuário inativo. Reative antes de reenviar o convite.' }
+    if (!row?.email) return { error: 'Usuário não encontrado.' }
+    if (!row.is_active) return { error: 'Usuário inativo. Reative antes de reenviar o convite.' }
 
-  const { data: authUser } = await admin.auth.admin.getUserById(userId)
-  if (authUser?.user?.last_sign_in_at) {
-    return { error: 'Este usuário já concluiu a ativação (senha definida).' }
+    const { data: authUser, error: authErr } = await admin.auth.admin.getUserById(userId)
+    if (authErr) return { error: authErr.message }
+    if (authUser?.user?.last_sign_in_at) {
+      return { error: 'Este usuário já concluiu a ativação (senha definida).' }
+    }
+
+    const resend = await resendPlatformAccessLink({
+      userId,
+      email: row.email,
+      name: row.name ?? row.email,
+      role: row.role,
+    })
+
+    if (!resend.emailSent) {
+      return { error: resend.error ?? 'Falha ao reenviar e-mail.' }
+    }
+
+    revalidatePath('/admin/usuarios')
+    return { success: true }
+  } catch (err) {
+    return { error: (err as Error).message ?? 'Erro inesperado ao reenviar convite.' }
   }
-
-  const resend = await resendPlatformAccessLink({
-    userId,
-    email: row.email,
-    name: row.name ?? row.email,
-    role: row.role,
-  })
-
-  if (!resend.emailSent) {
-    return { error: resend.error ?? 'Falha ao reenviar e-mail.' }
-  }
-
-  revalidatePath('/admin/usuarios')
-  return { success: true }
 }
