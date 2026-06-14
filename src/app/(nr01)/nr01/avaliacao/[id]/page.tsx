@@ -79,10 +79,10 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
   const ds = (scores ?? []) as Nr01DimensionScore[]
   // count com { head: true } vem como propriedade irmã de data, não dentro dela.
   const totalResponses = respCountResult.count ?? 0
-  const collectionUrl = `/nr01/coleta/${a.collection_token}`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quantun5g.app'
+  const collectionFullUrl = `${appUrl}/nr01/coleta/${a.collection_token}`
   const publicTokens = (pubTokensData ?? []) as Nr01PublicStatusToken[]
   const activeToken = publicTokens.find((t) => t.revoked_at == null) ?? null
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const publicStatusUrl = activeToken ? `${appUrl}/nr01/status/${activeToken.token}` : null
 
   const pctFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
@@ -181,11 +181,32 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
       {(a.status === 'CRIADO' || a.status === 'COLETANDO') && (
         <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-start justify-between gap-4">
-            <div className="text-sm text-amber-900">
+            <div className="min-w-0 flex-1 text-sm text-amber-900">
               <strong>Link público de coleta</strong>
-              <div className="mt-1 break-all font-mono text-xs text-amber-700">
-                {collectionUrl}
-              </div>
+              {a.status === 'COLETANDO' ? (
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-100/60 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <code className="min-w-0 flex-1 break-all text-[11px] text-amber-900">
+                      {collectionFullUrl}
+                    </code>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <CopyLinkButton url={collectionFullUrl} />
+                      <a
+                        href={collectionFullUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded border border-amber-300 bg-white px-2 py-1 text-xs text-amber-900 hover:bg-amber-50"
+                      >
+                        Abrir
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-amber-800">
+                  O link completo ficará disponível para copiar assim que você abrir a coleta.
+                </p>
+              )}
               <div className="mt-2 text-xs text-amber-800">
                 Anônimo. Compartilhe com os trabalhadores via e-mail, QR code ou WhatsApp.
               </div>
