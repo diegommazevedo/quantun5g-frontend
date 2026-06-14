@@ -5,6 +5,8 @@ import { dispararConvitesPentagrama } from './actions'
 import { filterContactsForDispatch } from '@/lib/survey/dispatch'
 import { loadLastDispatchBatch } from '@/lib/survey/dispatch-history'
 import { loadInviteDeliveryStats } from '@/lib/survey/invite-delivery-stats'
+import { loadInviteDeliveryDetails } from '@/lib/survey/invite-delivery-details'
+import { DispatchDeliveryDetail } from '@/components/survey/DispatchDeliveryDetail'
 import { getActiveDriver } from '@/lib/email/platform'
 import { DispatchSubmitButton } from '@/components/survey/DispatchSubmitButton'
 import type { CompanyContact } from '@/types/database'
@@ -58,6 +60,8 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
   const collaborators = filterContactsForDispatch(all, 'pentagrama', 'ic')
   const lastBatch = await loadLastDispatchBatch(supabase, 'pentagrama', id)
   const deliveryStats = await loadInviteDeliveryStats(supabase, 'pentagrama', id)
+  const deliveryDetailsIl = await loadInviteDeliveryDetails(supabase, 'pentagrama', id, 'il')
+  const deliveryDetailsIc = await loadInviteDeliveryDetails(supabase, 'pentagrama', id, 'ic')
   const emailDriver = getActiveDriver()
   const failedItems = lastBatch?.items.filter((i) => i.status === 'failed') ?? []
 
@@ -151,6 +155,16 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
           </Link>
         )}
       </section>
+
+      {deliveryDetailsIl.length > 0 && (
+        <DispatchDeliveryDetail rows={deliveryDetailsIl} lastBatchItems={lastBatch?.items} />
+      )}
+      {deliveryDetailsIc.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Campanha IC</p>
+          <DispatchDeliveryDetail rows={deliveryDetailsIc} />
+        </div>
+      )}
 
       {d.status === 'AGUARDANDO_IL' && (
         <form action={dispararConvitesPentagrama} className="rounded-xl border border-purple-200 bg-purple-50/40 p-4">

@@ -5,6 +5,8 @@ import { dispararConvitesNr01 } from './actions'
 import { filterContactsForDispatch } from '@/lib/survey/dispatch'
 import { loadLastDispatchBatch } from '@/lib/survey/dispatch-history'
 import { loadInviteDeliveryStats } from '@/lib/survey/invite-delivery-stats'
+import { loadInviteDeliveryDetails } from '@/lib/survey/invite-delivery-details'
+import { DispatchDeliveryDetail } from '@/components/survey/DispatchDeliveryDetail'
 import { getActiveDriver } from '@/lib/email/platform'
 import { DispatchSubmitButton } from '@/components/survey/DispatchSubmitButton'
 import type { CompanyContact } from '@/types/database'
@@ -41,6 +43,7 @@ export default async function Nr01DisparosPage({ params, searchParams }: Props) 
   const lista = filterContactsForDispatch((contactsRaw ?? []) as CompanyContact[], 'nr01', 'nr01_coleta')
   const lastBatch = await loadLastDispatchBatch(supabase, 'nr01', id)
   const deliveryStats = await loadInviteDeliveryStats(supabase, 'nr01', id)
+  const deliveryDetails = await loadInviteDeliveryDetails(supabase, 'nr01', id, 'nr01_coleta')
   const emailDriver = getActiveDriver()
   const failedItems = lastBatch?.items.filter((i) => i.status === 'failed') ?? []
 
@@ -129,6 +132,8 @@ export default async function Nr01DisparosPage({ params, searchParams }: Props) 
           </Link>
         )}
       </section>
+
+      <DispatchDeliveryDetail rows={deliveryDetails} lastBatchItems={lastBatch?.items} />
 
       {a.status === 'COLETANDO' && (
         <form action={dispararConvitesNr01} className="rounded-xl border border-zinc-200 bg-white p-4">
