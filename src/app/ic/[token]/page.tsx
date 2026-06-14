@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import ICFormClient from './ICFormClient'
+import { PENTAGRAMA_LIKERT_SCALE } from '@/lib/pentagrama/likert-labels'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -105,16 +106,10 @@ export default async function ICPage({ params, searchParams }: Props) {
           </div>
 
           <div className="flex flex-wrap gap-3 pt-1">
-            {[
-              { v: 1, label: 'Discordo totalmente' },
-              { v: 2, label: 'Discordo parcialmente' },
-              { v: 3, label: 'Neutro' },
-              { v: 4, label: 'Concordo parcialmente' },
-              { v: 5, label: 'Concordo totalmente' },
-            ].map(({ v, label }) => (
-              <span key={v} className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
-                <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-700 font-bold flex items-center justify-center">{v}</span>
-                {label}
+            {PENTAGRAMA_LIKERT_SCALE.map(({ value, lines }) => (
+              <span key={value} className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+                <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-700 font-bold flex items-center justify-center">{value}</span>
+                {lines.join(' ')}
               </span>
             ))}
           </div>

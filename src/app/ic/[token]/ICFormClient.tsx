@@ -18,9 +18,9 @@ import {
   DIMENSAO_SUBTITULO_IC,
   type Dimensao,
 } from '@/lib/questions'
+import { PENTAGRAMA_LIKERT_SCALE } from '@/lib/pentagrama/likert-labels'
 
 const DIMENSOES: Dimensao[] = ['fisica', 'afetiva', 'racional', 'social', 'cultural']
-const SCALE = [1, 2, 3, 4, 5] as const
 
 interface Props {
   diagnosticId: string
@@ -196,28 +196,31 @@ export default function ICFormClient({ diagnosticId, token }: Props) {
                             <div className="flex-1 space-y-3">
                               <p className="text-sm text-zinc-800 leading-relaxed">{q.ic}</p>
                               <div className="space-y-1">
-                                <div className="flex gap-2 flex-wrap">
-                                  {SCALE.map(v => (
-                                    <button
-                                      key={v}
-                                      type="button"
-                                      onClick={() => responder(q.n, v)}
-                                      className={`
-                                        w-10 h-10 rounded-lg border-2 text-sm font-bold transition-all
-                                        ${val === v
-                                          ? 'border-zinc-900 bg-zinc-900 text-white'
-                                          : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400 hover:text-zinc-700'
-                                        }
-                                      `}
-                                    >
-                                      {v}
-                                    </button>
+                                <div className="flex gap-2 flex-wrap items-start">
+                                  {PENTAGRAMA_LIKERT_SCALE.map(({ value, lines }) => (
+                                    <div key={value} className="flex flex-col items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => responder(q.n, value)}
+                                        className={`
+                                          w-10 h-10 rounded-lg border-2 text-sm font-bold transition-all
+                                          ${val === value
+                                            ? 'border-zinc-900 bg-zinc-900 text-white'
+                                            : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400 hover:text-zinc-700'
+                                          }
+                                        `}
+                                      >
+                                        {value}
+                                      </button>
+                                      <span className="w-14 text-center text-[9px] text-zinc-400 leading-tight select-none">
+                                        {lines.map((line) => (
+                                          <span key={line} className="block">
+                                            {line}
+                                          </span>
+                                        ))}
+                                      </span>
+                                    </div>
                                   ))}
-                                </div>
-                                {/* Legenda inline da escala */}
-                                <div className="flex justify-between w-[11.5rem] text-[10px] text-zinc-400 leading-tight select-none">
-                                  <span>Discordo<br/>totalmente</span>
-                                  <span className="text-right">Concordo<br/>totalmente</span>
                                 </div>
                               </div>
                             </div>

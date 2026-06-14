@@ -194,13 +194,22 @@ export default async function DiagnosticoPage({ params }: Props) {
               <p className="text-xs text-zinc-500 mt-0.5">
                 Compartilhe este link com os colaboradores. Respostas anônimas.
               </p>
-              {diag.status === 'COLETANDO_IC' && (
-                <Link
-                  href={`/diagnostico/${id}/disparos`}
-                  className="mt-2 inline-block text-xs font-medium text-blue-800 hover:underline"
-                >
-                  Disparar convites por e-mail →
-                </Link>
+              {['AGUARDANDO_IL', 'COLETANDO_IC'].includes(diag.status) && (
+                <>
+                  <Link
+                    href={`/diagnostico/${id}/disparos#ic`}
+                    className={`mt-2 inline-block text-xs font-medium hover:underline ${
+                      diag.status === 'COLETANDO_IC' ? 'text-blue-800' : 'text-zinc-500'
+                    }`}
+                  >
+                    Disparar convites por e-mail →
+                  </Link>
+                  {diag.status === 'AGUARDANDO_IL' && (
+                    <p className="mt-1 text-[10px] text-zinc-400">
+                      Envio liberado após o líder concluir o IL.
+                    </p>
+                  )}
+                </>
               )}
             </div>
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${diag.status === 'COLETANDO_IC' ? 'bg-blue-100 text-blue-700' : diag.status === 'ENCERRADO' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>

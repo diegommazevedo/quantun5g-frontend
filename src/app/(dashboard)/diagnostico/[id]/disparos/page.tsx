@@ -183,8 +183,17 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
         </form>
       )}
 
+      {d.status === 'AGUARDANDO_IL' && (
+        <div id="ic" className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+          <h3 className="font-semibold text-zinc-800">Disparar IC (colaboradores)</h3>
+          <p className="mt-1">
+            Disponível após o líder concluir o Instrumento de Liderança (IL).
+          </p>
+        </div>
+      )}
+
       {d.status === 'COLETANDO_IC' && (
-        <form action={dispararConvitesPentagrama} className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+        <form id="ic" action={dispararConvitesPentagrama} className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
           <input type="hidden" name="diagnostic_id" value={id} />
           <input type="hidden" name="survey_kind" value="ic" />
           <h3 className="font-semibold text-blue-900">Disparar IC (colaboradores)</h3>
