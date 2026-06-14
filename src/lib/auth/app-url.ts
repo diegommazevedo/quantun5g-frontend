@@ -5,6 +5,10 @@
 export const PRODUCTION_APP_URL = 'https://www.quantun5g.app'
 
 export function resolveAppBaseUrl(): string {
+  if (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production') {
+    return PRODUCTION_APP_URL
+  }
+
   const candidates = [
     process.env.NEXT_PUBLIC_APP_URL,
     process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -21,12 +25,13 @@ export function resolveAppBaseUrl(): string {
   return PRODUCTION_APP_URL
 }
 
-/** Supabase embute Site URL (ex.: localhost) no action_link — forçamos redirect de produção. */
+/** Força redirect_to de produção no link Supabase (evita Site URL localhost). */
 export function rewriteSupabaseAuthActionLink(actionLink: string, redirectTo: string): string {
   try {
     const url = new URL(actionLink)
     url.searchParams.set('redirect_to', redirectTo)
-    return url.toString()
+    const fixed = url.toString()
+    return fixed.replace(/redirect_to=[^&]*localhost[^&]*/i, `redirect_to=${encodeURIComponent(redirectTo)}`)
   } catch {
     return actionLink
   }
