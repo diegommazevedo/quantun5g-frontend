@@ -8,11 +8,10 @@
  */
 
 import { headers } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
-import { loadLaudoData } from '@/lib/nr01/pdf-data'
 import { computePublicStatus } from '@/lib/nr01/status'
+import { resolvePublicStatusByToken } from '@/lib/nr01/public-status'
 import { hashIp } from '@/lib/nr01/evidence'
-import type { Nr01PublicStatusToken, StatusColor } from '@/types/nr01'
+import type { StatusColor } from '@/types/nr01'
 import { registerAccess } from './actions'
 
 interface Props {
@@ -56,21 +55,11 @@ function InvalidPage() {
 
 export default async function PublicStatusPage({ params }: Props) {
   const { token } = await params
-  const supabase = await createClient()
 
-  const { data: tokenData } = await supabase
-    .from('nr01_public_status_tokens')
-    .select('*')
-    .eq('token', token)
-    .is('revoked_at', null)
-    .maybeSingle()
+  const resolved = await resolvePublicStatusByToken(token)
+  if (!resolved) return <InvalidPage />
 
-  if (!tokenData) return <InvalidPage />
-  const t = tokenData as Nr01PublicStatusToken
-
-  const data = await loadLaudoData(supabase, t.assessment_id)
-  if (!data) return <InvalidPage />
-
+  const { tokenRow: t, laudo: data } = resolved
   const status = computePublicStatus(data)
 
   // Registra acesso (best-effort, não bloqueia renderização)

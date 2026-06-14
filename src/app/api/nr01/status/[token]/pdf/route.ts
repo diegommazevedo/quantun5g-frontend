@@ -16,7 +16,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createHash } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
-import { loadLaudoData } from '@/lib/nr01/pdf-data'
+import { resolvePublicStatusByToken } from '@/lib/nr01/public-status'
 import { buildLaudoHtml } from '@/lib/nr01/pdf-template'
 import { launchPdfBrowser } from '@/lib/nr01/launch-pdf-browser'
 import { hashIp } from '@/lib/nr01/evidence'
@@ -30,27 +30,14 @@ export async function GET(
   context: { params: Promise<{ token: string }> },
 ) {
   const { token } = await context.params
-  const supabase = await createClient()
 
-  // 1. Valida token
-  const { data: tokenData } = await supabase
-    .from('nr01_public_status_tokens')
-    .select('id, assessment_id, revoked_at')
-    .eq('token', token)
-    .maybeSingle()
-
-  if (!tokenData || (tokenData as { revoked_at: string | null }).revoked_at) {
+  const resolved = await resolvePublicStatusByToken(token)
+  if (!resolved) {
     return NextResponse.json({ error: 'Link inválido ou expirado.' }, { status: 404 })
   }
-  const t = tokenData as { id: string; assessment_id: string }
 
-  // 2. Carrega dados
-  const data = await loadLaudoData(supabase, t.assessment_id)
-  if (!data) {
-    return NextResponse.json({ error: 'Avaliação não encontrada.' }, { status: 404 })
-  }
-
-  // 3. Bloqueia se PDF nunca foi gerado pelo consultor (evidência incompleta)
+  const { tokenRow: t, laudo: data } = resolved
+  const supabase = await createClient()
   if (!data.evidencePack?.pdf_sha256) {
     return NextResponse.json(
       { error: 'Laudo técnico ainda não emitido pelo responsável técnico.' },
