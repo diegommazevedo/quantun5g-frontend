@@ -97,8 +97,158 @@ export async function atualizarAcessoUsuario(formData: FormData) {
     .eq('id', userId)
 
   if (error) return { error: error.message }
+
+  const vincErr = await salvarVinculosUsuario(admin, userId, role, formData)
+  if (vincErr) return vincErr
+
   revalidatePath('/admin/usuarios')
   return { success: true }
+}
+
+function parseCompanyIds(formData: FormData): string[] {
+  return formData.getAll('company_ids').map(String).filter(Boolean)
+}
+
+async function salvarVinculosUsuario(
+  admin: ReturnType<typeof adminClient>,
+  userId: string,
+  role: UserRole,
+  formData: FormData,
+): Promise<{ error: string } | null> {
+  if (role === 'consultant') {
+    const selected = new Set(parseCompanyIds(formData))
+    const transferTo = (formData.get('transfer_consultant_id') as string)?.trim()
+    const { data: current } = await admin.from('companies').select('id').eq('consultant_id', userId)
+    const currentIds = ((current ?? []) as { id: string }[]).map((c) => c.id)
+    const removed = currentIds.filter((id) => !selected.has(id))
+
+    if (selected.size > 0) {
+      const { error } = await admin
+        .from('companies')
+        .update({ consultant_id: userId } as never)
+        .in('id', [...selected])
+      if (error) return { error: error.message }
+    }
+
+    if (removed.length > 0) {
+      if (!transferTo) {
+        return { error: 'Selecione o consultor que receberá as empresas desvinculadas.' }
+      }
+      const { error } = await admin
+        .from('companies')
+        .update({ consultant_id: transferTo } as never)
+        .in('id', removed)
+      if (error) return { error: error.message }
+    }
+    return null
+  }
+
+  if (role === 'contratante' || role === 'leader') {
+    const orgName = (formData.get('org_name') as string)?.trim()
+    const consultantId = (formData.get('org_consultant_id') as string)?.trim()
+    const companyIds = parseCompanyIds(formData)
+    let orgId = (formData.get('org_id') as string)?.trim() || null
+
+    if (!orgName) return { error: 'Nome da organização é obrigatório.' }
+    if (!consultantId) return { error: 'Consultor operador é obrigatório.' }
+
+    if (orgId) {
+      const { error } = await admin
+        .from('org_accounts')
+        .update({ name: orgName, consultant_id: consultantId } as never)
+        .eq('id', orgId)
+      if (error) return { error: error.message }
+    } else {
+      const { data: created, error } = await admin
+        .from('org_accounts')
+        .insert({
+          name: orgName,
+          owner_user_id: userId,
+          consultant_id: consultantId,
+        } as never)
+        .select('id')
+        .single()
+      if (error || !created?.id) return { error: error?.message ?? 'Falha ao criar organização.' }
+      orgId = created.id as string
+    }
+
+    const { data: previous } = await admin
+      .from('companies')
+      .select('id')
+      .eq('org_account_id', orgId)
+    const prevIds = ((previous ?? []) as { id: string }[]).map((c) => c.id)
+    const toClear = prevIds.filter((id) => !companyIds.includes(id))
+    if (toClear.length) {
+      const { error } = await admin
+        .from('companies')
+        .update({ org_account_id: null } as never)
+        .in('id', toClear)
+      if (error) return { error: error.message }
+    }
+    if (companyIds.length) {
+      const { error } = await admin
+        .from('companies')
+        .update({ org_account_id: orgId } as never)
+        .in('id', companyIds)
+      if (error) return { error: error.message }
+    }
+    return null
+  }
+
+  if (role === 'gerente') {
+    const orgAccountId = (formData.get('gerente_org_id') as string)?.trim()
+    const memberId = (formData.get('gerente_member_id') as string)?.trim() || null
+    const companyIds = parseCompanyIds(formData)
+
+    if (!orgAccountId) return { error: 'Selecione a organização do gerente.' }
+    if (companyIds.length === 0) return { error: 'Selecione ao menos uma filial para o gerente.' }
+
+    const { data: orgCompanies } = await admin
+      .from('companies')
+      .select('id')
+      .eq('org_account_id', orgAccountId)
+    const allowed = new Set(((orgCompanies ?? []) as { id: string }[]).map((c) => c.id))
+    if (!companyIds.every((id) => allowed.has(id))) {
+      return { error: 'Uma ou mais filiais não pertencem à organização selecionada.' }
+    }
+
+    let resolvedMemberId = memberId
+    if (!resolvedMemberId) {
+      const { data: created, error } = await admin
+        .from('org_members')
+        .insert({
+          org_account_id: orgAccountId,
+          user_id: userId,
+          is_active: true,
+        } as never)
+        .select('id')
+        .single()
+      if (error || !created?.id) return { error: error?.message ?? 'Falha ao vincular gerente à organização.' }
+      resolvedMemberId = created.id as string
+      await admin.from('profiles').update({ role: 'gerente' } as never).eq('id', userId)
+    } else {
+      const { data: member } = await admin
+        .from('org_members')
+        .select('org_account_id')
+        .eq('id', resolvedMemberId)
+        .single()
+      if (!member || (member as { org_account_id: string }).org_account_id !== orgAccountId) {
+        return { error: 'Gerente não pertence à organização informada.' }
+      }
+    }
+
+    await admin.from('org_member_companies').delete().eq('member_id', resolvedMemberId)
+    for (const companyId of companyIds) {
+      const { error } = await admin.from('org_member_companies').insert({
+        member_id: resolvedMemberId,
+        company_id: companyId,
+      } as never)
+      if (error) return { error: error.message }
+    }
+    return null
+  }
+
+  return null
 }
 
 export async function toggleUsuarioAtivo(userId: string, ativo: boolean) {

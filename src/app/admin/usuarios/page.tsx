@@ -1,6 +1,10 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { UsuariosClient, type UsuarioRow } from './UsuariosClient'
 import { loadOrgSummaryByUserIds } from '@/lib/org/queries'
+import {
+  loadAdminCompaniesAndConsultants,
+  loadAllUserVinculos,
+} from '@/lib/admin/user-vinculos'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,11 +20,23 @@ export default async function UsuariosAdminPage() {
     .order('created_at', { ascending: false })
 
   const usuarios = (data ?? []) as UsuarioRow[]
-  const orgSummary = await loadOrgSummaryByUserIds(usuarios.map((u) => u.id))
+  const [{ companies, consultants }, orgSummary, vinculos, { data: orgAccounts }] = await Promise.all([
+    loadAdminCompaniesAndConsultants(),
+    loadOrgSummaryByUserIds(usuarios.map((u) => u.id)),
+    loadAllUserVinculos(usuarios.map((u) => ({ id: u.id, role: u.role }))),
+    admin.from('org_accounts').select('id, name, owner_user_id, consultant_id').order('name'),
+  ])
 
   return (
     <div className="max-w-5xl">
-      <UsuariosClient usuarios={usuarios} orgSummary={orgSummary} />
+      <UsuariosClient
+        usuarios={usuarios}
+        orgSummary={orgSummary}
+        companies={companies}
+        consultants={consultants}
+        orgAccounts={(orgAccounts ?? []) as { id: string; name: string; owner_user_id: string; consultant_id: string }[]}
+        vinculos={vinculos}
+      />
     </div>
   )
 }

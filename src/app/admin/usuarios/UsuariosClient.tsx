@@ -1,11 +1,17 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import {
   criarUsuario,
   atualizarAcessoUsuario,
   toggleUsuarioAtivo,
 } from './actions'
+import { UserVinculosForm, type OrgAccountOption } from '@/components/admin/UserVinculosForm'
+import type {
+  AdminCompanyOption,
+  AdminConsultantOption,
+  UserVinculosBundle,
+} from '@/lib/admin/user-vinculos'
 
 export type UsuarioRow = {
   id: string
@@ -21,6 +27,16 @@ export type UsuarioRow = {
 interface Props {
   usuarios: UsuarioRow[]
   orgSummary?: Record<string, { orgName: string | null; orgRole: string; companyCount: number }>
+  companies: AdminCompanyOption[]
+  consultants: AdminConsultantOption[]
+  orgAccounts: OrgAccountOption[]
+  vinculos: Record<string, UserVinculosBundle>
+}
+
+const EMPTY_VINCULOS: UserVinculosBundle = {
+  consultantCompanyIds: [],
+  contratante: null,
+  gerente: null,
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -32,14 +48,26 @@ const ROLE_LABEL: Record<string, string> = {
   collaborator: 'Colaborador',
 }
 
-export function UsuariosClient({ usuarios, orgSummary = {} }: Props) {
+export function UsuariosClient({
+  usuarios,
+  orgSummary = {},
+  companies,
+  consultants,
+  orgAccounts,
+  vinculos,
+}: Props) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [editRole, setEditRole] = useState<string>('consultant')
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const editing = usuarios.find((u) => u.id === editId)
+
+  useEffect(() => {
+    if (editing) setEditRole(editing.role)
+  }, [editing])
 
   async function handleCriar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -221,13 +249,14 @@ export function UsuariosClient({ usuarios, orgSummary = {} }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <form
             onSubmit={handleEditar}
-            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl space-y-4"
+            className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl space-y-4"
           >
             <h2 className="text-lg font-semibold">Acesso — {editing.name}</h2>
             <input type="hidden" name="user_id" value={editing.id} />
             <select
               name="role"
-              defaultValue={editing.role}
+              value={editRole}
+              onChange={(e) => setEditRole(e.target.value)}
               className="w-full rounded-lg border px-3 py-2 text-sm"
             >
               <option value="consultant">Consultor</option>
@@ -237,7 +266,7 @@ export function UsuariosClient({ usuarios, orgSummary = {} }: Props) {
               <option value="leader">Contratante legado</option>
               <option value="collaborator">Colaborador</option>
             </select>
-            {editing.role !== 'admin' && (
+            {editRole !== 'admin' && (
               <div className="space-y-2 text-sm">
                 <label className="flex items-center gap-2">
                   <input
@@ -253,6 +282,14 @@ export function UsuariosClient({ usuarios, orgSummary = {} }: Props) {
                 </label>
               </div>
             )}
+            <UserVinculosForm
+              userId={editing.id}
+              role={editRole}
+              vinculos={vinculos[editing.id] ?? EMPTY_VINCULOS}
+              companies={companies}
+              consultants={consultants}
+              orgAccounts={orgAccounts}
+            />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setEditId(null)} className="px-3 py-2 text-sm">
                 Fechar
