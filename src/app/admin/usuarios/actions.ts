@@ -285,13 +285,6 @@ export async function reenviarConviteUsuario(userId: string) {
     } | null
 
     if (!row?.email) return { error: 'Usuário não encontrado.' }
-    if (!row.is_active) return { error: 'Usuário inativo. Reative antes de reenviar o convite.' }
-
-    const { data: authUser, error: authErr } = await admin.auth.admin.getUserById(userId)
-    if (authErr) return { error: authErr.message }
-    if (authUser?.user?.last_sign_in_at) {
-      return { error: 'Este usuário já concluiu a ativação (senha definida).' }
-    }
 
     const resend = await resendPlatformAccessLink({
       userId,

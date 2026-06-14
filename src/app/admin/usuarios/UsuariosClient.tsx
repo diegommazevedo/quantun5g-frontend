@@ -194,7 +194,7 @@ export function UsuariosClient({
           <ActivationBadge kind="active" /> — já acessou e definiu senha
         </span>
         <span className="flex items-center gap-1.5">
-          <ActivationBadge kind="invite_pending" /> — convite enviado, aguardando ativação
+          <ActivationBadge kind="invite_pending" /> — aguardando criação de senha (pode reenviar convite)
         </span>
         <span className="flex items-center gap-1.5">
           <ActivationBadge kind="inactive" /> — conta bloqueada
@@ -216,8 +216,7 @@ export function UsuariosClient({
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {usuarios.map((u) => {
-              const status = activationStatus[u.id] ?? (u.is_active ? 'active' : 'inactive')
-              const canResend = status === 'invite_pending'
+              const status = activationStatus[u.id] ?? (u.is_active ? 'invite_pending' : 'inactive')
 
               return (
               <tr key={u.id} className={status === 'inactive' ? 'opacity-60' : ''}>
@@ -252,11 +251,16 @@ export function UsuariosClient({
                   <ActivationBadge kind={status} />
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
-                  {canResend && (
+                  {u.email && (
                     <button
                       type="button"
                       className="text-xs font-medium text-amber-800 hover:underline disabled:opacity-50"
                       disabled={reenviandoId === u.id}
+                      title={
+                        status === 'active'
+                          ? 'Reenviar link de acesso (usuário já ativou senha)'
+                          : 'Reenviar e-mail de convite / ativação'
+                      }
                       onClick={() => handleReenviarConvite(u.id, u.name)}
                     >
                       {reenviandoId === u.id ? 'Enviando…' : 'Reenviar convite'}
@@ -383,19 +387,33 @@ export function UsuariosClient({
               consultants={consultants}
               orgAccounts={orgAccounts}
             />
-            {(activationStatus[editing.id] ?? 'active') === 'invite_pending' && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                Convite pendente — o usuário ainda não criou a senha.
-                <button
-                  type="button"
-                  className="ml-2 font-semibold underline disabled:opacity-50"
-                  disabled={reenviandoId === editing.id}
-                  onClick={() => handleReenviarConvite(editing.id, editing.name)}
-                >
-                  {reenviandoId === editing.id ? 'Enviando…' : 'Reenviar convite'}
-                </button>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3 text-xs text-zinc-700">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  Status:{' '}
+                  <ActivationBadge kind={activationStatus[editing.id] ?? 'invite_pending'} />
+                  {editing.email && (
+                    <span className="ml-2 font-mono text-zinc-500">{editing.email}</span>
+                  )}
+                </span>
+                {editing.email && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                    disabled={reenviandoId === editing.id}
+                    onClick={() => handleReenviarConvite(editing.id, editing.name)}
+                  >
+                    {reenviandoId === editing.id ? 'Enviando…' : 'Reenviar convite'}
+                  </button>
+                )}
               </div>
-            )}
+              {(activationStatus[editing.id] ?? 'invite_pending') !== 'active' && (
+                <p className="mt-2 text-amber-800">
+                  O usuário ainda não concluiu a ativação (senha). Use reenviar se o e-mail expirou ou
+                  o link apontou para localhost.
+                </p>
+              )}
+            </div>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setEditId(null)} className="px-3 py-2 text-sm">
                 Fechar

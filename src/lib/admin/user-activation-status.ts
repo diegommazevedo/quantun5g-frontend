@@ -9,18 +9,22 @@ export const ACTIVATION_LABEL: Record<UserActivationKind, string> = {
 }
 
 export const ACTIVATION_HINT: Record<UserActivationKind, string> = {
-  active: 'Já acessou a plataforma e definiu senha.',
+  active: 'Senha definida e acesso concluído.',
   inactive: 'Conta bloqueada pelo administrador.',
-  invite_pending: 'E-mail de convite enviado; aguardando criação de senha.',
+  invite_pending: 'Aguardando criação de senha (convite ou link já enviado).',
+}
+
+export interface AuthUserSnapshot {
+  password_set: boolean
 }
 
 export function resolveActivationKind(
   isActive: boolean,
-  lastSignInAt: string | null | undefined,
+  auth: AuthUserSnapshot,
 ): UserActivationKind {
   if (!isActive) return 'inactive'
-  if (!lastSignInAt) return 'invite_pending'
-  return 'active'
+  if (auth.password_set) return 'active'
+  return 'invite_pending'
 }
 
 function admin() {
@@ -30,11 +34,10 @@ function admin() {
   )
 }
 
-/** Mapa userId → último login (Auth Admin). */
-export async function loadLastSignInByUserIds(
+export async function loadAuthSnapshotsByUserIds(
   userIds: string[],
-): Promise<Record<string, string | null>> {
-  const out: Record<string, string | null> = {}
+): Promise<Record<string, AuthUserSnapshot>> {
+  const out: Record<string, AuthUserSnapshot> = {}
   if (!userIds.length) return out
 
   const wanted = new Set(userIds)
@@ -46,9 +49,9 @@ export async function loadLastSignInByUserIds(
     if (error) break
 
     for (const u of data.users) {
-      if (wanted.has(u.id)) {
-        out[u.id] = u.last_sign_in_at ?? null
-      }
+      if (!wanted.has(u.id)) continue
+      const meta = u.user_metadata as { password_set?: boolean } | undefined
+      out[u.id] = { password_set: meta?.password_set === true }
     }
 
     if (data.users.length < 1000) break
@@ -57,7 +60,7 @@ export async function loadLastSignInByUserIds(
   }
 
   for (const id of userIds) {
-    if (!(id in out)) out[id] = null
+    if (!(id in out)) out[id] = { password_set: false }
   }
 
   return out
@@ -66,10 +69,10 @@ export async function loadLastSignInByUserIds(
 export async function loadActivationStatusByUserIds(
   profiles: { id: string; is_active: boolean }[],
 ): Promise<Record<string, UserActivationKind>> {
-  const lastSignIn = await loadLastSignInByUserIds(profiles.map((p) => p.id))
+  const snapshots = await loadAuthSnapshotsByUserIds(profiles.map((p) => p.id))
   const out: Record<string, UserActivationKind> = {}
   for (const p of profiles) {
-    out[p.id] = resolveActivationKind(p.is_active, lastSignIn[p.id])
+    out[p.id] = resolveActivationKind(p.is_active, snapshots[p.id])
   }
   return out
 }

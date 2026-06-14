@@ -30,7 +30,10 @@ export async function definirSenhaConvite(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?error=Sess%C3%A3o+expirada.+Abra+o+link+do+convite+novamente.')
 
-  const { error } = await supabase.auth.updateUser({ password })
+  const { error } = await supabase.auth.updateUser({
+    password,
+    data: { password_set: true },
+  })
   if (error) {
     redirect(`/convite/ativar?error=${encodeURIComponent(error.message)}`)
   }

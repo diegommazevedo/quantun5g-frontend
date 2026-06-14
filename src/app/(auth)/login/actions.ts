@@ -50,6 +50,12 @@ export async function login(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(msg)}`)
   }
 
+  const { data: { user } } = await supabase.auth.getUser()
+  const meta = user?.user_metadata as { password_set?: boolean } | undefined
+  if (!meta?.password_set) {
+    await supabase.auth.updateUser({ data: { password_set: true } })
+  }
+
   // Busca role do perfil para redirect correto
   const { data: profile } = await supabase
     .from('profiles')
