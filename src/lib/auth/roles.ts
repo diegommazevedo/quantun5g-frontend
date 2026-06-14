@@ -8,7 +8,9 @@ export function isPlatformStaff(role: string | null | undefined): boolean {
 export const ROLE_LABEL_PT: Record<UserRole, string> = {
   admin: 'Administrador',
   consultant: 'Consultor',
-  leader: 'Liderança (IL)',
+  leader: 'Contratante (legado)',
+  contratante: 'Contratante',
+  gerente: 'Gerente de filial',
   collaborator: 'Colaborador',
 }
 

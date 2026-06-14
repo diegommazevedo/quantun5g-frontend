@@ -8,6 +8,7 @@
 
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { isLicensingV2 } from '@/lib/licensing/model'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 
 
 
@@ -326,14 +327,14 @@ export function buildNavSections(opts: {
   const staff = isPlatformStaff(role)
   const isAdmin = role === 'admin'
   const v2Operator = isLicensingV2() && role === 'leader'
+  const orgActor = isContratanteRole(role) || isGerenteRole(role)
 
   const source = staff || v2Operator ? STAFF_SECTIONS : LEADER_SECTIONS
 
   const sections: NavSection[] = []
 
-
-
   for (const section of source) {
+    if (orgActor && section.id === 'consulta') continue
 
     const items = section.items.filter((item) => {
 
@@ -352,13 +353,32 @@ export function buildNavSections(opts: {
     })
 
     if (items.length > 0) sections.push({ ...section, items })
-
   }
 
-
+  if (isContratanteRole(role)) {
+    sections.splice(1, 0, {
+      id: 'organizacao',
+      label: 'Organização',
+      items: [
+        {
+          href: '/organizacao/equipe',
+          label: 'Equipe e filiais',
+          icon: 'users',
+          match: '/organizacao',
+          alwaysShow: true,
+        },
+        {
+          href: '/empresas',
+          label: 'Empresas do grupo',
+          icon: 'building',
+          match: '/empresas',
+          alwaysShow: true,
+        },
+      ],
+    })
+  }
 
   return sections
-
 }
 
 
@@ -522,6 +542,8 @@ export function isContextTabActive(pathname: string, tab: ContextTab): boolean {
 export function moduleSubtitle(modulePentagrama: boolean, moduleNr01: boolean, role: string): string {
 
   if (role === 'admin') return 'Administrador · todos os módulos'
+  if (role === 'contratante' || role === 'leader') return 'Contratante · grupo multi-CNPJ'
+  if (role === 'gerente') return 'Gerente de filial'
 
   if (modulePentagrama && moduleNr01) return 'Pentagrama + NR-01'
 

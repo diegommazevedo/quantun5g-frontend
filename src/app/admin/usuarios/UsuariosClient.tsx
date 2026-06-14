@@ -20,16 +20,19 @@ export type UsuarioRow = {
 
 interface Props {
   usuarios: UsuarioRow[]
+  orgSummary?: Record<string, { orgName: string | null; orgRole: string; companyCount: number }>
 }
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrador',
   consultant: 'Consultor',
-  leader: 'Liderança',
+  leader: 'Contratante (legado)',
+  contratante: 'Contratante',
+  gerente: 'Gerente de filial',
   collaborator: 'Colaborador',
 }
 
-export function UsuariosClient({ usuarios }: Props) {
+export function UsuariosClient({ usuarios, orgSummary = {} }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -84,7 +87,9 @@ export function UsuariosClient({ usuarios }: Props) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Usuários</h1>
-          <p className="mt-1 text-sm text-zinc-500">Papéis, módulos acessíveis e status de login.</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Papéis, módulos, organização multi-CNPJ e status de login.
+          </p>
         </div>
         <button
           type="button"
@@ -102,6 +107,7 @@ export function UsuariosClient({ usuarios }: Props) {
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">E-mail</th>
               <th className="px-4 py-3">Papel</th>
+              <th className="px-4 py-3">Organização / CNPJs</th>
               <th className="px-4 py-3">Módulos</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Ações</th>
@@ -113,6 +119,19 @@ export function UsuariosClient({ usuarios }: Props) {
                 <td className="px-4 py-3 font-medium">{u.name ?? '—'}</td>
                 <td className="px-4 py-3 font-mono text-xs">{u.email}</td>
                 <td className="px-4 py-3">{ROLE_LABEL[u.role] ?? u.role}</td>
+                <td className="px-4 py-3 text-xs text-zinc-600">
+                  {orgSummary[u.id] ? (
+                    <>
+                      {orgSummary[u.id].orgName ?? '—'}{' '}
+                      <span className="text-zinc-400">
+                        ({orgSummary[u.id].orgRole} · {orgSummary[u.id].companyCount} CNPJ
+                        {orgSummary[u.id].companyCount !== 1 ? 's' : ''})
+                      </span>
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </td>
                 <td className="px-4 py-3 text-xs">
                   {u.role === 'admin' ? (
                     'Todos'
@@ -171,8 +190,10 @@ export function UsuariosClient({ usuarios }: Props) {
             <input name="email" type="email" required placeholder="E-mail" className="w-full rounded-lg border px-3 py-2 text-sm" />
             <select name="role" defaultValue="consultant" className="w-full rounded-lg border px-3 py-2 text-sm">
               <option value="consultant">Consultor</option>
+              <option value="contratante">Contratante (grupo multi-CNPJ)</option>
+              <option value="gerente">Gerente de filial</option>
               <option value="admin">Administrador</option>
-              <option value="leader">Liderança</option>
+              <option value="leader">Contratante legado (leader)</option>
             </select>
             <div className="space-y-2 text-sm">
               <label className="flex items-center gap-2">
@@ -210,8 +231,10 @@ export function UsuariosClient({ usuarios }: Props) {
               className="w-full rounded-lg border px-3 py-2 text-sm"
             >
               <option value="consultant">Consultor</option>
+              <option value="contratante">Contratante</option>
+              <option value="gerente">Gerente de filial</option>
               <option value="admin">Administrador</option>
-              <option value="leader">Liderança</option>
+              <option value="leader">Contratante legado</option>
               <option value="collaborator">Colaborador</option>
             </select>
             {editing.role !== 'admin' && (

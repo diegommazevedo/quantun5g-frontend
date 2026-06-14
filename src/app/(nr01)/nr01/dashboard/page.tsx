@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { userHasNr01License } from '@/lib/billing/nr01-license'
 import { isPlatformStaff } from '@/lib/auth/roles'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
+import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
 import type { UserRole } from '@/types/database'
 import type { Nr01AssessmentResult, Nr01AssessmentStatus, Nr01RiskLevel } from '@/types/nr01'
 import {
@@ -48,9 +50,11 @@ export default async function Nr01DashboardPage() {
   const role = (profile?.role ?? 'consultant') as UserRole
   const isAdmin = role === 'admin'
   const isLeader = role === 'leader'
+  const isContratante = isContratanteRole(role)
+  const isGerente = isGerenteRole(role)
 
   let canCreateAssessment = isAdmin || isPlatformStaff(role)
-  if (isLeader) {
+  if (isLeader || isContratante || isGerente) {
     canCreateAssessment = await userHasNr01License(user.id)
   } else if (!isAdmin && isPlatformStaff(role)) {
     canCreateAssessment = true
@@ -65,8 +69,16 @@ export default async function Nr01DashboardPage() {
     `)
     .order('created_at', { ascending: false })
 
-  if (!isAdmin && !isLeader) {
+  if (!isAdmin && !isLeader && !isContratante && !isGerente) {
     query.eq('consultant_id', user.id)
+  } else if (isContratante) {
+    const ids = await loadCompanyIdsForContratante(user.id)
+    if (ids.length) query.in('company_id', ids)
+    else query.eq('company_id', '00000000-0000-0000-0000-000000000000')
+  } else if (isGerente) {
+    const ids = await loadCompanyIdsForGerente(user.id)
+    if (ids.length) query.in('company_id', ids)
+    else query.eq('company_id', '00000000-0000-0000-0000-000000000000')
   }
 
   const { data, error } = await query

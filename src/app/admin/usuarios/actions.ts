@@ -36,7 +36,7 @@ export async function criarUsuario(formData: FormData) {
   const moduleNr01 = formData.get('module_nr01') === 'on'
 
   if (!name || !email) return { error: 'Nome e e-mail são obrigatórios' }
-  if (!['admin', 'consultant', 'leader', 'collaborator'].includes(role)) {
+  if (!['admin', 'consultant', 'leader', 'collaborator', 'contratante', 'gerente'].includes(role)) {
     return { error: 'Papel inválido' }
   }
 

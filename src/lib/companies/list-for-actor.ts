@@ -1,20 +1,20 @@
 /**
  * Filtro de empresas visíveis ao usuário logado (lista e detalhe).
- * Legado: líder vê CNPJs vinculados por account_user_id; staff por consultant_id.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { UserRole } from '@/types/database'
-import { isPlatformStaff } from '@/lib/auth/roles'
 import { isLicensingV2 } from '@/lib/licensing/model'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
+import {
+  loadCompanyIdsForContratante,
+  loadCompanyIdsForGerente,
+} from '@/lib/org/queries'
+
+const EMPTY_ID = '00000000-0000-0000-0000-000000000000'
 
 function useAccountUserFilter(role: UserRole): boolean {
   return role === 'leader' && !isLicensingV2()
-}
-
-/** Admin vê todas as empresas (RLS `companies_select`); não filtrar por dono. */
-function useOwnershipFilter(role: UserRole): boolean {
-  return role !== 'admin'
 }
 
 export async function fetchCompaniesForActor<T = Record<string, unknown>>(
@@ -24,13 +24,21 @@ export async function fetchCompaniesForActor<T = Record<string, unknown>>(
   select: string,
 ): Promise<{ data: T[] | null; error: { message: string } | null }> {
   let q = supabase.from('companies').select(select)
-  if (useOwnershipFilter(role)) {
-    if (useAccountUserFilter(role)) {
-      q = q.eq('account_user_id', userId)
-    } else {
-      q = q.eq('consultant_id', userId)
-    }
+
+  if (role === 'admin') {
+    // sem filtro
+  } else if (isContratanteRole(role)) {
+    const ids = await loadCompanyIdsForContratante(userId)
+    q = q.in('id', ids.length ? ids : [EMPTY_ID])
+  } else if (isGerenteRole(role)) {
+    const ids = await loadCompanyIdsForGerente(userId)
+    q = q.in('id', ids.length ? ids : [EMPTY_ID])
+  } else if (useAccountUserFilter(role)) {
+    q = q.eq('account_user_id', userId)
+  } else {
+    q = q.eq('consultant_id', userId)
   }
+
   const res = await q.order('name')
   return res as { data: T[] | null; error: { message: string } | null }
 }
@@ -43,13 +51,21 @@ export async function fetchCompanyForActor<T = Record<string, unknown>>(
   select: string,
 ): Promise<{ data: T | null; error: { message: string } | null }> {
   let q = supabase.from('companies').select(select).eq('id', companyId)
-  if (useOwnershipFilter(role)) {
-    if (useAccountUserFilter(role)) {
-      q = q.eq('account_user_id', userId)
-    } else {
-      q = q.eq('consultant_id', userId)
-    }
+
+  if (role === 'admin') {
+    // sem filtro extra
+  } else if (isContratanteRole(role)) {
+    const ids = await loadCompanyIdsForContratante(userId)
+    if (!ids.includes(companyId)) q = q.eq('id', EMPTY_ID)
+  } else if (isGerenteRole(role)) {
+    const ids = await loadCompanyIdsForGerente(userId)
+    if (!ids.includes(companyId)) q = q.eq('id', EMPTY_ID)
+  } else if (useAccountUserFilter(role)) {
+    q = q.eq('account_user_id', userId)
+  } else {
+    q = q.eq('consultant_id', userId)
   }
+
   const res = await q.maybeSingle()
   return res as { data: T | null; error: { message: string } | null }
 }

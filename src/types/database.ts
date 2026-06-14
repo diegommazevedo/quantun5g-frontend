@@ -8,7 +8,7 @@
 // ENUMS E CONSTANTES
 // ============================================================
 
-export type UserRole = 'admin' | 'consultant' | 'leader' | 'collaborator'
+export type UserRole = 'admin' | 'consultant' | 'leader' | 'collaborator' | 'contratante' | 'gerente'
 
 export type DiagnosticStatus =
   | 'CRIADO'

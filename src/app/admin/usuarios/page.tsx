@@ -1,5 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { UsuariosClient, type UsuarioRow } from './UsuariosClient'
+import { loadOrgSummaryByUserIds } from '@/lib/org/queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,10 +16,11 @@ export default async function UsuariosAdminPage() {
     .order('created_at', { ascending: false })
 
   const usuarios = (data ?? []) as UsuarioRow[]
+  const orgSummary = await loadOrgSummaryByUserIds(usuarios.map((u) => u.id))
 
   return (
     <div className="max-w-5xl">
-      <UsuariosClient usuarios={usuarios} />
+      <UsuariosClient usuarios={usuarios} orgSummary={orgSummary} />
     </div>
   )
 }
