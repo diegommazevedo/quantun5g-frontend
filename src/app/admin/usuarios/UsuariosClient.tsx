@@ -5,6 +5,7 @@ import {
   criarUsuario,
   atualizarAcessoUsuario,
   toggleUsuarioAtivo,
+  reenviarConviteUsuario,
 } from './actions'
 import { UserVinculosForm, type OrgAccountOption } from '@/components/admin/UserVinculosForm'
 import type {
@@ -12,6 +13,11 @@ import type {
   AdminConsultantOption,
   UserVinculosBundle,
 } from '@/lib/admin/user-vinculos'
+import {
+  ACTIVATION_HINT,
+  ACTIVATION_LABEL,
+  type UserActivationKind,
+} from '@/lib/admin/user-activation-status'
 
 export type UsuarioRow = {
   id: string
@@ -31,6 +37,7 @@ interface Props {
   consultants: AdminConsultantOption[]
   orgAccounts: OrgAccountOption[]
   vinculos: Record<string, UserVinculosBundle>
+  activationStatus: Record<string, UserActivationKind>
 }
 
 const EMPTY_VINCULOS: UserVinculosBundle = {
@@ -48,6 +55,23 @@ const ROLE_LABEL: Record<string, string> = {
   collaborator: 'Colaborador',
 }
 
+const STATUS_BADGE: Record<UserActivationKind, string> = {
+  active: 'bg-emerald-100 text-emerald-800',
+  inactive: 'bg-zinc-100 text-zinc-500',
+  invite_pending: 'bg-amber-100 text-amber-800',
+}
+
+function ActivationBadge({ kind }: { kind: UserActivationKind }) {
+  return (
+    <span
+      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[kind]}`}
+      title={ACTIVATION_HINT[kind]}
+    >
+      {ACTIVATION_LABEL[kind]}
+    </span>
+  )
+}
+
 export function UsuariosClient({
   usuarios,
   orgSummary = {},
@@ -55,6 +79,7 @@ export function UsuariosClient({
   consultants,
   orgAccounts,
   vinculos,
+  activationStatus,
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -77,7 +102,7 @@ export function UsuariosClient({
       const res = await criarUsuario(fd)
       if (res && 'error' in res) setErro(res.error ?? 'Erro')
       else {
-        setSucesso('Convite enviado.')
+        setSucesso('Convite enviado por e-mail Quantum5G.')
         setModalOpen(false)
       }
     })
@@ -94,6 +119,16 @@ export function UsuariosClient({
         setSucesso('Acesso atualizado.')
         setEditId(null)
       }
+    })
+  }
+
+  async function handleReenviarConvite(userId: string, name: string | null) {
+    if (!confirm(`Reenviar convite por e-mail para ${name ?? 'este usuário'}?`)) return
+    setErro(null)
+    startTransition(async () => {
+      const res = await reenviarConviteUsuario(userId)
+      if (res && 'error' in res) setErro(res.error ?? 'Erro')
+      else setSucesso('Convite reenviado por e-mail Quantum5G.')
     })
   }
 
@@ -116,7 +151,7 @@ export function UsuariosClient({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Usuários</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Papéis, módulos, organização multi-CNPJ e status de login.
+            Papéis, módulos, organização multi-CNPJ e status de ativação.
           </p>
         </div>
         <button
@@ -126,6 +161,19 @@ export function UsuariosClient({
         >
           + Novo usuário
         </button>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
+        <span className="font-semibold text-zinc-700">Legenda de status:</span>
+        <span className="flex items-center gap-1.5">
+          <ActivationBadge kind="active" /> — já acessou e definiu senha
+        </span>
+        <span className="flex items-center gap-1.5">
+          <ActivationBadge kind="invite_pending" /> — convite enviado, aguardando ativação
+        </span>
+        <span className="flex items-center gap-1.5">
+          <ActivationBadge kind="inactive" /> — conta bloqueada
+        </span>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
@@ -142,8 +190,12 @@ export function UsuariosClient({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {usuarios.map((u) => (
-              <tr key={u.id} className={!u.is_active ? 'opacity-50' : ''}>
+            {usuarios.map((u) => {
+              const status = activationStatus[u.id] ?? (u.is_active ? 'active' : 'inactive')
+              const canResend = status === 'invite_pending'
+
+              return (
+              <tr key={u.id} className={status === 'inactive' ? 'opacity-60' : ''}>
                 <td className="px-4 py-3 font-medium">{u.name ?? '—'}</td>
                 <td className="px-4 py-3 font-mono text-xs">{u.email}</td>
                 <td className="px-4 py-3">{ROLE_LABEL[u.role] ?? u.role}</td>
@@ -172,13 +224,19 @@ export function UsuariosClient({
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  {u.is_active ? (
-                    <span className="text-emerald-700">Ativo</span>
-                  ) : (
-                    <span className="text-zinc-400">Inativo</span>
-                  )}
+                  <ActivationBadge kind={status} />
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
+                  {canResend && (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-amber-800 hover:underline"
+                      disabled={isPending}
+                      onClick={() => handleReenviarConvite(u.id, u.name)}
+                    >
+                      Reenviar convite
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="text-xs text-blue-800 hover:underline"
@@ -202,7 +260,7 @@ export function UsuariosClient({
                   </button>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
@@ -290,6 +348,19 @@ export function UsuariosClient({
               consultants={consultants}
               orgAccounts={orgAccounts}
             />
+            {(activationStatus[editing.id] ?? 'active') === 'invite_pending' && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                Convite pendente — o usuário ainda não criou a senha.
+                <button
+                  type="button"
+                  className="ml-2 font-semibold underline"
+                  disabled={isPending}
+                  onClick={() => handleReenviarConvite(editing.id, editing.name)}
+                >
+                  Reenviar convite
+                </button>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setEditId(null)} className="px-3 py-2 text-sm">
                 Fechar

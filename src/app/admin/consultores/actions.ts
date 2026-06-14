@@ -6,9 +6,10 @@
  * toggleAtivo     → is_active + ban/unban via Admin API
  */
 
-import { createClient as createBrowserlessAdmin } from '@supabase/supabase-js'
-import { createClient }  from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { createClient as createBrowserlessAdmin } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
+import { invitePlatformUser } from '@/lib/auth/user-invite'
 
 // Admin client (service role) — server-only
 function adminClient() {
@@ -35,35 +36,26 @@ export async function criarConsultor(formData: FormData) {
 
   if (!name || !email) return { error: 'Nome e e-mail são obrigatórios' }
 
-  const admin = adminClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://quantum5g.vercel.app'
-
-  // 1. Invite — cria auth.user e envia e-mail de boas-vindas
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
+  const result = await invitePlatformUser({
     email,
-    {
-      redirectTo: `${appUrl}/dashboard`,
-      data: { role: 'consultant', name },
-    }
-  )
+    name,
+    role: 'consultant',
+    modulePentagrama: true,
+    moduleNr01: true,
+  })
 
-  if (inviteErr) {
-    // Se já existe: apenas reenviar invite não é possível via API; retorna erro legível
-    if (inviteErr.message.includes('already been registered')) {
+  if (result.error && !result.userId) {
+    if (result.error.includes('already') || result.error.includes('cadastrado')) {
       return { error: 'Este e-mail já está cadastrado no sistema.' }
     }
-    return { error: inviteErr.message }
+    return { error: result.error }
   }
 
-  const newUserId = invited.user.id
-
-  // 2. Inserir profile — tolerante a trigger existente (ON CONFLICT DO NOTHING)
-  await admin
-    .from('profiles')
-    .upsert(
-      { id: newUserId, email, name, role: 'consultant', is_active: true },
-      { onConflict: 'id', ignoreDuplicates: false }
-    )
+  if (!result.emailSent) {
+    return {
+      error: result.error ?? 'Convite criado, mas e-mail não enviado. Verifique RESEND_API_KEY.',
+    }
+  }
 
   revalidatePath('/admin/consultores')
   return { success: true, name }

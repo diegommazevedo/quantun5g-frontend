@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { requireContratanteOrRedirect, assertContratanteOwnsOrg } from '@/lib/org/access'
+import { invitePlatformUser, resendPlatformAccessLink } from '@/lib/auth/user-invite'
 
 function parseCompanyIds(formData: FormData): string[] {
   const raw = formData.getAll('company_ids')
@@ -31,34 +32,27 @@ export async function criarGerenteOrg(formData: FormData) {
     return { error: 'Uma ou mais filiais não pertencem à sua organização.' }
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quantun5g.app'
-
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${appUrl}/dashboard`,
-    data: { role: 'gerente', name },
+  const invite = await invitePlatformUser({
+    email,
+    name,
+    role: 'gerente',
+    modulePentagrama,
+    moduleNr01,
+    invitedByName: ctx.org.name,
   })
 
-  if (inviteErr) {
-    if (inviteErr.message.includes('already been registered')) {
+  if (invite.error && !invite.userId) {
+    if (invite.error.includes('already') || invite.error.includes('cadastrado')) {
       return { error: 'Este e-mail já está cadastrado. Use outro ou peça ao admin vincular.' }
     }
-    return { error: inviteErr.message }
+    return { error: invite.error }
   }
 
-  const userId = invited.user.id
+  if (!invite.emailSent) {
+    return { error: invite.error ?? 'Convite criado, mas e-mail não foi enviado.' }
+  }
 
-  await admin.from('profiles').upsert(
-    {
-      id: userId,
-      email,
-      name,
-      role: 'gerente',
-      is_active: true,
-      module_pentagrama: modulePentagrama,
-      module_nr01: moduleNr01,
-    } as never,
-    { onConflict: 'id' },
-  )
+  const userId = invite.userId
 
   const { data: member, error: memErr } = await admin
     .from('org_members')
@@ -184,13 +178,19 @@ export async function reenviarSenhaGerente(userId: string) {
   const email = authUser?.user?.email
   if (!email) return { error: 'E-mail não encontrado.' }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quantun5g.app'
-  const { error } = await admin.auth.admin.generateLink({
-    type: 'recovery',
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('name, role')
+    .eq('id', userId)
+    .maybeSingle()
+
+  const resend = await resendPlatformAccessLink({
+    userId,
     email,
-    options: { redirectTo: `${appUrl}/auth/callback` },
+    name: (profile as { name: string | null } | null)?.name ?? email,
+    role: ((profile as { role: string } | null)?.role ?? 'gerente') as 'gerente',
   })
 
-  if (error) return { error: error.message }
+  if (!resend.emailSent) return { error: resend.error ?? 'Falha ao enviar e-mail.' }
   return { success: true }
 }

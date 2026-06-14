@@ -1,10 +1,10 @@
 'use server'
 
-import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { UserRole } from '@/types/database'
-
+import { invitePlatformUser, resendPlatformAccessLink } from '@/lib/auth/user-invite'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 function adminClient() {
   return createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,34 +40,26 @@ export async function criarUsuario(formData: FormData) {
     return { error: 'Papel inválido' }
   }
 
-  const admin = adminClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://quantum5g.vercel.app'
-
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${appUrl}/dashboard`,
-    data: { role, name },
+  const result = await invitePlatformUser({
+    email,
+    name,
+    role,
+    modulePentagrama,
+    moduleNr01,
   })
 
-  if (inviteErr) {
-    if (inviteErr.message.includes('already been registered')) {
+  if (result.error && !result.userId) {
+    if (result.error.includes('already') || result.error.includes('cadastrado')) {
       return { error: 'Este e-mail já está cadastrado.' }
     }
-    return { error: inviteErr.message }
+    return { error: result.error }
   }
 
-  const isAdmin = role === 'admin'
-  await admin.from('profiles').upsert(
-    {
-      id: invited.user.id,
-      email,
-      name,
-      role,
-      is_active: true,
-      module_pentagrama: isAdmin ? true : modulePentagrama,
-      module_nr01: isAdmin ? true : moduleNr01,
-    } as never,
-    { onConflict: 'id' },
-  )
+  if (!result.emailSent) {
+    return {
+      error: result.error ?? 'Usuário criado, mas o e-mail de convite não foi enviado. Verifique RESEND_API_KEY.',
+    }
+  }
 
   revalidatePath('/admin/usuarios')
   return { success: true, name }
@@ -266,6 +258,49 @@ export async function toggleUsuarioAtivo(userId: string, ativo: boolean) {
   await admin.auth.admin.updateUserById(userId, {
     ban_duration: ativo ? 'none' : '876000h',
   })
+
+  revalidatePath('/admin/usuarios')
+  return { success: true }
+}
+
+export async function reenviarConviteUsuario(userId: string) {
+  const gate = await requireAdmin()
+  if ('error' in gate) return gate
+
+  if (!userId) return { error: 'Usuário inválido.' }
+
+  const admin = adminClient()
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('name, email, role, is_active')
+    .eq('id', userId)
+    .maybeSingle()
+
+  const row = profile as {
+    name: string | null
+    email: string | null
+    role: UserRole
+    is_active: boolean
+  } | null
+
+  if (!row?.email) return { error: 'Usuário não encontrado.' }
+  if (!row.is_active) return { error: 'Usuário inativo. Reative antes de reenviar o convite.' }
+
+  const { data: authUser } = await admin.auth.admin.getUserById(userId)
+  if (authUser?.user?.last_sign_in_at) {
+    return { error: 'Este usuário já concluiu a ativação (senha definida).' }
+  }
+
+  const resend = await resendPlatformAccessLink({
+    userId,
+    email: row.email,
+    name: row.name ?? row.email,
+    role: row.role,
+  })
+
+  if (!resend.emailSent) {
+    return { error: resend.error ?? 'Falha ao reenviar e-mail.' }
+  }
 
   revalidatePath('/admin/usuarios')
   return { success: true }

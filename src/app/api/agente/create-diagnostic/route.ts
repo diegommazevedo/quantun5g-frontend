@@ -93,15 +93,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // 4. Convida líder por e-mail (não bloqueia se falhar — token é suficiente)
+  // 4. Convida líder por e-mail (não bloqueia se falhar — token IL é suficiente)
   try {
-    await admin.auth.admin.inviteUserByEmail(leader_email.trim(), {
-      data: {
-        name:       leader_name.trim(),
-        role:       'leader',
-        company_id: company.id,
-      },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/il/${token_il}`,
+    const { invitePlatformUser } = await import('@/lib/auth/user-invite')
+    await invitePlatformUser({
+      email: leader_email.trim(),
+      name: leader_name.trim(),
+      role: 'leader',
+      modulePentagrama: true,
+      moduleNr01: false,
     })
   } catch { /* invite é best-effort */ }
 

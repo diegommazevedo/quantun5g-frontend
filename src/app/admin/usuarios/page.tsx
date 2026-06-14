@@ -5,6 +5,7 @@ import {
   loadAdminCompaniesAndConsultants,
   loadAllUserVinculos,
 } from '@/lib/admin/user-vinculos'
+import { loadActivationStatusByUserIds } from '@/lib/admin/user-activation-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,10 +21,12 @@ export default async function UsuariosAdminPage() {
     .order('created_at', { ascending: false })
 
   const usuarios = (data ?? []) as UsuarioRow[]
-  const [{ companies, consultants }, orgSummary, vinculos, { data: orgAccounts }] = await Promise.all([
+  const [{ companies, consultants }, orgSummary, vinculos, activationStatus, { data: orgAccounts }] =
+    await Promise.all([
     loadAdminCompaniesAndConsultants(),
     loadOrgSummaryByUserIds(usuarios.map((u) => u.id)),
     loadAllUserVinculos(usuarios.map((u) => ({ id: u.id, role: u.role }))),
+    loadActivationStatusByUserIds(usuarios.map((u) => ({ id: u.id, is_active: u.is_active }))),
     admin.from('org_accounts').select('id, name, owner_user_id, consultant_id').order('name'),
   ])
 
@@ -36,6 +39,7 @@ export default async function UsuariosAdminPage() {
         consultants={consultants}
         orgAccounts={(orgAccounts ?? []) as { id: string; name: string; owner_user_id: string; consultant_id: string }[]}
         vinculos={vinculos}
+        activationStatus={activationStatus}
       />
     </div>
   )

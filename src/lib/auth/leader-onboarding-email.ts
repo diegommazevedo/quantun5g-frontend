@@ -6,36 +6,12 @@
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { sendEmail, platformEmailFrom } from '@/lib/email/platform'
 import { normalizeEmail } from '@/lib/auth/resolve-user-by-email'
+import {
+  buildAuthCallbackUrl,
+  rewriteSupabaseAuthActionLink,
+} from '@/lib/auth/app-url'
 
-const PRODUCTION_APP_URL = 'https://www.quantun5g.app'
-
-function appBaseUrl(): string {
-  const candidates = [
-    process.env.NEXT_PUBLIC_APP_URL,
-    process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : null,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-  ]
-  for (const raw of candidates) {
-    if (!raw?.trim()) continue
-    const base = raw.replace(/\/$/, '')
-    if (/localhost|127\.0\.0\.1/i.test(base)) continue
-    return base
-  }
-  return PRODUCTION_APP_URL
-}
-
-/** Supabase às vezes embute Site URL (ex.: localhost) no action_link — forçamos produção. */
-export function rewriteSupabaseAuthActionLink(actionLink: string, redirectTo: string): string {
-  try {
-    const url = new URL(actionLink)
-    url.searchParams.set('redirect_to', redirectTo)
-    return url.toString()
-  } catch {
-    return actionLink
-  }
-}
+export { rewriteSupabaseAuthActionLink } from '@/lib/auth/app-url'
 
 export async function sendLeaderPasswordSetupEmail(params: {
   email: string
@@ -94,7 +70,7 @@ export async function ensureLeaderAuthWithSetupLink(params: {
   const normalized = normalizeEmail(params.email)
   const admin = createServiceRoleAdmin()
   const displayName = params.name?.trim() || normalized.split('@')[0] || 'Cliente'
-  const redirectTo = `${appBaseUrl()}/auth/callback?next=/dashboard`
+  const redirectTo = buildAuthCallbackUrl('/convite/ativar')
 
   function finalizeActionLink(raw: string | undefined | null): string {
     if (!raw) throw new Error('Link de acesso não gerado')
