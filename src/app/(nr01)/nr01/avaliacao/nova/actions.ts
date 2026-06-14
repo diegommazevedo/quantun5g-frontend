@@ -15,8 +15,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 import type { Nr01Modality } from '@/types/nr01'
+import type { UserRole } from '@/types/database'
 
 import { isValidCnpj } from '@/lib/companies/cnpj'
+import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 
 import {
 
@@ -134,29 +136,33 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
 
 
-  const { data: company } = await supabase
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
 
-    .from('companies')
-
-    .select('id, cnpj, technical_lead_name, technical_lead_crp, technical_lead_profession')
-
-    .eq('id', companyId)
-
-    .eq('consultant_id', user.id)
-
-    .maybeSingle()
-
-
+  const { data: company } = await fetchCompanyForActor(
+    supabase,
+    user.id,
+    role,
+    companyId,
+    'id, consultant_id, cnpj, technical_lead_name, technical_lead_crp, technical_lead_profession',
+  )
 
   if (!company) {
-
     redirect('/nr01/avaliacao/nova?error=Empresa+inv%C3%A1lida+ou+sem+permiss%C3%A3o.')
-
   }
 
-
-
-  const co = company as { cnpj: string | null; technical_lead_name: string | null; technical_lead_crp: string | null; technical_lead_profession: string | null }
+  const co = company as {
+    consultant_id: string
+    cnpj: string | null
+    technical_lead_name: string | null
+    technical_lead_crp: string | null
+    technical_lead_profession: string | null
+  }
 
   if (!co.cnpj || !isValidCnpj(co.cnpj)) {
 
@@ -192,7 +198,7 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
       company_id: companyId,
 
-      consultant_id: user.id,
+      consultant_id: co.consultant_id,
 
       name: competenciaParsed.surveyName,
 

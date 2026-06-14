@@ -13,7 +13,6 @@ import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { getCompanyCnpjSlotsUsageForActor } from '@/lib/licensing/company-cnpj-slots'
 import { CnpjSlotsBanner } from '@/components/licensing/CnpjSlotsBanner'
-import { isPlatformStaff } from '@/lib/auth/roles'
 import type { UserRole } from '@/types/database'
 
 interface Props {
@@ -34,7 +33,7 @@ export default async function EmpresasPage({ searchParams }: Props) {
     .returns<{ role: UserRole }[]>()
     .single()
   const role = profile?.role ?? 'consultant'
-  const showSlots = isLicensingV2() && isPlatformStaff(role)
+  const showSlots = isLicensingV2() && role === 'consultant'
   const slotsUsage = showSlots ? await getCompanyCnpjSlotsUsageForActor(user.id) : null
 
   const { data: companies, error: listErr } = await fetchCompaniesForActor<Company>(

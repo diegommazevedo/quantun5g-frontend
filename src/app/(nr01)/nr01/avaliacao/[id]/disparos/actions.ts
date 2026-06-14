@@ -10,6 +10,7 @@ import {
   type DispatchTarget,
 } from '@/lib/survey/dispatch'
 import type { CompanyContact } from '@/types/database'
+import type { UserRole } from '@/types/database'
 
 export async function dispararConvitesNr01(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
@@ -17,15 +18,23 @@ export async function dispararConvitesNr01(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: assess } = await supabase
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, name')
+    .eq('id', user.id)
+    .returns<{ role: UserRole; name: string | null }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
+
+  let assessQuery = supabase
     .from('nr01_assessments')
     .select(`
-      id, name, status, collection_token, collection_closes_at,
+      id, name, status, collection_token, collection_closes_at, consultant_id,
       companies:companies!nr01_assessments_company_id_fkey ( id, name )
     `)
     .eq('id', assessmentId)
-    .eq('consultant_id', user.id)
-    .single()
+  if (role !== 'admin') assessQuery = assessQuery.eq('consultant_id', user.id)
+  const { data: assess } = await assessQuery.single()
 
   if (!assess) redirect('/nr01/dashboard')
   const a = assess as {
@@ -34,6 +43,7 @@ export async function dispararConvitesNr01(formData: FormData) {
     status: string
     collection_token: string
     collection_closes_at: string | null
+    consultant_id: string
     companies: { id: string; name: string } | null
   }
 
@@ -65,8 +75,6 @@ export async function dispararConvitesNr01(formData: FormData) {
     )
   }
 
-  const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single()
-
   const targets: DispatchTarget[] = contacts.map((c) => ({
     contact: c,
     surveyUrl: buildNr01ColetaUrl(a.collection_token),
@@ -74,7 +82,7 @@ export async function dispararConvitesNr01(formData: FormData) {
 
   const result = await dispatchSurveyInvites({
     companyId,
-    consultantId: user.id,
+    consultantId: a.consultant_id,
     module: 'nr01',
     surveyKind: 'nr01_coleta',
     referenceId: assessmentId,
@@ -85,7 +93,7 @@ export async function dispararConvitesNr01(formData: FormData) {
     deadline: a.collection_closes_at
       ? new Date(a.collection_closes_at).toLocaleDateString('pt-BR')
       : null,
-    consultantName: (profile as { name: string | null } | null)?.name,
+    consultantName: profile?.name,
   })
 
   revalidatePath(`/nr01/avaliacao/${assessmentId}/disparos`)

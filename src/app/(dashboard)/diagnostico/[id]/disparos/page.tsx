@@ -8,6 +8,7 @@ import { loadInviteDeliveryStats } from '@/lib/survey/invite-delivery-stats'
 import { getActiveDriver } from '@/lib/email/platform'
 import { DispatchSubmitButton } from '@/components/survey/DispatchSubmitButton'
 import type { CompanyContact } from '@/types/database'
+import type { UserRole } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -21,15 +22,23 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: diag } = await supabase
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
+
+  let diagQuery = supabase
     .from('diagnostics')
     .select(`
       id, name, status, il_deadline, ic_deadline,
       companies:companies!diagnostics_company_id_fkey ( id, name )
     `)
     .eq('id', id)
-    .eq('consultant_id', user.id)
-    .single()
+  if (role !== 'admin') diagQuery = diagQuery.eq('consultant_id', user.id)
+  const { data: diag } = await diagQuery.single()
 
   if (!diag) notFound()
   const d = diag as {

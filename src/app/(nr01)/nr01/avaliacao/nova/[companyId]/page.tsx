@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { Company } from '@/types/database'
+import type { UserRole } from '@/types/database'
 import { NovaAvaliacaoSteps } from '@/components/nr01/NovaAvaliacaoSteps'
 import { criarAvaliacaoNr01 } from '../actions'
 import { isValidCnpj, formatCnpjDisplay } from '@/lib/companies/cnpj'
@@ -16,6 +17,7 @@ import {
 } from '@/lib/nr01/technical-lead'
 import { CompetenciaSurveyFields } from '@/components/survey/CompetenciaSurveyFields'
 import { fetchNextCompetenciaSeq } from '@/lib/survey/competencia-db'
+import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import {
   addDaysISO,
   defaultCompetenciaPeriod,
@@ -34,15 +36,24 @@ export default async function NovaAvaliacaoDadosPage({ params, searchParams }: P
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: companyData } = await supabase
-    .from('companies')
-    .select('*')
-    .eq('id', companyId)
-    .eq('consultant_id', user.id)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
     .single()
+  const role = profile?.role ?? 'consultant'
+
+  const { data: companyData } = await fetchCompanyForActor<Company>(
+    supabase,
+    user.id,
+    role,
+    companyId,
+    '*',
+  )
 
   if (!companyData) notFound()
-  const empresa = companyData as Company
+  const empresa = companyData
   const rt = technicalLeadFromCompany(empresa)
   const cnpjOk = Boolean(empresa.cnpj && isValidCnpj(empresa.cnpj))
   const rtOk = companyHasTechnicalLead(empresa)

@@ -6,8 +6,9 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { DiagnosticInsert, DiagnosticUpdate } from '@/types/database'
+import type { DiagnosticInsert, DiagnosticUpdate, UserRole } from '@/types/database'
 import { isValidCnpj } from '@/lib/companies/cnpj'
+import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import { companyHasTechnicalLead } from '@/lib/nr01/technical-lead'
 import {
   snapshotIlLeaderToDiagnostic,
@@ -58,12 +59,21 @@ export async function criarDiagnostico(formData: FormData) {
     redirect(`${errBase}?error=${encodeURIComponent('Encerramento deve ser igual ou posterior ao início da pesquisa.')}`)
   }
 
-  const { data: companyRaw } = await supabase
-    .from('companies')
-    .select('id, cnpj, technical_lead_name, technical_lead_crp, il_leader_name, il_leader_email')
-    .eq('id', companyId)
-    .eq('consultant_id', user.id)
-    .maybeSingle()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
+
+  const { data: companyRaw } = await fetchCompanyForActor(
+    supabase,
+    user.id,
+    role,
+    companyId,
+    'id, cnpj, consultant_id, technical_lead_name, technical_lead_crp, il_leader_name, il_leader_email',
+  )
 
   if (!companyRaw) {
     redirect('/diagnostico/novo?error=Empresa+inv%C3%A1lida+ou+sem+permiss%C3%A3o.')
@@ -71,6 +81,7 @@ export async function criarDiagnostico(formData: FormData) {
 
   const company = companyRaw as {
     id: string
+    consultant_id: string
     cnpj: string | null
     technical_lead_name: string | null
     technical_lead_crp: string | null
@@ -116,7 +127,7 @@ export async function criarDiagnostico(formData: FormData) {
 
   const diagInsert: DiagnosticInsert = {
     company_id: companyId,
-    consultant_id: user.id,
+    consultant_id: company.consultant_id,
     name: competenciaParsed.surveyName,
     leader_name: leaderSnapshot.leader_name,
     leader_email: leaderSnapshot.leader_email,

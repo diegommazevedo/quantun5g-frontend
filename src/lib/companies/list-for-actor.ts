@@ -12,6 +12,11 @@ function useAccountUserFilter(role: UserRole): boolean {
   return role === 'leader' && !isLicensingV2()
 }
 
+/** Admin vê todas as empresas (RLS `companies_select`); não filtrar por dono. */
+function useOwnershipFilter(role: UserRole): boolean {
+  return role !== 'admin'
+}
+
 export async function fetchCompaniesForActor<T = Record<string, unknown>>(
   supabase: SupabaseClient,
   userId: string,
@@ -19,10 +24,12 @@ export async function fetchCompaniesForActor<T = Record<string, unknown>>(
   select: string,
 ): Promise<{ data: T[] | null; error: { message: string } | null }> {
   let q = supabase.from('companies').select(select)
-  if (useAccountUserFilter(role)) {
-    q = q.eq('account_user_id', userId)
-  } else {
-    q = q.eq('consultant_id', userId)
+  if (useOwnershipFilter(role)) {
+    if (useAccountUserFilter(role)) {
+      q = q.eq('account_user_id', userId)
+    } else {
+      q = q.eq('consultant_id', userId)
+    }
   }
   const res = await q.order('name')
   return res as { data: T[] | null; error: { message: string } | null }
@@ -36,10 +43,12 @@ export async function fetchCompanyForActor<T = Record<string, unknown>>(
   select: string,
 ): Promise<{ data: T | null; error: { message: string } | null }> {
   let q = supabase.from('companies').select(select).eq('id', companyId)
-  if (useAccountUserFilter(role)) {
-    q = q.eq('account_user_id', userId)
-  } else {
-    q = q.eq('consultant_id', userId)
+  if (useOwnershipFilter(role)) {
+    if (useAccountUserFilter(role)) {
+      q = q.eq('account_user_id', userId)
+    } else {
+      q = q.eq('consultant_id', userId)
+    }
   }
   const res = await q.maybeSingle()
   return res as { data: T | null; error: { message: string } | null }

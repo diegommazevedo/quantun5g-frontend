@@ -95,6 +95,14 @@ CREATE POLICY "nr01_assessments_select" ON nr01_assessments
     OR get_my_role() = 'admin'
   );
 
+-- Link público /nr01/coleta/{collection_token} (sem login)
+DROP POLICY IF EXISTS nr01_assessments_select_public_coleta ON nr01_assessments;
+CREATE POLICY nr01_assessments_select_public_coleta ON nr01_assessments
+  FOR SELECT USING (
+    status = 'COLETANDO'
+    AND nr01_assessment_open_for_collection(id)
+  );
+
 CREATE POLICY "nr01_assessments_insert" ON nr01_assessments
   FOR INSERT WITH CHECK (
     consultant_id = auth.uid()
@@ -369,7 +377,7 @@ CREATE POLICY "nr01_pulses_insert_public" ON nr01_micro_pulses
 -- ============================================================
 -- GRANTS
 -- ============================================================
-GRANT SELECT ON nr01_dimensions, nr01_questions, nr01_intervention_library TO anon;
+GRANT SELECT ON nr01_dimensions, nr01_questions, nr01_intervention_library, nr01_assessments TO anon;
 GRANT INSERT ON nr01_responses, nr01_response_answers, nr01_micro_pulses TO anon;
 GRANT ALL ON ALL TABLES    IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;

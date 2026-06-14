@@ -436,6 +436,14 @@ CREATE POLICY nr01_assessments_select_leader ON nr01_assessments
     )
   );
 
+DROP POLICY IF EXISTS nr01_assessments_select_public_coleta ON nr01_assessments;
+CREATE POLICY nr01_assessments_select_public_coleta ON nr01_assessments
+  FOR SELECT USING (
+    status = 'COLETANDO'
+    AND nr01_assessment_open_for_collection(id)
+  );
+GRANT SELECT ON nr01_assessments TO anon;
+
 DROP POLICY IF EXISTS companies_select_leader ON companies;
 DROP POLICY IF EXISTS "companies_select_leader" ON companies;
 CREATE POLICY companies_select_leader ON companies

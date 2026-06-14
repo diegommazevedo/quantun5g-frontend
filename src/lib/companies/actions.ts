@@ -345,7 +345,7 @@ export async function criarEmpresa(formData: FormData) {
   const dup = await assertNoDuplicate(supabase, user.id, fields.name, fields.cnpj)
   if (dup) redirect(novaEmpresaErrorUrl(retorno, dup))
 
-  if (isLicensingV2() && isPlatformStaff(role)) {
+  if (isLicensingV2() && role === 'consultant') {
     try {
       await assertCanAddConsultantCompany(user.id)
     } catch (e) {

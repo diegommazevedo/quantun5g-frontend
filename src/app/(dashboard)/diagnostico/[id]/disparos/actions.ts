@@ -11,18 +11,19 @@ import {
   type DispatchTarget,
 } from '@/lib/survey/dispatch'
 import type { CompanyContact } from '@/types/database'
+import type { UserRole } from '@/types/database'
 
-async function loadDiagnostic(id: string, userId: string) {
+async function loadDiagnostic(id: string, userId: string, role: UserRole) {
   const supabase = await createClient()
-  const { data } = await supabase
+  let q = supabase
     .from('diagnostics')
     .select(`
-      id, name, status, il_token, ic_token, il_deadline, ic_deadline,
+      id, name, status, il_token, ic_token, il_deadline, ic_deadline, consultant_id,
       companies:companies!diagnostics_company_id_fkey ( id, name )
     `)
     .eq('id', id)
-    .eq('consultant_id', userId)
-    .single()
+  if (role !== 'admin') q = q.eq('consultant_id', userId)
+  const { data } = await q.single()
   return { supabase, diagnostic: data }
 }
 
@@ -33,7 +34,15 @@ export async function dispararConvitesPentagrama(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { diagnostic } = await loadDiagnostic(diagnosticId, user.id)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, name')
+    .eq('id', user.id)
+    .returns<{ role: UserRole; name: string | null }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
+
+  const { diagnostic } = await loadDiagnostic(diagnosticId, user.id, role)
   if (!diagnostic) redirect('/dashboard')
 
   const d = diagnostic as {
@@ -44,6 +53,7 @@ export async function dispararConvitesPentagrama(formData: FormData) {
     ic_token: string
     il_deadline: string | null
     ic_deadline: string | null
+    consultant_id: string
     companies: { id: string; name: string } | null
   }
 
@@ -82,12 +92,6 @@ export async function dispararConvitesPentagrama(formData: FormData) {
     )
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name')
-    .eq('id', user.id)
-    .single()
-
   const targets: DispatchTarget[] = contacts.map((c) => ({
     contact: c,
     surveyUrl:
@@ -96,7 +100,7 @@ export async function dispararConvitesPentagrama(formData: FormData) {
 
   const result = await dispatchSurveyInvites({
     companyId,
-    consultantId: user.id,
+    consultantId: d.consultant_id,
     module: 'pentagrama',
     surveyKind: kind,
     referenceId: diagnosticId,
@@ -105,7 +109,7 @@ export async function dispararConvitesPentagrama(formData: FormData) {
     moduleLabel: 'Pentagrama Ginger',
     targets,
     deadline: prazoEncerramento,
-    consultantName: (profile as { name: string | null } | null)?.name,
+    consultantName: profile?.name,
   })
 
   revalidatePath(`/diagnostico/${diagnosticId}/disparos`)
