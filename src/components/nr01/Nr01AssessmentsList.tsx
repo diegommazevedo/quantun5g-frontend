@@ -23,6 +23,8 @@ export interface Nr01DashboardRow {
   iso_score: number | null
   iso_risk_level: Nr01RiskLevel
   adherence_pct: number | null
+  response_count: number
+  expected_respondents: number
 }
 
 type FilterKey = 'todos' | 'andamento' | 'concluido' | 'arquivado'
@@ -137,7 +139,22 @@ export function Nr01AssessmentsList({ rows }: Props) {
                     </span>
                   </td>
                   <td className="hidden px-4 py-3.5 tabular-nums text-zinc-700 sm:table-cell">
-                    {r.adherence_pct != null ? `${pctFmt.format(r.adherence_pct)}%` : '—'}
+                    {['CRIADO', 'COLETANDO', 'COLETA_ENCERRADA'].includes(r.status) ? (
+                      r.expected_respondents > 0 ? (
+                        <>
+                          {r.response_count}/{r.expected_respondents}
+                          <span className="ml-1 text-xs text-zinc-500">
+                            ({pctFmt.format((r.response_count / r.expected_respondents) * 100)}%)
+                          </span>
+                        </>
+                      ) : (
+                        <>{r.response_count} resposta{r.response_count !== 1 ? 's' : ''}</>
+                      )
+                    ) : r.adherence_pct != null ? (
+                      `${pctFmt.format(r.adherence_pct)}%`
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="hidden px-4 py-3.5 font-mono text-zinc-900 md:table-cell">
                     {r.iso_score != null ? oneDecFmt.format(r.iso_score) : '—'}

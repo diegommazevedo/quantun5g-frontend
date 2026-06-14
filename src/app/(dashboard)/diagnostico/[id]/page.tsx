@@ -155,7 +155,7 @@ export default async function DiagnosticoPage({ params }: Props) {
               <p className="text-xs text-zinc-500 mt-0.5">
                 Envie este link para o(a) líder. Resposta única — 125 questões.
               </p>
-              {(diag.status === 'AGUARDANDO_IL' || diag.status === 'COLETANDO_IC') && (
+              {diag.status === 'AGUARDANDO_IL' && (
                 <Link
                   href={`/diagnostico/${id}/disparos`}
                   className="mt-2 inline-block text-xs font-medium text-purple-800 hover:underline"
@@ -194,6 +194,14 @@ export default async function DiagnosticoPage({ params }: Props) {
               <p className="text-xs text-zinc-500 mt-0.5">
                 Compartilhe este link com os colaboradores. Respostas anônimas.
               </p>
+              {diag.status === 'COLETANDO_IC' && (
+                <Link
+                  href={`/diagnostico/${id}/disparos`}
+                  className="mt-2 inline-block text-xs font-medium text-blue-800 hover:underline"
+                >
+                  Disparar convites por e-mail →
+                </Link>
+              )}
             </div>
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${diag.status === 'COLETANDO_IC' ? 'bg-blue-100 text-blue-700' : diag.status === 'ENCERRADO' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
               {diag.status === 'COLETANDO_IC' ? 'Ativo' : diag.status === 'ENCERRADO' ? '✓ Encerrado' : 'Aguardando IL'}

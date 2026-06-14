@@ -26,6 +26,7 @@ type Row = {
   competencia_label: string | null
   created_at: string
   linked_diagnostic_id: string | null
+  expected_respondents: number
   companies: { name: string } | null
   nr01_assessment_results: Pick<
     Nr01AssessmentResult,
@@ -64,6 +65,7 @@ export default async function Nr01DashboardPage() {
     .from('nr01_assessments')
     .select(`
       id, name, status, reference_period, competencia_label, created_at, linked_diagnostic_id,
+      expected_respondents,
       companies:companies!nr01_assessments_company_id_fkey ( name ),
       nr01_assessment_results ( iso_score, iso_risk_level, adherence_pct )
     `)
@@ -84,6 +86,19 @@ export default async function Nr01DashboardPage() {
   const { data, error } = await query
   const raw = (data ?? []) as unknown as Row[]
 
+  const assessmentIds = raw.map((r) => r.id)
+  const responseCountByAssessment: Record<string, number> = {}
+  if (assessmentIds.length) {
+    const { data: respRows } = await supabase
+      .from('nr01_responses')
+      .select('assessment_id')
+      .in('assessment_id', assessmentIds)
+    for (const row of respRows ?? []) {
+      const aid = (row as { assessment_id: string }).assessment_id
+      responseCountByAssessment[aid] = (responseCountByAssessment[aid] ?? 0) + 1
+    }
+  }
+
   const rows: Nr01DashboardRow[] = raw.map((r) => ({
     id: r.id,
     name: r.name,
@@ -96,6 +111,8 @@ export default async function Nr01DashboardPage() {
     iso_score: r.nr01_assessment_results?.iso_score ?? null,
     iso_risk_level: (r.nr01_assessment_results?.iso_risk_level ?? 'sem_dados') as Nr01RiskLevel,
     adherence_pct: r.nr01_assessment_results?.adherence_pct ?? null,
+    response_count: responseCountByAssessment[r.id] ?? 0,
+    expected_respondents: r.expected_respondents ?? 0,
   }))
 
   const total = rows.length
