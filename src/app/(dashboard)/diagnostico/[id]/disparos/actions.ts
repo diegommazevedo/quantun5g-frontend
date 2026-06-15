@@ -12,6 +12,7 @@ import {
 } from '@/lib/survey/dispatch'
 import type { CompanyContact } from '@/types/database'
 import type { UserRole } from '@/types/database'
+import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 
 async function loadDiagnostic(id: string, userId: string, role: UserRole) {
   const supabase = await createClient()
@@ -64,11 +65,10 @@ export async function dispararConvitesPentagrama(formData: FormData) {
   const companyId = d.companies?.id
   if (!companyId) redirect(`/diagnostico/${diagnosticId}/disparos?error=Empresa+inválida`)
 
-  if (kind === 'il' && d.status !== 'AGUARDANDO_IL') {
-    redirect(`/diagnostico/${diagnosticId}/disparos?error=IL+só+no+status+AGUARDANDO_IL`)
-  }
-  if (kind === 'ic' && d.status !== 'COLETANDO_IC') {
-    redirect(`/diagnostico/${diagnosticId}/disparos?error=IC+só+no+status+COLETANDO_IC`)
+  if (!isPentagramaColetaAberta(d.status)) {
+    redirect(
+      `/diagnostico/${diagnosticId}/disparos?error=${encodeURIComponent('Disparo indisponível: coleta encerrada ou não iniciada.')}`,
+    )
   }
 
   const { data: contactsRaw } = await supabase

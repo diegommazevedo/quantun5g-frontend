@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import ILFormClient from './ILFormClient'
 import { PENTAGRAMA_LIKERT_SCALE } from '@/lib/pentagrama/likert-labels'
+import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -60,7 +61,7 @@ export default async function ILPage({ params, searchParams }: Props) {
   }
 
   // Status não aceita mais IL
-  if (diag.status !== 'AGUARDANDO_IL') {
+  if (!isPentagramaColetaAberta(diag.status)) {
     return (
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-4">

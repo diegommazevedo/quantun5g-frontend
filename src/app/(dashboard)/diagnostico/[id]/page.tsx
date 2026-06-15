@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Diagnostic, Company } from '@/types/database'
 import { EncerrarColetaButton } from './EncerrarColetaButton'
 import { formatIlLeaderLine } from '@/lib/pentagrama/il-leader'
+import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 
 const STATUS_LABEL: Record<string, string> = {
   CRIADO:           'Criado',
@@ -60,6 +61,8 @@ export default async function DiagnosticoPage({ params }: Props) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const linkIL  = `${baseUrl}/il/${diag.il_token}`
   const linkIC  = `${baseUrl}/ic/${diag.ic_token}`
+
+  const coletaAberta = isPentagramaColetaAberta(diag.status)
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -155,9 +158,9 @@ export default async function DiagnosticoPage({ params }: Props) {
               <p className="text-xs text-zinc-500 mt-0.5">
                 Envie este link para o(a) líder. Resposta única — 125 questões.
               </p>
-              {diag.status === 'AGUARDANDO_IL' && (
+              {coletaAberta && (
                 <Link
-                  href={`/diagnostico/${id}/disparos`}
+                  href={`/diagnostico/${id}/disparos#il`}
                   className="mt-2 inline-block text-xs font-medium text-purple-800 hover:underline"
                 >
                   Disparar convites por e-mail →
@@ -194,26 +197,17 @@ export default async function DiagnosticoPage({ params }: Props) {
               <p className="text-xs text-zinc-500 mt-0.5">
                 Compartilhe este link com os colaboradores. Respostas anônimas.
               </p>
-              {['AGUARDANDO_IL', 'COLETANDO_IC'].includes(diag.status) && (
-                <>
-                  <Link
-                    href={`/diagnostico/${id}/disparos#ic`}
-                    className={`mt-2 inline-block text-xs font-medium hover:underline ${
-                      diag.status === 'COLETANDO_IC' ? 'text-blue-800' : 'text-zinc-500'
-                    }`}
-                  >
-                    Disparar convites por e-mail →
-                  </Link>
-                  {diag.status === 'AGUARDANDO_IL' && (
-                    <p className="mt-1 text-[10px] text-zinc-400">
-                      Envio liberado após o líder concluir o IL.
-                    </p>
-                  )}
-                </>
+              {coletaAberta && (
+                <Link
+                  href={`/diagnostico/${id}/disparos#ic`}
+                  className="mt-2 inline-block text-xs font-medium text-blue-800 hover:underline"
+                >
+                  Disparar convites por e-mail →
+                </Link>
               )}
             </div>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${diag.status === 'COLETANDO_IC' ? 'bg-blue-100 text-blue-700' : diag.status === 'ENCERRADO' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-              {diag.status === 'COLETANDO_IC' ? 'Ativo' : diag.status === 'ENCERRADO' ? '✓ Encerrado' : 'Aguardando IL'}
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${coletaAberta ? 'bg-blue-100 text-blue-700' : diag.status === 'ENCERRADO' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+              {coletaAberta ? 'Ativo' : diag.status === 'ENCERRADO' ? '✓ Encerrado' : 'Indisponível'}
             </span>
           </div>
 
@@ -234,7 +228,7 @@ export default async function DiagnosticoPage({ params }: Props) {
           </div>
 
           {/* Botão encerrar coleta IC — modal de confirmação */}
-          {diag.status === 'COLETANDO_IC' && (
+          {coletaAberta && (
             <EncerrarColetaButton
               diagnosticId={id}
               nIC={nIC ?? 0}

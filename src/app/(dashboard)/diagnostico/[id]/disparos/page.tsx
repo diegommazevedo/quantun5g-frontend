@@ -9,6 +9,7 @@ import { loadInviteDeliveryDetails } from '@/lib/survey/invite-delivery-details'
 import { DispatchDeliveryDetail } from '@/components/survey/DispatchDeliveryDetail'
 import { getActiveDriver } from '@/lib/email/platform'
 import { DispatchSubmitButton } from '@/components/survey/DispatchSubmitButton'
+import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 import type { CompanyContact } from '@/types/database'
 import type { UserRole } from '@/types/database'
 
@@ -72,6 +73,8 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
     .eq('reference_id', id)
     .order('created_at', { ascending: false })
     .limit(10)
+
+  const coletaAberta = isPentagramaColetaAberta(d.status)
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -166,8 +169,8 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
         </div>
       )}
 
-      {d.status === 'AGUARDANDO_IL' && (
-        <form action={dispararConvitesPentagrama} className="rounded-xl border border-purple-200 bg-purple-50/40 p-4">
+      {coletaAberta && (
+        <form id="il" action={dispararConvitesPentagrama} className="rounded-xl border border-purple-200 bg-purple-50/40 p-4">
           <input type="hidden" name="diagnostic_id" value={id} />
           <input type="hidden" name="survey_kind" value="il" />
           <h3 className="font-semibold text-purple-900">Disparar IL (liderança)</h3>
@@ -183,16 +186,7 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
         </form>
       )}
 
-      {d.status === 'AGUARDANDO_IL' && (
-        <div id="ic" className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
-          <h3 className="font-semibold text-zinc-800">Disparar IC (colaboradores)</h3>
-          <p className="mt-1">
-            Disponível após o líder concluir o Instrumento de Liderança (IL).
-          </p>
-        </div>
-      )}
-
-      {d.status === 'COLETANDO_IC' && (
+      {coletaAberta && (
         <form id="ic" action={dispararConvitesPentagrama} className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
           <input type="hidden" name="diagnostic_id" value={id} />
           <input type="hidden" name="survey_kind" value="ic" />

@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 
 /**
  * encerrarECalcular — chamado pelo modal de confirmação no cliente.
@@ -30,7 +31,7 @@ export async function encerrarECalcular(diagnosticId: string): Promise<{ error: 
 
   const diag = diagRaw as { id: string; status: string; consultant_id: string } | null
   if (!diag || diag.consultant_id !== user.id) return { error: 'Diagnóstico não encontrado.' }
-  if (diag.status !== 'COLETANDO_IC') return { error: 'Status inválido para encerramento.' }
+  if (!isPentagramaColetaAberta(diag.status)) return { error: 'Status inválido para encerramento.' }
 
   // Chama a Edge Function com service role (a função exige autorização admin)
   const supabaseAdmin = createAdminClient(

@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import ICFormClient from './ICFormClient'
 import { PENTAGRAMA_LIKERT_SCALE } from '@/lib/pentagrama/likert-labels'
+import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -37,32 +38,20 @@ export default async function ICPage({ params, searchParams }: Props) {
 
   if (!diag) notFound()
 
-  // Coleta encerrada ou não iniciada
-  if (diag.status !== 'COLETANDO_IC') {
-    const encerrado = ['ENCERRADO', 'RELATORIO_GERADO', 'ARQUIVADO'].includes(diag.status)
+  // Coleta encerrada
+  if (!isPentagramaColetaAberta(diag.status)) {
     return (
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-4">
-          {encerrado ? (
-            <>
-              <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto">
-                <svg className="w-8 h-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0-8v4m0-8a9 9 0 110 18A9 9 0 0112 3z" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-zinc-900">Coleta encerrada</h1>
-              <p className="text-zinc-500 text-sm">
-                O período de respostas para este diagnóstico foi encerrado. Obrigado!
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-xl font-bold text-zinc-900">Link ainda não disponível</h1>
-              <p className="text-zinc-500 text-sm">
-                A coleta de colaboradores ainda não foi iniciada. Aguarde o responsável pelo diagnóstico.
-              </p>
-            </>
-          )}
+          <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0-8v4m0-8a9 9 0 110 18A9 9 0 0112 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-zinc-900">Coleta encerrada</h1>
+          <p className="text-zinc-500 text-sm">
+            O período de respostas para este diagnóstico foi encerrado. Obrigado!
+          </p>
         </div>
       </div>
     )
