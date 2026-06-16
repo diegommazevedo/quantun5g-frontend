@@ -10,10 +10,11 @@ import { EmpresaGrid } from '@/components/nr01/EmpresaGrid'
 import { enrichCompaniesWithIlCounts } from '@/lib/companies/enrich'
 import { COMPANY_GRID_SELECT } from '@/lib/companies/grid-select'
 import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { getCompanyCnpjSlotsUsageForActor } from '@/lib/licensing/company-cnpj-slots'
 import { CnpjSlotsBanner } from '@/components/licensing/CnpjSlotsBanner'
-import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 
 interface Props {
   searchParams: Promise<{ saved?: string; nome?: string }>
@@ -48,7 +49,10 @@ export default async function EmpresasPage({ searchParams }: Props) {
     console.error('[empresas] list:', listErr.message)
   }
 
-  const empresas = await enrichCompaniesWithIlCounts(supabase, (companies ?? []) as Company[])
+  const empresas = await enrichCompaniesWithIlCounts(
+    supabaseForActorRole(role, supabase),
+    (companies ?? []) as Company[],
+  )
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">

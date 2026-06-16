@@ -11,6 +11,8 @@ import { EmpresaGrid } from '@/components/nr01/EmpresaGrid'
 import { enrichCompaniesWithIlCounts } from '@/lib/companies/enrich'
 import { COMPANY_GRID_SELECT } from '@/lib/companies/grid-select'
 import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { NovoDiagnosticoSteps } from '@/components/pentagrama/NovoDiagnosticoSteps'
 
 interface Props {
@@ -31,6 +33,8 @@ export default async function NovoDiagnosticoEscolherEmpresaPage({ searchParams 
     .single()
 
   const role = profile?.role ?? 'consultant'
+  const isContratante = isContratanteRole(role)
+  const isGerente = isGerenteRole(role)
   await requirePentagramaLicenseOrRedirect({ userId: user.id, role })
 
   const { data: companies } = await fetchCompaniesForActor(
@@ -40,7 +44,10 @@ export default async function NovoDiagnosticoEscolherEmpresaPage({ searchParams 
     COMPANY_GRID_SELECT,
   )
 
-  const empresas = await enrichCompaniesWithIlCounts(supabase, (companies ?? []) as never[])
+  const empresas = await enrichCompaniesWithIlCounts(
+    supabaseForActorRole(role, supabase),
+    (companies ?? []) as never[],
+  )
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -66,14 +73,16 @@ export default async function NovoDiagnosticoEscolherEmpresaPage({ searchParams 
       <section className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900">
-            Empresas cadastradas
+            {isContratante || isGerente ? 'Empresas do grupo' : 'Empresas cadastradas'}
           </h2>
-          <Link
-            href="/empresas/nova?retorno=/diagnostico/novo"
-            className="inline-flex items-center justify-center rounded-lg border-2 border-zinc-900 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
-          >
-            + Cadastrar nova empresa
-          </Link>
+          {!isContratante && !isGerente && (
+            <Link
+              href="/empresas/nova?retorno=/diagnostico/novo"
+              className="inline-flex items-center justify-center rounded-lg border-2 border-zinc-900 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
+            >
+              + Cadastrar nova empresa
+            </Link>
+          )}
         </div>
 
         <div className="rounded-lg border border-purple-100 bg-purple-50/60 px-4 py-3 text-sm text-purple-900">
@@ -87,7 +96,11 @@ export default async function NovoDiagnosticoEscolherEmpresaPage({ searchParams 
           mode="picker"
           product="pentagrama"
           retornoPicker="/diagnostico/novo"
-          emptyHint="Cadastre a empresa do cliente antes de abrir o diagnóstico Pentagrama."
+          emptyHint={
+            isContratante || isGerente
+              ? 'Nenhuma filial vinculada ao seu perfil. Peça ao administrador ou consultor.'
+              : 'Cadastre a empresa do cliente antes de abrir o diagnóstico Pentagrama.'
+          }
         />
       </section>
 

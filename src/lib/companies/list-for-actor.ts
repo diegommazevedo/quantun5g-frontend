@@ -10,6 +10,7 @@ import {
   loadCompanyIdsForContratante,
   loadCompanyIdsForGerente,
 } from '@/lib/org/queries'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 
 const EMPTY_ID = '00000000-0000-0000-0000-000000000000'
 
@@ -23,7 +24,8 @@ export async function fetchCompaniesForActor<T = Record<string, unknown>>(
   role: UserRole,
   select: string,
 ): Promise<{ data: T[] | null; error: { message: string } | null }> {
-  let q = supabase.from('companies').select(select)
+  const db = supabaseForActorRole(role, supabase)
+  let q = db.from('companies').select(select)
 
   if (role === 'admin') {
     // sem filtro
@@ -50,7 +52,8 @@ export async function fetchCompanyForActor<T = Record<string, unknown>>(
   companyId: string,
   select: string,
 ): Promise<{ data: T | null; error: { message: string } | null }> {
-  let q = supabase.from('companies').select(select).eq('id', companyId)
+  const db = supabaseForActorRole(role, supabase)
+  let q = db.from('companies').select(select).eq('id', companyId)
 
   if (role === 'admin') {
     // sem filtro extra

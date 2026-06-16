@@ -9,6 +9,7 @@ import { userHasPentagramaLicense } from '@/lib/billing/pentagrama-license'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import type { UserRole } from '@/types/database'
 import { DiagnosticosList, type DiagRow } from '@/components/dashboard/DiagnosticosList'
 import {
@@ -45,7 +46,9 @@ export default async function DashboardPage({ searchParams }: Props) {
     canCreateDiagnostic = await userHasPentagramaLicense(user!.id)
   }
 
-  const diagQuery = supabase
+  const db = supabaseForActorRole(role, supabase)
+
+  const diagQuery = db
     .from('diagnostics')
     .select('id, name, status, created_at, leader_name, companies(name)')
     .order('created_at', { ascending: false })
@@ -78,7 +81,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   if (diags.length > 0) {
     const diagIds = diags.map((d) => d.id)
-    const { data: icRows } = (await supabase
+    const { data: icRows } = (await db
       .from('ic_responses')
       .select('diagnostic_id, respondente_anonimo_id')
       .in('diagnostic_id', diagIds)) as {

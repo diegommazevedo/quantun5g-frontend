@@ -10,6 +10,9 @@ import type { UserRole } from '@/types/database'
 import { EmpresaGrid } from '@/components/nr01/EmpresaGrid'
 import { enrichCompaniesWithIlCounts } from '@/lib/companies/enrich'
 import { COMPANY_GRID_SELECT } from '@/lib/companies/grid-select'
+import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import { NovaAvaliacaoSteps } from '@/components/nr01/NovaAvaliacaoSteps'
 
 interface Props {
@@ -30,18 +33,22 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
     .single()
 
   const role = profile?.role ?? 'consultant'
+  const isContratante = isContratanteRole(role)
+  const isGerente = isGerenteRole(role)
+
   await requireNr01LicenseOrRedirect({ userId: user.id, role })
 
-  let companiesQuery = supabase.from('companies').select(COMPANY_GRID_SELECT).order('name')
-  if (role === 'leader') {
-    companiesQuery = companiesQuery.eq('account_user_id', user.id)
-  } else if (role !== 'admin') {
-    companiesQuery = companiesQuery.eq('consultant_id', user.id)
-  }
+  const { data: companies } = await fetchCompaniesForActor(
+    supabase,
+    user.id,
+    role,
+    COMPANY_GRID_SELECT,
+  )
 
-  const { data: companies } = await companiesQuery
-
-  const empresas = await enrichCompaniesWithIlCounts(supabase, (companies ?? []) as never[])
+  const empresas = await enrichCompaniesWithIlCounts(
+    supabaseForActorRole(role, supabase),
+    (companies ?? []) as never[],
+  )
 
   return (
     <div className="space-y-8">
@@ -67,23 +74,26 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
       <section className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900">
-            Empresas cadastradas
+            {isContratante || isGerente ? 'Empresas do grupo' : 'Empresas cadastradas'}
           </h2>
-          <Link
-            href="/empresas/nova?retorno=/nr01/avaliacao/nova"
-            className="inline-flex items-center justify-center rounded-lg border-2 border-blue-800 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
-          >
-            + Cadastrar nova empresa
-          </Link>
+          {!isContratante && !isGerente && (
+            <Link
+              href="/empresas/nova?retorno=/nr01/avaliacao/nova"
+              className="inline-flex items-center justify-center rounded-lg border-2 border-blue-800 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
+            >
+              + Cadastrar nova empresa
+            </Link>
+          )}
         </div>
 
         <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3 text-sm text-blue-900">
           <strong>Usar empresa já cadastrada:</strong> busque na grade e clique em{' '}
-          <em>Usar esta empresa</em>.{' '}
-          <strong className="block sm:inline sm:ml-1">
-            Primeira vez com o cliente?
-          </strong>{' '}
-          Cadastre com CNPJ válido e RT assinante — evita duplicidade no laudo.
+          <em>Usar esta empresa</em>.
+          {isContratante && (
+            <span className="block mt-1 text-blue-800/90">
+              Novos CNPJs são cadastrados pelo consultor operador do grupo.
+            </span>
+          )}
         </div>
 
         <EmpresaGrid
@@ -91,7 +101,11 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
           mode="picker"
           product="nr01"
           retornoPicker="/nr01/avaliacao/nova"
-          emptyHint="Cadastre a empresa do cliente antes de abrir a avaliação NR-01."
+          emptyHint={
+            isContratante || isGerente
+              ? 'Nenhuma filial vinculada ao seu perfil. Peça ao administrador ou consultor.'
+              : 'Cadastre a empresa do cliente antes de abrir a avaliação NR-01.'
+          }
         />
       </section>
 

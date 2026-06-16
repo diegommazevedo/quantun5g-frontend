@@ -10,6 +10,7 @@ import { userHasNr01License } from '@/lib/billing/nr01-license'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import type { UserRole } from '@/types/database'
 import type { Nr01AssessmentResult, Nr01AssessmentStatus, Nr01RiskLevel } from '@/types/nr01'
 import {
@@ -61,7 +62,9 @@ export default async function Nr01DashboardPage() {
     canCreateAssessment = true
   }
 
-  const query = supabase
+  const db = supabaseForActorRole(role, supabase)
+
+  const query = db
     .from('nr01_assessments')
     .select(`
       id, name, status, reference_period, competencia_label, created_at, linked_diagnostic_id,
@@ -89,7 +92,7 @@ export default async function Nr01DashboardPage() {
   const assessmentIds = raw.map((r) => r.id)
   const responseCountByAssessment: Record<string, number> = {}
   if (assessmentIds.length) {
-    const { data: respRows } = await supabase
+    const { data: respRows } = await db
       .from('nr01_responses')
       .select('assessment_id')
       .in('assessment_id', assessmentIds)
