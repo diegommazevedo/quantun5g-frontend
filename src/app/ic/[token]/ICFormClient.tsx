@@ -10,7 +10,7 @@
  */
 
 import { useState, useTransition, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { submitIcResponse } from './actions'
 import {
   QUESTOES,
   BLOCOS,
@@ -73,35 +73,19 @@ export default function ICFormClient({ diagnosticId, token }: Props) {
     setError(null)
 
     startTransition(async () => {
-      const supabase = createClient()
-
-      // UUID anônimo — gerado aqui, sem vínculo de identidade
       const respondente_anonimo_id = gerarUUID()
 
-      // Monta payload q1..q125
-      const payload: Record<string, number | string> = {
-        diagnostic_id: diagnosticId,
-        respondente_anonimo_id,  // SEM FK — NUNCA ALTERAR
-      }
-      for (let i = 1; i <= 125; i++) {
-        payload[`q${i}`] = respostas[i]
-      }
+      const result = await submitIcResponse(token, respostas, respondente_anonimo_id)
 
-      const { error: errInsert } = await supabase
-        .from('ic_responses')
-        .insert(payload as never)
-
-      if (errInsert) {
-        if (errInsert.code === '23505') {
-          // Violação de unicidade — device já respondeu
+      if (!result.ok) {
+        if (result.duplicate) {
           setJaRespondeu(true)
           return
         }
-        setError('Erro ao enviar respostas. Tente novamente.')
+        setError(result.error)
         return
       }
 
-      // Marca como respondido neste device
       sessionStorage.setItem(`ic_respondido_${diagnosticId}`, '1')
 
       setSubmitted(true)

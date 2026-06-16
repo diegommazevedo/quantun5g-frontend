@@ -5,11 +5,11 @@
  */
 
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import ICFormClient from './ICFormClient'
 import { PENTAGRAMA_LIKERT_SCALE } from '@/lib/pentagrama/likert-labels'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
+import { resolveDiagnosticByIcToken } from '@/lib/pentagrama/public-diagnostic'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -20,22 +20,8 @@ export default async function ICPage({ params, searchParams }: Props) {
   const { token } = await params
   const { invite } = await searchParams
   await markSurveyInviteOpened(invite)
-  const supabase = await createClient()
 
-  // Carrega diagnóstico pelo ic_token
-  const { data: diagRaw } = await supabase
-    .from('diagnostics')
-    .select('id, name, status, companies(name)')
-    .eq('ic_token', token)
-    .single()
-
-  const diag = diagRaw as {
-    id: string
-    name: string
-    status: string
-    companies: { name: string } | null
-  } | null
-
+  const diag = await resolveDiagnosticByIcToken(token)
   if (!diag) notFound()
 
   // Coleta encerrada
@@ -57,7 +43,7 @@ export default async function ICPage({ params, searchParams }: Props) {
     )
   }
 
-  const companyName = diag.companies?.name ?? ''
+  const companyName = diag.companyName
 
   return (
     <div className="min-h-screen bg-zinc-50">

@@ -6,11 +6,11 @@
  */
 
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import ILFormClient from './ILFormClient'
 import { PENTAGRAMA_LIKERT_SCALE } from '@/lib/pentagrama/likert-labels'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
+import { resolveDiagnosticByIlToken } from '@/lib/pentagrama/public-diagnostic'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -21,24 +21,8 @@ export default async function ILPage({ params, searchParams }: Props) {
   const { token } = await params
   const { invite } = await searchParams
   await markSurveyInviteOpened(invite)
-  const supabase = await createClient()
 
-  // Carrega diagnóstico pelo il_token
-  const { data: diagRaw } = await supabase
-    .from('diagnostics')
-    .select('id, name, status, leader_name, il_submitted_at, companies(name)')
-    .eq('il_token', token)
-    .single()
-
-  const diag = diagRaw as {
-    id: string
-    name: string
-    status: string
-    leader_name: string | null
-    il_submitted_at: string | null
-    companies: { name: string } | null
-  } | null
-
+  const diag = await resolveDiagnosticByIlToken(token)
   if (!diag) notFound()
 
   // IL já respondido
@@ -74,7 +58,7 @@ export default async function ILPage({ params, searchParams }: Props) {
     )
   }
 
-  const companyName = diag.companies?.name ?? ''
+  const companyName = diag.companyName
 
   return (
     <div className="min-h-screen bg-zinc-50">

@@ -10,6 +10,7 @@ import type { Diagnostic, Company } from '@/types/database'
 import { EncerrarColetaButton } from './EncerrarColetaButton'
 import { formatIlLeaderLine } from '@/lib/pentagrama/il-leader'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
+import { resolveAppBaseUrl } from '@/lib/auth/app-url'
 
 const STATUS_LABEL: Record<string, string> = {
   CRIADO:           'Criado',
@@ -58,7 +59,7 @@ export default async function DiagnosticoPage({ params }: Props) {
     .select('*', { count: 'exact', head: true })
     .eq('diagnostic_id', id)
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const baseUrl = resolveAppBaseUrl()
   const linkIL  = `${baseUrl}/il/${diag.il_token}`
   const linkIC  = `${baseUrl}/ic/${diag.ic_token}`
 

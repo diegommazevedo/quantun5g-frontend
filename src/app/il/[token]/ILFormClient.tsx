@@ -7,7 +7,7 @@
  */
 
 import { useState, useTransition } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { submitIlResponse } from './actions'
 import {
   QUESTOES,
   BLOCOS,
@@ -25,7 +25,7 @@ interface Props {
   token: string
 }
 
-export default function ILFormClient({ diagnosticId }: Props) {
+export default function ILFormClient({ diagnosticId, token }: Props) {
   const [respostas, setRespostas] = useState<Record<number, number>>({})
   const [isPending, startTransition] = useTransition()
   const [submitted, setSubmitted] = useState(false)
@@ -50,28 +50,16 @@ export default function ILFormClient({ diagnosticId }: Props) {
     setError(null)
 
     startTransition(async () => {
-      const supabase = createClient()
+      const result = await submitIlResponse(token, respostas)
 
-      // Monta payload q1..q125
-      const payload: Record<string, number | string> = { diagnostic_id: diagnosticId }
-      for (let i = 1; i <= 125; i++) {
-        payload[`q${i}`] = respostas[i]
-      }
-
-      const { error: errInsert } = await supabase
-        .from('il_responses')
-        .insert(payload as never)
-
-      if (errInsert) {
-        setError('Erro ao enviar respostas. Tente novamente.')
+      if (!result.ok) {
+        if (result.alreadySubmitted) {
+          setSubmitted(true)
+          return
+        }
+        setError(result.error)
         return
       }
-
-      // Avança status para COLETANDO_IC
-      await supabase
-        .from('diagnostics')
-        .update({ status: 'COLETANDO_IC', il_submitted_at: new Date().toISOString() } as never)
-        .eq('id', diagnosticId)
 
       setSubmitted(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })

@@ -8,6 +8,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 
+import { resolveAppBaseUrl } from '@/lib/auth/app-url'
+
 import { sendEmail, platformEmailFrom, buildSurveyInviteEmail } from '@/lib/email/platform'
 
 import { loadSuppressedEmailSet, normalizeEmail } from '@/lib/email/suppression'
@@ -55,9 +57,7 @@ export interface DispatchResult {
 
 
 function appBaseUrl(): string {
-
-  return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-
+  return resolveAppBaseUrl()
 }
 
 
