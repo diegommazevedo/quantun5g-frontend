@@ -13,6 +13,8 @@ import type { CommercialInvoiceStatus } from '@/types/database'
 interface Props {
   rows: CommercialInvoiceListRow[]
   adminMode?: boolean
+  /** Contratante: sem CTA de emitir fatura */
+  contratanteView?: boolean
 }
 
 const STATUS_CLASS: Record<CommercialInvoiceStatus, string> = {
@@ -22,7 +24,7 @@ const STATUS_CLASS: Record<CommercialInvoiceStatus, string> = {
   cancelada: 'bg-zinc-100 text-zinc-600 border-zinc-200',
 }
 
-export function FaturasTable({ rows, adminMode }: Props) {
+export function FaturasTable({ rows, adminMode, contratanteView }: Props) {
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -46,10 +48,14 @@ export function FaturasTable({ rows, adminMode }: Props) {
   if (rows.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-6 py-12 text-center text-sm text-zinc-600">
-        Nenhuma fatura ainda.{' '}
-        <a href="/contratacao" className="font-medium text-blue-800 hover:underline">
-          Emitir fatura
-        </a>
+        {contratanteView
+          ? 'Nenhuma fatura vinculada à sua conta. Se o pagamento já foi feito, peça ao administrador Quantum5G.'
+          : 'Nenhuma fatura ainda. '}
+        {!contratanteView && (
+          <a href="/contratacao" className="font-medium text-blue-800 hover:underline">
+            Emitir fatura
+          </a>
+        )}
       </div>
     )
   }
@@ -103,9 +109,10 @@ export function FaturasTable({ rows, adminMode }: Props) {
                         WhatsApp {row.clientWhatsapp}
                       </span>
                     )}
-                    {adminMode && row.consultantName && (
+                    {(adminMode || contratanteView) && row.consultantName && (
                       <span className="mt-1 block text-xs text-zinc-400">
-                        Consultor: {row.consultantName}
+                        {contratanteView ? 'Operador (RT): ' : 'Consultor: '}
+                        {row.consultantName}
                       </span>
                     )}
                   </td>

@@ -22,6 +22,7 @@ export async function enrichCommercialInvoices(
 
   const profilesById = new Map<string, { name: string | null; email: string | null }>()
   const companiesById = new Map<string, { name: string }>()
+  const companiesByCnpj = new Map<string, { name: string }>()
 
   const profileIdList = [...profileIds]
   if (profileIdList.length > 0) {
@@ -48,7 +49,26 @@ export async function enrichCommercialInvoices(
     }
   }
 
+  const cnpjDigitsList = new Set<string>()
+  for (const inv of invoices) {
+    const meta = (inv.metadata ?? {}) as Record<string, unknown>
+    const raw = meta.client_cnpj
+    if (typeof raw === 'string' && raw.trim()) {
+      cnpjDigitsList.add(raw.replace(/\D/g, ''))
+    }
+  }
+  if (cnpjDigitsList.size > 0) {
+    const { data: byCnpj } = await admin
+      .from('companies')
+      .select('name, cnpj')
+      .in('cnpj', [...cnpjDigitsList])
+    for (const c of byCnpj ?? []) {
+      const digits = (c.cnpj as string).replace(/\D/g, '')
+      companiesByCnpj.set(digits, { name: c.name as string })
+    }
+  }
+
   return invoices.map((inv) =>
-    buildInvoiceListRow(inv, { profilesById, companiesById }),
+    buildInvoiceListRow(inv, { profilesById, companiesById, companiesByCnpj }),
   )
 }

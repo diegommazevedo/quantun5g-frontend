@@ -90,20 +90,32 @@ export function buildInvoiceListRow(
   lookups?: {
     profilesById?: Map<string, { name: string | null; email: string | null }>
     companiesById?: Map<string, { name: string }>
+    companiesByCnpj?: Map<string, { name: string }>
   },
 ): CommercialInvoiceListRow {
   const fromMeta = invoiceClientFromMeta(inv)
   const profile = lookups?.profilesById?.get(inv.user_id)
   const company = inv.company_id ? lookups?.companiesById?.get(inv.company_id) : null
   const consultant = lookups?.profilesById?.get(inv.consultant_id)
+  const cnpjDigits = fromMeta.cnpj?.replace(/\D/g, '') ?? ''
+  const companyByCnpj = cnpjDigits ? lookups?.companiesByCnpj?.get(cnpjDigits) : null
+
+  // Contrato comercial: metadata.client_email é o contratante; user_id pode ser o consultor operador.
+  const hasContractClient = Boolean(fromMeta.email || fromMeta.companyName)
 
   return {
     invoice: inv,
-    clientName: profile?.name ?? fromMeta.companyName ?? company?.name ?? null,
-    clientEmail: profile?.email ?? fromMeta.email ?? null,
+    clientName: hasContractClient
+      ? (fromMeta.companyName ??
+          companyByCnpj?.name ??
+          company?.name ??
+          profile?.name ??
+          null)
+      : (profile?.name ?? fromMeta.companyName ?? company?.name ?? null),
+    clientEmail: fromMeta.email ?? profile?.email ?? null,
     clientCnpj: fromMeta.cnpj,
     clientWhatsapp: fromMeta.whatsapp,
-    companyName: company?.name ?? fromMeta.companyName ?? null,
+    companyName: company?.name ?? companyByCnpj?.name ?? fromMeta.companyName ?? null,
     consultantName: consultant?.name ?? null,
   }
 }

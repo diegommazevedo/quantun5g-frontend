@@ -10,6 +10,7 @@ import type { Database } from '@/types/database'
 import { getSupabasePublishableKey, getSupabaseUrl } from './env'
 import { supabaseClientOptions } from './options'
 import { withDualScope } from '@/lib/auth/cookie-scope'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -60,7 +61,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = pathname === '/login'
 
   // Só valida com getUser() em rotas que realmente precisam de decisão de auth
-  const staffOnlyPrefixes = ['/empresas']
+  /** Cadastro de CNPJ novo — só consultor/admin; contratante vê filiais em /empresas */
+  const staffOnlyPrefixes = ['/empresas/nova', '/nr01/empresas/nova', '/diagnostico/empresas/nova']
   const pentagramaAppPrefixes = ['/diagnostico', '/relatorio']
   const nr01AppPrefixes = ['/nr01/dashboard', '/nr01/avaliacao']
   const needsStaff = staffOnlyPrefixes.some((p) => pathname.startsWith(p))
@@ -114,10 +116,19 @@ export async function updateSession(request: NextRequest) {
 
       const role = profile?.role ?? 'consultant'
 
-      if (needsStaff && role !== 'admin' && role !== 'consultant') {
+      if (
+        needsStaff &&
+        role !== 'admin' &&
+        role !== 'consultant' &&
+        !isContratanteRole(role) &&
+        !isGerenteRole(role)
+      ) {
         const url = request.nextUrl.clone()
-        url.pathname = '/faturas'
-        url.searchParams.set('error', 'Cadastro de empresas é feito pelo consultor responsável.')
+        url.pathname = '/dashboard'
+        url.searchParams.set(
+          'error',
+          'Cadastro de novas empresas é feito pelo consultor responsável.',
+        )
         return NextResponse.redirect(url)
       }
 

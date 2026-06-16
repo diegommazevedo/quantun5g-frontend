@@ -9,6 +9,7 @@ import {
   type NavSection,
 } from '@/lib/navigation/app-nav'
 import { isPlatformStaff } from '@/lib/auth/roles'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { NavIcon } from '@/components/navigation/NavIcon'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
@@ -77,11 +78,24 @@ function SectionBlock({
 export function AppSidebar({ role, modulePentagrama, moduleNr01, onNavigate }: Props) {
   const pathname = usePathname() ?? ''
   const staff = isPlatformStaff(role)
+  const isContratante = isContratanteRole(role)
+  const isGerente = isGerenteRole(role)
   const sections = buildNavSections({ role, modulePentagrama, moduleNr01 })
 
   return (
     <div className="flex h-full flex-col">
-      {!staff && (
+      {isContratante && (
+        <p className="mx-3 mb-3 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-2.5 text-[11px] leading-snug text-blue-100/90">
+          Contratante do grupo. Gerencie equipe e filiais; novos CNPJs são cadastrados pelo consultor
+          operador.
+        </p>
+      )}
+      {isGerente && (
+        <p className="mx-3 mb-3 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-2.5 text-[11px] leading-snug text-blue-100/90">
+          Gerente de filial. Você vê apenas as empresas atribuídas pelo contratante.
+        </p>
+      )}
+      {!staff && !isContratante && !isGerente && (
         <p className="mx-3 mb-3 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-[11px] leading-snug text-amber-100/90">
           Perfil de liderança (IL). Empresas e disparos são gerenciados pelo consultor.
         </p>
