@@ -10,6 +10,7 @@ import type { UserRole } from '@/types/database'
 import { EmpresaGrid } from '@/components/nr01/EmpresaGrid'
 import { enrichCompaniesWithIlCounts } from '@/lib/companies/enrich'
 import { COMPANY_GRID_SELECT } from '@/lib/companies/grid-select'
+import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
 import { NovoDiagnosticoSteps } from '@/components/pentagrama/NovoDiagnosticoSteps'
 
 interface Props {
@@ -32,14 +33,12 @@ export default async function NovoDiagnosticoEscolherEmpresaPage({ searchParams 
   const role = profile?.role ?? 'consultant'
   await requirePentagramaLicenseOrRedirect({ userId: user.id, role })
 
-  let companiesQuery = supabase.from('companies').select(COMPANY_GRID_SELECT).order('name')
-  if (role === 'leader') {
-    companiesQuery = companiesQuery.eq('account_user_id', user.id)
-  } else if (role !== 'admin') {
-    companiesQuery = companiesQuery.eq('consultant_id', user.id)
-  }
-
-  const { data: companies } = await companiesQuery
+  const { data: companies } = await fetchCompaniesForActor(
+    supabase,
+    user.id,
+    role,
+    COMPANY_GRID_SELECT,
+  )
 
   const empresas = await enrichCompaniesWithIlCounts(supabase, (companies ?? []) as never[])
 

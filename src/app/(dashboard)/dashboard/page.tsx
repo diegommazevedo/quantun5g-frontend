@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { userHasPentagramaLicense } from '@/lib/billing/pentagrama-license'
 import { isPlatformStaff } from '@/lib/auth/roles'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
+import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
 import type { UserRole } from '@/types/database'
 import { DiagnosticosList, type DiagRow } from '@/components/dashboard/DiagnosticosList'
 import {
@@ -35,9 +37,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   const role = profile?.role ?? 'consultant'
   const isAdmin = role === 'admin'
   const isLeader = role === 'leader'
+  const isContratante = isContratanteRole(role)
+  const isGerente = isGerenteRole(role)
 
   let canCreateDiagnostic = isAdmin || isPlatformStaff(role)
-  if (isLeader) {
+  if (isLeader || isContratante || isGerente) {
     canCreateDiagnostic = await userHasPentagramaLicense(user!.id)
   }
 
@@ -46,8 +50,16 @@ export default async function DashboardPage({ searchParams }: Props) {
     .select('id, name, status, created_at, leader_name, companies(name)')
     .order('created_at', { ascending: false })
 
-  if (!isAdmin && !isLeader) {
+  if (!isAdmin && !isLeader && !isContratante && !isGerente) {
     diagQuery.eq('consultant_id', user!.id)
+  } else if (isContratante) {
+    const ids = await loadCompanyIdsForContratante(user!.id)
+    if (ids.length) diagQuery.in('company_id', ids)
+    else diagQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
+  } else if (isGerente) {
+    const ids = await loadCompanyIdsForGerente(user!.id)
+    if (ids.length) diagQuery.in('company_id', ids)
+    else diagQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
   }
 
   const { data: diagRaw } = (await diagQuery) as {
@@ -114,11 +126,20 @@ export default async function DashboardPage({ searchParams }: Props) {
       alert={
         !canCreateDiagnostic && !error ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Licença Pentagrama pendente.{' '}
-            <Link href="/contratacao" className="font-semibold underline">
-              Emitir fatura
-            </Link>{' '}
-            ou aguarde o administrador marcar o pagamento como pago.
+            {isContratante || isGerente ? (
+              <>
+                Módulo Pentagrama indisponível para sua conta. Peça ao administrador Quantum5G
+                ou ao consultor da organização para ativar o acesso.
+              </>
+            ) : (
+              <>
+                Licença Pentagrama pendente.{' '}
+                <Link href="/contratacao" className="font-semibold underline">
+                  Emitir fatura
+                </Link>{' '}
+                ou aguarde o administrador marcar o pagamento como pago.
+              </>
+            )}
           </div>
         ) : error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
