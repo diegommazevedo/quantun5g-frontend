@@ -9,7 +9,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { ensureNr01AssessmentAccess } from '@/lib/nr01/assessment-access'
 import { computeFullProjection, DEFAULT_ASSUMPTIONS } from '@/lib/nr01/economic'
 import {
   Nr01AssessmentResult,
@@ -17,16 +17,11 @@ import {
 } from '@/types/nr01'
 
 async function ensureOwnership(assessmentId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const { data, error } = await supabase
-    .from('nr01_assessments')
-    .select('id, consultant_id, status')
-    .eq('id', assessmentId)
-    .single()
-  if (error || !data) redirect('/nr01/dashboard')
-  return { supabase, user, assessment: data as { id: string; consultant_id: string; status: string } }
+  const { db, user, assessment } = await ensureNr01AssessmentAccess(
+    assessmentId,
+    'id, consultant_id, status',
+  )
+  return { supabase: db, user, assessment: assessment as { id: string; consultant_id: string; status: string } }
 }
 
 export async function recalcularEconomico(formData: FormData) {

@@ -2,7 +2,8 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { ensureNr01AssessmentAccess } from '@/lib/nr01/assessment-access'
 import { computeHybridReport, sha256Payload } from '@/lib/hybrid/compute'
 import { HYBRID_CROSSWALK_VERSION } from '@/lib/hybrid/crosswalk'
 import type { Dimensao, DiagnosticResult, Laudo } from '@/types/database'
@@ -18,40 +19,28 @@ import type { Nr01ActionStatus } from '@/types/nr01'
 
 const PENT_READY = ['ENCERRADO', 'RELATORIO_GERADO'] as const
 
-async function loadAssessment(supabase: Awaited<ReturnType<typeof createClient>>, assessmentId: string) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: assess, error } = await supabase
-    .from('nr01_assessments')
-    .select(`
+async function loadAssessment(assessmentId: string) {
+  const { db, user, assessment } = await ensureNr01AssessmentAccess(
+    assessmentId,
+    `
       *,
       companies:companies!nr01_assessments_company_id_fkey (name)
-    `)
-    .eq('id', assessmentId)
-    .single()
+    `,
+  )
 
-  if (error || !assess) redirect('/nr01/dashboard')
-
-  const a = assess as Nr01Assessment & {
+  const a = assessment as unknown as Nr01Assessment & {
     companies: { name: string } | null
     linked_diagnostic_id: string | null
   }
 
-  if (a.consultant_id !== user.id) {
-    const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if ((prof as { role: string } | null)?.role !== 'admin') redirect('/nr01/dashboard')
-  }
-
-  return { user, assessment: a }
+  return { supabase: db, user, assessment: a }
 }
 
 export async function gerarDevolutivaHibrida(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
   const seedPlano = formData.get('seed_plano') === '1'
 
-  const supabase = await createClient()
-  const { user, assessment: a } = await loadAssessment(supabase, assessmentId)
+  const { supabase, user, assessment: a } = await loadAssessment(assessmentId)
 
   if (a.status !== 'CONCLUIDO') {
     redirect(`/nr01/avaliacao/${assessmentId}/hibrido?error=${encodeURIComponent('Processe a avaliação NR-01 antes da devolutiva híbrida.')}`)
@@ -152,7 +141,7 @@ export async function gerarDevolutivaHibrida(formData: FormData) {
 }
 
 async function seedPlanoFecundado(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   assessmentId: string,
   userId: string,
   plano: HybridFecundatedAction[],

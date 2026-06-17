@@ -6,6 +6,11 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
+  fetchNr01AssessmentForActor,
+  resolveActorRole,
+} from '@/lib/nr01/assessment-access'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import {
   NR01_DIMENSION_LABEL,
   RISK_LEVEL_LABEL,
 } from '@/types/nr01'
@@ -41,11 +46,16 @@ export default async function DevolutivaHibridaPage({ params, searchParams }: Pr
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: assess } = await supabase
-    .from('nr01_assessments')
-    .select('id, name, status, linked_diagnostic_id, companies(name)')
-    .eq('id', id)
-    .single()
+  const role = await resolveActorRole(supabase, user.id)
+  const db = supabaseForActorRole(role, supabase)
+
+  const { data: assess } = await fetchNr01AssessmentForActor(
+    supabase,
+    user.id,
+    role,
+    id,
+    'id, name, status, linked_diagnostic_id, companies(name)',
+  )
 
   if (!assess) notFound()
 
@@ -57,7 +67,7 @@ export default async function DevolutivaHibridaPage({ params, searchParams }: Pr
     companies: { name: string } | null
   }
 
-  const { data: hybrid } = await supabase
+  const { data: hybrid } = await db
     .from('hybrid_reports')
     .select('*')
     .eq('assessment_id', id)

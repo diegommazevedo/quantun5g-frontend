@@ -13,6 +13,11 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import {
+  fetchNr01AssessmentForActor,
+  resolveActorRole,
+} from '@/lib/nr01/assessment-access'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import { getActiveDriver } from '@/lib/nr01/email'
 import { ASSESSMENT_STATUS_LABEL, NR01_DIMENSION_LABEL } from '@/types/nr01'
 import type {
@@ -43,15 +48,19 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Carrega avaliação + empresa
-  const { data: assessData } = await supabase
-    .from('nr01_assessments')
-    .select(`
+  const role = await resolveActorRole(supabase, user.id)
+  const db = supabaseForActorRole(role, supabase)
+
+  const { data: assessData } = await fetchNr01AssessmentForActor(
+    supabase,
+    user.id,
+    role,
+    id,
+    `
       id, name, status, instrument_version, company_id, consultant_id,
       companies:companies!nr01_assessments_company_id_fkey ( id, name, total_collaborators )
-    `)
-    .eq('id', id)
-    .single()
+    `,
+  )
   if (!assessData) notFound()
   const a = assessData as unknown as Nr01Assessment & {
     companies: { id: string; name: string; total_collaborators: number } | null
@@ -85,9 +94,9 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
 
   // Config + dispatches + scores semanais
   const [{ data: configData }, { data: dispatchesData }, { data: scoresData }] = await Promise.all([
-    supabase.from('nr01_pulse_config').select('*').eq('assessment_id', id).maybeSingle(),
-    supabase.from('nr01_pulse_dispatches').select('*').eq('assessment_id', id).order('week_number', { ascending: false }),
-    supabase.from('nr01_pulse_weekly_scores').select('*').eq('assessment_id', id).order('week_number'),
+    db.from('nr01_pulse_config').select('*').eq('assessment_id', id).maybeSingle(),
+    db.from('nr01_pulse_dispatches').select('*').eq('assessment_id', id).order('week_number', { ascending: false }),
+    db.from('nr01_pulse_weekly_scores').select('*').eq('assessment_id', id).order('week_number'),
   ])
 
   const config = configData as Nr01PulseConfig | null
@@ -105,7 +114,7 @@ export default async function MonitoramentoPage({ params, searchParams }: Props)
   // Agrega respondentes únicos por dispatch
   if (dispatches.length > 0) {
     const dispatchIds = dispatches.map((d) => d.id)
-    const { data: respPivotData } = await supabase
+    const { data: respPivotData } = await db
       .from('nr01_pulse_responses')
       .select('dispatch_id, anon_id')
       .in('dispatch_id', dispatchIds)

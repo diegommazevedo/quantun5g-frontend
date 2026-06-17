@@ -11,7 +11,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { ensureNr01AssessmentAccess } from '@/lib/nr01/assessment-access'
 import { buildPulseEmail, sendEmail } from '@/lib/nr01/email'
 import { buildPulseUrl, hashEmail, normalizeEmails, selectQuestionsForWeek } from '@/lib/nr01/pulse'
 import type {
@@ -22,16 +22,11 @@ import type {
 } from '@/types/nr01'
 
 async function ensureOwnership(assessmentId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const { data, error } = await supabase
-    .from('nr01_assessments')
-    .select('id, consultant_id, status, instrument_version, company_id')
-    .eq('id', assessmentId)
-    .single()
-  if (error || !data) redirect('/nr01/dashboard')
-  return { supabase, user, assessment: data as unknown as Nr01Assessment }
+  const { db, user, assessment } = await ensureNr01AssessmentAccess<Nr01Assessment>(
+    assessmentId,
+    'id, consultant_id, status, instrument_version, company_id',
+  )
+  return { supabase: db, user, assessment }
 }
 
 // ============================================================

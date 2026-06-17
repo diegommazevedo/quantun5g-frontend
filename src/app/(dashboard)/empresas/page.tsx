@@ -97,7 +97,19 @@ export default async function EmpresasPage({ searchParams }: Props) {
 
       {slotsUsage ? <CnpjSlotsBanner usage={slotsUsage} /> : null}
 
-      <EmpresaGrid empresas={empresas} mode="manage" product="unified" />
+      <EmpresaGrid
+        empresas={empresas}
+        mode="manage"
+        product="unified"
+        hideEmptyCadastro={isContratante || isGerente}
+        emptyHint={
+          isContratante
+            ? 'Nenhuma filial vinculada ao grupo. Solicite ao consultor operador o cadastro dos CNPJs.'
+            : isGerente
+              ? 'Nenhuma empresa atribuída ao seu perfil. Peça ao contratante do grupo.'
+              : undefined
+        }
+      />
     </div>
   )
 }

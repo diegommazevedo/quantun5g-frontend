@@ -12,6 +12,11 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
+  fetchNr01AssessmentForActor,
+  resolveActorRole,
+} from '@/lib/nr01/assessment-access'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import {
   ASSESSMENT_STATUS_LABEL,
   Nr01Assessment,
   Nr01AssessmentResult,
@@ -46,15 +51,19 @@ export default async function DashboardEconomicoPage({ params, searchParams }: P
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Carrega avaliação + empresa
-  const { data: assessData } = await supabase
-    .from('nr01_assessments')
-    .select(`
+  const role = await resolveActorRole(supabase, user.id)
+  const db = supabaseForActorRole(role, supabase)
+
+  const { data: assessData } = await fetchNr01AssessmentForActor(
+    supabase,
+    user.id,
+    role,
+    id,
+    `
       *,
       companies:companies!nr01_assessments_company_id_fkey ( id, name, total_collaborators )
-    `)
-    .eq('id', id)
-    .single()
+    `,
+  )
   if (!assessData) notFound()
   const a = assessData as unknown as AssessFull
 
@@ -86,9 +95,9 @@ export default async function DashboardEconomicoPage({ params, searchParams }: P
 
   // Resultado + inputs + projeção
   const [{ data: resultData }, { data: inputsData }, { data: projData }] = await Promise.all([
-    supabase.from('nr01_assessment_results').select('iso_score, iso_risk_level').eq('assessment_id', id).maybeSingle(),
-    supabase.from('nr01_economic_inputs').select('*').eq('assessment_id', id).maybeSingle(),
-    supabase.from('nr01_economic_projections').select('*').eq('assessment_id', id).maybeSingle(),
+    db.from('nr01_assessment_results').select('iso_score, iso_risk_level').eq('assessment_id', id).maybeSingle(),
+    db.from('nr01_economic_inputs').select('*').eq('assessment_id', id).maybeSingle(),
+    db.from('nr01_economic_projections').select('*').eq('assessment_id', id).maybeSingle(),
   ])
 
   const result = resultData as Pick<Nr01AssessmentResult, 'iso_score' | 'iso_risk_level'> | null

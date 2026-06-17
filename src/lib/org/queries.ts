@@ -29,6 +29,41 @@ export async function loadOrgCompanies(orgId: string): Promise<OrgCompanyRow[]> 
   return (data ?? []) as OrgCompanyRow[]
 }
 
+/** Empresas da org com campos arbitrários (grade NR-01 / Pentagrama). */
+export async function loadOrgCompaniesWithSelect<T = Record<string, unknown>>(
+  orgId: string,
+  select: string,
+): Promise<{ data: T[]; error: string | null }> {
+  const admin = createServiceRoleAdmin()
+  const { data, error } = await admin
+    .from('companies')
+    .select(select)
+    .eq('org_account_id', orgId)
+    .order('name')
+  if (error) {
+    console.error('[loadOrgCompaniesWithSelect]', error.message)
+    return { data: [], error: error.message }
+  }
+  return { data: (data ?? []) as T[], error: null }
+}
+
+/** Empresas atribuídas ao gerente com campos arbitrários. */
+export async function loadGerenteCompaniesWithSelect<T = Record<string, unknown>>(
+  userId: string,
+  select: string,
+): Promise<{ data: T[]; error: string | null }> {
+  const ids = await loadCompanyIdsForGerente(userId)
+  if (!ids.length) return { data: [], error: null }
+
+  const admin = createServiceRoleAdmin()
+  const { data, error } = await admin.from('companies').select(select).in('id', ids).order('name')
+  if (error) {
+    console.error('[loadGerenteCompaniesWithSelect]', error.message)
+    return { data: [], error: error.message }
+  }
+  return { data: (data ?? []) as T[], error: null }
+}
+
 export async function loadOrgGerentes(orgId: string): Promise<OrgGerenteRow[]> {
   const admin = createServiceRoleAdmin()
   const { data: members } = await admin

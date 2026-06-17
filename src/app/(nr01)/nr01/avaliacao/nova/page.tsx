@@ -101,6 +101,7 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
           mode="picker"
           product="nr01"
           retornoPicker="/nr01/avaliacao/nova"
+          hideEmptyCadastro={isContratante || isGerente}
           emptyHint={
             isContratante || isGerente
               ? 'Nenhuma filial vinculada ao seu perfil. Peça ao administrador ou consultor.'

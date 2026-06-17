@@ -70,6 +70,8 @@ interface Props {
   mode: 'manage' | 'picker'
   product?: EmpresaGridProduct
   emptyHint?: string
+  /** Oculta o CTA "Cadastrar primeira empresa" (contratante/gerente). */
+  hideEmptyCadastro?: boolean
   pickerHref?: (id: string) => string
   cadastroHref?: (id: string) => string
   manageHref?: (id: string) => string
@@ -81,6 +83,7 @@ export function EmpresaGrid({
   mode,
   product = 'nr01',
   emptyHint,
+  hideEmptyCadastro,
   pickerHref,
   cadastroHref,
   manageHref,
@@ -103,12 +106,14 @@ export function EmpresaGrid({
     return (
       <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
         <p className="text-sm text-zinc-700">{emptyHint ?? 'Nenhuma empresa cadastrada.'}</p>
-        <Link
-          href={novaHref}
-          className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
-        >
-          Cadastrar primeira empresa
-        </Link>
+        {!hideEmptyCadastro && (
+          <Link
+            href={novaHref}
+            className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
+          >
+            Cadastrar primeira empresa
+          </Link>
+        )}
       </div>
     )
   }

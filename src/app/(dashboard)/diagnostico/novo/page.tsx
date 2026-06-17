@@ -96,6 +96,7 @@ export default async function NovoDiagnosticoEscolherEmpresaPage({ searchParams 
           mode="picker"
           product="pentagrama"
           retornoPicker="/diagnostico/novo"
+          hideEmptyCadastro={isContratante || isGerente}
           emptyHint={
             isContratante || isGerente
               ? 'Nenhuma filial vinculada ao seu perfil. Peça ao administrador ou consultor.'

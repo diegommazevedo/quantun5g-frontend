@@ -1,6 +1,11 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import {
+  fetchNr01AssessmentForActor,
+  resolveActorRole,
+} from '@/lib/nr01/assessment-access'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import { dispararConvitesNr01 } from './actions'
 import { filterContactsForDispatch } from '@/lib/survey/dispatch'
 import { loadLastDispatchBatch } from '@/lib/survey/dispatch-history'
@@ -23,27 +28,32 @@ export default async function Nr01DisparosPage({ params, searchParams }: Props) 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: assess } = await supabase
-    .from('nr01_assessments')
-    .select(`
+  const role = await resolveActorRole(supabase, user.id)
+  const db = supabaseForActorRole(role, supabase)
+
+  const { data: assess } = await fetchNr01AssessmentForActor(
+    supabase,
+    user.id,
+    role,
+    id,
+    `
       id, name, status,
       companies:companies!nr01_assessments_company_id_fkey ( id, name )
-    `)
-    .eq('id', id)
-    .single()
+    `,
+  )
 
   if (!assess) notFound()
   const a = assess as { id: string; name: string; status: string; companies: { id: string; name: string } | null }
   const companyId = a.companies?.id
 
   const { data: contactsRaw } = companyId
-    ? await supabase.from('company_contacts').select('*').eq('company_id', companyId)
+    ? await db.from('company_contacts').select('*').eq('company_id', companyId)
     : { data: [] }
 
   const lista = filterContactsForDispatch((contactsRaw ?? []) as CompanyContact[], 'nr01', 'nr01_coleta')
-  const lastBatch = await loadLastDispatchBatch(supabase, 'nr01', id)
-  const deliveryStats = await loadInviteDeliveryStats(supabase, 'nr01', id)
-  const deliveryDetails = await loadInviteDeliveryDetails(supabase, 'nr01', id, 'nr01_coleta')
+  const lastBatch = await loadLastDispatchBatch(db, 'nr01', id)
+  const deliveryStats = await loadInviteDeliveryStats(db, 'nr01', id)
+  const deliveryDetails = await loadInviteDeliveryDetails(db, 'nr01', id, 'nr01_coleta')
   const emailDriver = getActiveDriver()
   const failedItems = lastBatch?.items.filter((i) => i.status === 'failed') ?? []
 

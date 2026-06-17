@@ -7,7 +7,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { ensureNr01AssessmentAccess } from '@/lib/nr01/assessment-access'
 import {
   Nr01Question,
   Nr01Response,
@@ -27,16 +27,8 @@ import {
 } from '@/lib/nr01/technical-lead'
 
 async function ensureOwnership(assessmentId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const { data, error } = await supabase
-    .from('nr01_assessments')
-    .select('id, consultant_id')
-    .eq('id', assessmentId)
-    .single()
-  if (error || !data) redirect('/nr01/dashboard')
-  return { supabase, user, assessment: data as { id: string; consultant_id: string } }
+  const { db, user, assessment } = await ensureNr01AssessmentAccess(assessmentId)
+  return { supabase: db, user, assessment }
 }
 
 // ============================================================
@@ -248,7 +240,7 @@ export async function gerarPacoteEvidencias(formData: FormData) {
     .eq('id', id)
     .single()
   if (!a) redirect('/nr01/dashboard')
-  const ass = a as {
+  const ass = a as unknown as {
     id: string
     instrument_version: string
     technical_lead_crp: string | null

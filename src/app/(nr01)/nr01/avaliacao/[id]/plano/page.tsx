@@ -8,6 +8,11 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
+  fetchNr01AssessmentForActor,
+  resolveActorRole,
+} from '@/lib/nr01/assessment-access'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import {
   NR01_DIMENSION_LABEL,
   Nr01ActionItem,
   Nr01ActionPlan,
@@ -68,21 +73,26 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: assessmentData } = await supabase
-    .from('nr01_assessments')
-    .select('id, name, status, consultant_id')
-    .eq('id', id)
-    .single()
+  const role = await resolveActorRole(supabase, user.id)
+  const db = supabaseForActorRole(role, supabase)
+
+  const { data: assessmentData } = await fetchNr01AssessmentForActor(
+    supabase,
+    user.id,
+    role,
+    id,
+    'id, name, status, consultant_id',
+  )
   if (!assessmentData) notFound()
   const a = assessmentData as Pick<Nr01Assessment, 'id' | 'name' | 'status' | 'consultant_id'>
 
   const [{ data: planData }, { data: scoresData }] = await Promise.all([
-    supabase
+    db
       .from('nr01_action_plans')
       .select('*')
       .eq('assessment_id', id)
       .maybeSingle(),
-    supabase
+    db
       .from('nr01_dimension_scores')
       .select('*')
       .eq('assessment_id', id)
@@ -95,7 +105,7 @@ export default async function PlanoPDCAPage({ params, searchParams }: Props) {
 
   let items: Nr01ActionItem[] = []
   if (plan) {
-    const { data: itemsData } = await supabase
+    const { data: itemsData } = await db
       .from('nr01_action_items')
       .select('*')
       .eq('action_plan_id', plan.id)

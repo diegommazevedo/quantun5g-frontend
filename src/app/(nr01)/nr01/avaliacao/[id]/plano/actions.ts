@@ -6,7 +6,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { ensureNr01AssessmentAccess } from '@/lib/nr01/assessment-access'
 import {
   Nr01ActionItem,
   Nr01ActionPriority,
@@ -18,16 +18,8 @@ import { suggestActionsFromScores } from '@/lib/nr01/plan-suggestions'
 import { pdcaPhaseForItemStatus } from '@/lib/nr01/plan-pdca'
 
 async function ensureOwnership(assessmentId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const { data, error } = await supabase
-    .from('nr01_assessments')
-    .select('id, consultant_id')
-    .eq('id', assessmentId)
-    .single()
-  if (error || !data) redirect('/nr01/dashboard')
-  return { supabase, user, assessment: data as { id: string; consultant_id: string } }
+  const { db, user, assessment } = await ensureNr01AssessmentAccess(assessmentId)
+  return { supabase: db, user, assessment }
 }
 
 async function getOrCreatePlan(assessmentId: string) {

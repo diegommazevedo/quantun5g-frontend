@@ -9,6 +9,11 @@
 
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import {
+  fetchNr01AssessmentForActor,
+  resolveActorRole,
+} from '@/lib/nr01/assessment-access'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import { loadLaudoData } from '@/lib/nr01/pdf-data'
 import { buildLaudoHtml } from '@/lib/nr01/pdf-template'
 
@@ -22,7 +27,19 @@ export default async function LaudoPrintPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const data = await loadLaudoData(supabase, id)
+  const role = await resolveActorRole(supabase, user.id)
+  const db = supabaseForActorRole(role, supabase)
+
+  const { data: assessment } = await fetchNr01AssessmentForActor(
+    supabase,
+    user.id,
+    role,
+    id,
+    'id',
+  )
+  if (!assessment) notFound()
+
+  const data = await loadLaudoData(db, id)
   if (!data) notFound()
 
   const html = buildLaudoHtml(data)

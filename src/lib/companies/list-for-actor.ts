@@ -6,13 +6,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { UserRole } from '@/types/database'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
+import { loadOrgActorContext } from '@/lib/org/access'
 import {
-  loadCompanyIdsForContratante,
-  loadCompanyIdsForGerente,
+  loadGerenteCompaniesWithSelect,
+  loadOrgCompaniesWithSelect,
 } from '@/lib/org/queries'
 import { supabaseForActorRole } from '@/lib/org/scoped-db'
-
-const EMPTY_ID = '00000000-0000-0000-0000-000000000000'
 
 function useAccountUserFilter(role: UserRole): boolean {
   return role === 'leader' && !isLicensingV2()
@@ -24,17 +23,23 @@ export async function fetchCompaniesForActor<T = Record<string, unknown>>(
   role: UserRole,
   select: string,
 ): Promise<{ data: T[] | null; error: { message: string } | null }> {
+  if (isContratanteRole(role)) {
+    const ctx = await loadOrgActorContext(userId, role)
+    if (!ctx.org) return { data: [], error: null }
+    const { data, error } = await loadOrgCompaniesWithSelect<T>(ctx.org.id, select)
+    return { data, error: error ? { message: error } : null }
+  }
+
+  if (isGerenteRole(role)) {
+    const { data, error } = await loadGerenteCompaniesWithSelect<T>(userId, select)
+    return { data, error: error ? { message: error } : null }
+  }
+
   const db = supabaseForActorRole(role, supabase)
   let q = db.from('companies').select(select)
 
   if (role === 'admin') {
     // sem filtro
-  } else if (isContratanteRole(role)) {
-    const ids = await loadCompanyIdsForContratante(userId)
-    q = q.in('id', ids.length ? ids : [EMPTY_ID])
-  } else if (isGerenteRole(role)) {
-    const ids = await loadCompanyIdsForGerente(userId)
-    q = q.in('id', ids.length ? ids : [EMPTY_ID])
   } else if (useAccountUserFilter(role)) {
     q = q.eq('account_user_id', userId)
   } else {
@@ -52,17 +57,25 @@ export async function fetchCompanyForActor<T = Record<string, unknown>>(
   companyId: string,
   select: string,
 ): Promise<{ data: T | null; error: { message: string } | null }> {
+  if (isContratanteRole(role)) {
+    const ctx = await loadOrgActorContext(userId, role)
+    if (!ctx.org) return { data: null, error: null }
+    const { data } = await loadOrgCompaniesWithSelect<T>(ctx.org.id, select)
+    const row = data.find((c) => (c as { id?: string }).id === companyId) ?? null
+    return { data: row, error: null }
+  }
+
+  if (isGerenteRole(role)) {
+    const { data } = await loadGerenteCompaniesWithSelect<T>(userId, select)
+    const row = data.find((c) => (c as { id?: string }).id === companyId) ?? null
+    return { data: row, error: null }
+  }
+
   const db = supabaseForActorRole(role, supabase)
   let q = db.from('companies').select(select).eq('id', companyId)
 
   if (role === 'admin') {
     // sem filtro extra
-  } else if (isContratanteRole(role)) {
-    const ids = await loadCompanyIdsForContratante(userId)
-    if (!ids.includes(companyId)) q = q.eq('id', EMPTY_ID)
-  } else if (isGerenteRole(role)) {
-    const ids = await loadCompanyIdsForGerente(userId)
-    if (!ids.includes(companyId)) q = q.eq('id', EMPTY_ID)
   } else if (useAccountUserFilter(role)) {
     q = q.eq('account_user_id', userId)
   } else {

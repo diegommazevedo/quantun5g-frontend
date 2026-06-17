@@ -19,6 +19,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createHash } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
+import {
+  fetchNr01AssessmentForActor,
+  resolveActorRole,
+} from '@/lib/nr01/assessment-access'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import { loadLaudoData } from '@/lib/nr01/pdf-data'
 import { buildLaudoHtml } from '@/lib/nr01/pdf-template'
 import { launchPdfBrowser } from '@/lib/nr01/launch-pdf-browser'
@@ -39,22 +44,23 @@ export async function POST(
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   }
 
-  // Carrega dados
-  const data = await loadLaudoData(supabase, assessmentId)
-  if (!data) {
+  const role = await resolveActorRole(supabase, user.id)
+  const db = supabaseForActorRole(role, supabase)
+
+  const { data: scopedAssessment } = await fetchNr01AssessmentForActor(
+    supabase,
+    user.id,
+    role,
+    assessmentId,
+    'id, status',
+  )
+  if (!scopedAssessment) {
     return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 })
   }
 
-  // Permissão: consultor dono ou admin
-  if (data.assessment.consultant_id !== user.id) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    if ((profile as { role?: string } | null)?.role !== 'admin') {
-      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
-    }
+  const data = await loadLaudoData(db, assessmentId)
+  if (!data) {
+    return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 })
   }
 
   if (data.assessment.status !== 'CONCLUIDO') {

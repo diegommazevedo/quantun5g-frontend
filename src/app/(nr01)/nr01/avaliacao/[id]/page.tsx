@@ -7,6 +7,11 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
+  fetchNr01AssessmentForActor,
+  resolveActorRole,
+} from '@/lib/nr01/assessment-access'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import {
   ASSESSMENT_STATUS_COLOR,
   ASSESSMENT_STATUS_LABEL,
   NR01_DIMENSION_LABEL,
@@ -48,17 +53,22 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: assess } = await supabase
-    .from('nr01_assessments')
-    .select(`
+  const role = await resolveActorRole(supabase, user.id)
+  const db = supabaseForActorRole(role, supabase)
+
+  const { data: assess } = await fetchNr01AssessmentForActor(
+    supabase,
+    user.id,
+    role,
+    id,
+    `
       *,
       companies:companies!nr01_assessments_company_id_fkey (
         id, name, total_collaborators,
         technical_lead_name, technical_lead_crp, technical_lead_profession, technical_lead_email
       )
-    `)
-    .eq('id', id)
-    .single()
+    `,
+  )
   if (!assess) notFound()
   const a = assess as unknown as AssessFull
   const technicalLead = resolveTechnicalLeadForLaudo({
@@ -68,11 +78,11 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
   const rtFrozen = Boolean(a.technical_lead_name?.trim() && a.status === 'CONCLUIDO')
 
   const [{ data: result }, { data: scores }, respCountResult, { data: pack }, { data: pubTokensData }] = await Promise.all([
-    supabase.from('nr01_assessment_results').select('*').eq('assessment_id', id).maybeSingle(),
-    supabase.from('nr01_dimension_scores').select('*').eq('assessment_id', id).order('dimension_code'),
-    supabase.from('nr01_responses').select('id', { count: 'exact', head: true }).eq('assessment_id', id),
-    supabase.from('nr01_evidence_pack').select('id, signed_at, pack_sha256, generated_at').eq('assessment_id', id).maybeSingle(),
-    supabase.from('nr01_public_status_tokens').select('*').eq('assessment_id', id).order('created_at', { ascending: false }),
+    db.from('nr01_assessment_results').select('*').eq('assessment_id', id).maybeSingle(),
+    db.from('nr01_dimension_scores').select('*').eq('assessment_id', id).order('dimension_code'),
+    db.from('nr01_responses').select('id', { count: 'exact', head: true }).eq('assessment_id', id),
+    db.from('nr01_evidence_pack').select('id, signed_at, pack_sha256, generated_at').eq('assessment_id', id).maybeSingle(),
+    db.from('nr01_public_status_tokens').select('*').eq('assessment_id', id).order('created_at', { ascending: false }),
   ])
 
   const r = result as Nr01AssessmentResult | null
