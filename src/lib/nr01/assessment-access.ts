@@ -11,19 +11,41 @@ import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/or
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { supabaseForActorRole } from '@/lib/org/scoped-db'
 
-const EMPTY_SCOPED_ID = '00000000-0000-0000-0000-000000000000'
-
 export async function resolveActorRole(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<UserRole> {
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', userId)
     .returns<{ role: UserRole }[]>()
-    .maybeSingle()
+    .single()
+
+  if (error) {
+    console.error('[resolveActorRole]', userId, error.message)
+  }
   return profile?.role ?? 'consultant'
+}
+
+async function isAssessmentInActorScope(
+  userId: string,
+  role: UserRole,
+  row: { company_id?: string; consultant_id?: string },
+): Promise<boolean> {
+  if (role === 'admin' || role === 'leader') return true
+
+  if (isContratanteRole(role)) {
+    const allowed = await loadCompanyIdsForContratante(userId)
+    return Boolean(row.company_id && allowed.includes(row.company_id))
+  }
+
+  if (isGerenteRole(role)) {
+    const allowed = await loadCompanyIdsForGerente(userId)
+    return Boolean(row.company_id && allowed.includes(row.company_id))
+  }
+
+  return row.consultant_id === userId
 }
 
 export async function fetchNr01AssessmentForActor<T = Record<string, unknown>>(
@@ -34,22 +56,22 @@ export async function fetchNr01AssessmentForActor<T = Record<string, unknown>>(
   select: string,
 ): Promise<{ data: T | null; error: { message: string } | null }> {
   const db = supabaseForActorRole(role, userClient)
-  let q = db.from('nr01_assessments').select(select).eq('id', assessmentId)
+  const res = await db.from('nr01_assessments').select(select).eq('id', assessmentId).maybeSingle()
 
-  if (role === 'admin' || role === 'leader') {
-    // sem filtro extra
-  } else if (isContratanteRole(role)) {
-    const ids = await loadCompanyIdsForContratante(userId)
-    q = q.in('company_id', ids.length ? ids : [EMPTY_SCOPED_ID])
-  } else if (isGerenteRole(role)) {
-    const ids = await loadCompanyIdsForGerente(userId)
-    q = q.in('company_id', ids.length ? ids : [EMPTY_SCOPED_ID])
-  } else {
-    q = q.eq('consultant_id', userId)
+  if (res.error) {
+    console.error('[fetchNr01AssessmentForActor]', assessmentId, res.error.message)
+    return { data: null, error: { message: res.error.message } }
+  }
+  if (!res.data) return { data: null, error: null }
+
+  const row = res.data as { company_id?: string; consultant_id?: string }
+  const inScope = await isAssessmentInActorScope(userId, role, row)
+  if (!inScope) {
+    console.warn('[fetchNr01AssessmentForActor] fora do escopo', { assessmentId, userId, role })
+    return { data: null, error: null }
   }
 
-  const res = await q.maybeSingle()
-  return res as { data: T | null; error: { message: string } | null }
+  return { data: res.data as T, error: null }
 }
 
 export interface Nr01AssessmentAccessContext<T = Record<string, unknown>> {
@@ -79,7 +101,7 @@ export async function ensureNr01AssessmentAccess<T = Record<string, unknown>>(
     assessmentId,
     select,
   )
-  if (error || !assessment) redirect('/nr01/dashboard')
+  if (error || !assessment) redirect('/nr01/dashboard?error=avaliacao-nao-encontrada')
 
   const db = supabaseForActorRole(role, userClient)
   return { db, userClient, user, role, assessment }

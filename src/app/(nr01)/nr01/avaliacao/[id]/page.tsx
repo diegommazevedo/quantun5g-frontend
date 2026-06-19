@@ -4,7 +4,7 @@
  */
 
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
   fetchNr01AssessmentForActor,
@@ -35,6 +35,8 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
+export const dynamic = 'force-dynamic'
+
 type AssessFull = Nr01Assessment & {
   companies: {
     id: string
@@ -56,7 +58,7 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
   const role = await resolveActorRole(supabase, user.id)
   const db = supabaseForActorRole(role, supabase)
 
-  const { data: assess } = await fetchNr01AssessmentForActor(
+  const { data: assess, error: assessErr } = await fetchNr01AssessmentForActor(
     supabase,
     user.id,
     role,
@@ -69,7 +71,9 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
       )
     `,
   )
-  if (!assess) notFound()
+  if (assessErr || !assess) {
+    redirect('/nr01/dashboard?error=avaliacao-nao-encontrada')
+  }
   const a = assess as unknown as AssessFull
   const technicalLead = resolveTechnicalLeadForLaudo({
     assessment: a,

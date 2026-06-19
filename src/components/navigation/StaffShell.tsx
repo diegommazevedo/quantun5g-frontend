@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { profileHasModule } from '@/lib/auth/modules'
@@ -6,6 +5,7 @@ import { AppShell } from '@/components/navigation/AppShell'
 import { LogoutButton } from '@/components/navigation/LogoutButton'
 import { AgentePanelDynamic } from '@/components/agente/AgentePanelDynamic'
 import type { Profile, UserRole } from '@/types/database'
+import { Suspense } from 'react'
 
 interface Props {
   children: React.ReactNode
@@ -15,7 +15,7 @@ interface Props {
   requireModuleNr01?: boolean
 }
 
-async function ShellWithProfile({
+export async function StaffShell({
   children,
   contentMaxWidth,
   showAgent,
@@ -70,19 +70,5 @@ async function ShellWithProfile({
         </Suspense>
       )}
     </div>
-  )
-}
-
-export function StaffShell(props: Props) {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex h-[100dvh] items-center justify-center bg-[var(--q-bg)] text-sm text-[var(--q-text-muted)]">
-          Carregando…
-        </div>
-      }
-    >
-      <ShellWithProfile {...props} />
-    </Suspense>
   )
 }
