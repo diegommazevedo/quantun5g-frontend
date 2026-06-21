@@ -1,4 +1,6 @@
+import { cache } from 'react'
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
+import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
 
 export interface OrgCompanyRow {
   id: string
@@ -125,7 +127,7 @@ export async function loadOrgGerentes(orgId: string): Promise<OrgGerenteRow[]> {
   return rows
 }
 
-export async function loadCompanyIdsForGerente(userId: string): Promise<string[]> {
+const loadCompanyIdsForGerenteCached = cache(async (userId: string): Promise<string[]> => {
   const admin = createServiceRoleAdmin()
   const { data: member } = await admin
     .from('org_members')
@@ -141,19 +143,15 @@ export async function loadCompanyIdsForGerente(userId: string): Promise<string[]
     .eq('member_id', member.id as string)
 
   return ((links ?? []) as { company_id: string }[]).map((l) => l.company_id)
+})
+
+export async function loadCompanyIdsForGerente(userId: string): Promise<string[]> {
+  return loadCompanyIdsForGerenteCached(userId)
 }
 
 export async function loadCompanyIdsForContratante(userId: string): Promise<string[]> {
-  const admin = createServiceRoleAdmin()
-  const { data: org } = await admin
-    .from('org_accounts')
-    .select('id')
-    .eq('owner_user_id', userId)
-    .maybeSingle()
-  if (!org?.id) return []
-
-  const { data: cos } = await admin.from('companies').select('id').eq('org_account_id', org.id as string)
-  return ((cos ?? []) as { id: string }[]).map((c) => c.id)
+  const scope = await loadContratanteOrgScope(userId)
+  return scope.companyIds
 }
 
 /** Admin: resumo org + empresas por usuário */

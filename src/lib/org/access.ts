@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import type { UserRole } from '@/types/database'
+import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 
 export interface OrgAccount {
@@ -24,12 +25,8 @@ export async function loadOrgActorContext(userId: string, role: UserRole): Promi
   let org: OrgAccount | null = null
 
   if (isContratanteRole(role)) {
-    const { data } = await admin
-      .from('org_accounts')
-      .select('id, name, owner_user_id, consultant_id')
-      .eq('owner_user_id', userId)
-      .maybeSingle()
-    org = (data as OrgAccount | null) ?? null
+    const scope = await loadContratanteOrgScope(userId)
+    org = scope.org
   } else if (isGerenteRole(role)) {
     const { data: member } = await admin
       .from('org_members')

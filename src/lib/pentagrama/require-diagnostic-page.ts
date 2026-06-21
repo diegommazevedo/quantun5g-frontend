@@ -8,8 +8,8 @@ import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import type { UserRole } from '@/types/database'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { getPageActor } from '@/lib/org/page-actor'
-import { loadOrgActorContext } from '@/lib/org/access'
-import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
+import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
+import { loadCompanyIdsForGerente } from '@/lib/org/queries'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 
 const DIAG_MISS = '/dashboard?error=diagnostico-nao-encontrado'
@@ -38,18 +38,16 @@ export const loadDiagnosticForPage = cache(async <T = Record<string, unknown>>(
   }
 
   if (isContratanteRole(role)) {
-    const ctx = await loadOrgActorContext(user.id, role)
-    if (!ctx.org) redirect('/dashboard?error=organizacao-nao-configurada')
-
-    const companyIds = await loadCompanyIdsForContratante(user.id)
-    if (!companyIds.length) redirect(DIAG_MISS)
+    const scope = await loadContratanteOrgScope(user.id)
+    if (!scope.org) redirect('/dashboard?error=organizacao-nao-configurada')
+    if (!scope.companyIds.length) redirect(DIAG_MISS)
 
     const admin = createServiceRoleAdmin()
     const { data, error } = await admin
       .from('diagnostics')
       .select(select)
       .eq('id', diagnosticId)
-      .in('company_id', companyIds)
+      .in('company_id', scope.companyIds)
       .maybeSingle()
 
     if (error) console.error('[loadDiagnosticForPage:contratante]', error.message)

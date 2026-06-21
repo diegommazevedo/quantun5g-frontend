@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { profileHasModule } from '@/lib/auth/modules'
+import { getPageActor } from '@/lib/org/page-actor'
 import { AppShell } from '@/components/navigation/AppShell'
 import { LogoutButton } from '@/components/navigation/LogoutButton'
 import { AgentePanelDynamic } from '@/components/agente/AgentePanelDynamic'
-import type { Profile, UserRole } from '@/types/database'
 import { Suspense } from 'react'
 
 interface Props {
@@ -22,32 +21,15 @@ export async function StaffShell({
   requireAdmin,
   requireModuleNr01,
 }: Props) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { user, role, profile: p } = await getPageActor()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, role, module_pentagrama, module_nr01, is_active')
-    .eq('id', user.id)
-    .single()
-
-  const p = profile as Pick<
-    Profile,
-    'name' | 'role' | 'module_pentagrama' | 'module_nr01' | 'is_active'
-  > | null
-
-  if (p && p.is_active === false) redirect('/login')
-  if (requireAdmin && p?.role !== 'admin') redirect('/dashboard')
+  if (requireAdmin && role !== 'admin') redirect('/dashboard')
   if (requireModuleNr01 && !profileHasModule(p, 'nr01')) {
     redirect('/dashboard?error=sem_acesso_nr01')
   }
 
   const displayName = p?.name ?? user.email ?? 'Usuário'
   const userEmail = user.email ?? null
-  const role = (p?.role ?? 'consultant') as UserRole
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-[var(--q-bg)]">

@@ -4,13 +4,11 @@
  */
 
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { userHasPentagramaLicense } from '@/lib/billing/pentagrama-license'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
-import type { UserRole } from '@/types/database'
+import { getPageActor } from '@/lib/org/page-actor'
 import { DiagnosticosList, type DiagRow } from '@/components/dashboard/DiagnosticosList'
 import {
   DashboardEmptyState,
@@ -23,19 +21,8 @@ interface Props {
 
 export default async function DashboardPage({ searchParams }: Props) {
   const { error } = await searchParams
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, role, profile, db } = await getPageActor()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, role')
-    .eq('id', user!.id)
-    .returns<{ name: string | null; role: UserRole }[]>()
-    .single()
-
-  const role = profile?.role ?? 'consultant'
   const isAdmin = role === 'admin'
   const isLeader = role === 'leader'
   const isContratante = isContratanteRole(role)
@@ -43,10 +30,9 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   let canCreateDiagnostic = isAdmin || isPlatformStaff(role)
   if (isLeader || isContratante || isGerente) {
-    canCreateDiagnostic = await userHasPentagramaLicense(user!.id)
+    canCreateDiagnostic =
+      profile?.module_pentagrama === true || (await userHasPentagramaLicense(user.id))
   }
-
-  const db = supabaseForActorRole(role, supabase)
 
   const diagQuery = db
     .from('diagnostics')
@@ -54,13 +40,13 @@ export default async function DashboardPage({ searchParams }: Props) {
     .order('created_at', { ascending: false })
 
   if (!isAdmin && !isLeader && !isContratante && !isGerente) {
-    diagQuery.eq('consultant_id', user!.id)
+    diagQuery.eq('consultant_id', user.id)
   } else if (isContratante) {
-    const ids = await loadCompanyIdsForContratante(user!.id)
+    const ids = await loadCompanyIdsForContratante(user.id)
     if (ids.length) diagQuery.in('company_id', ids)
     else diagQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
   } else if (isGerente) {
-    const ids = await loadCompanyIdsForGerente(user!.id)
+    const ids = await loadCompanyIdsForGerente(user.id)
     if (ids.length) diagQuery.in('company_id', ids)
     else diagQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
   }

@@ -3,14 +3,12 @@
  */
 
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import type { Company, UserRole } from '@/types/database'
+import type { Company } from '@/types/database'
 import { EmpresaGrid } from '@/components/nr01/EmpresaGrid'
 import { enrichCompaniesWithIlCounts } from '@/lib/companies/enrich'
 import { COMPANY_GRID_SELECT } from '@/lib/companies/grid-select'
 import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { getPageActor } from '@/lib/org/page-actor'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { getCompanyCnpjSlotsUsageForActor } from '@/lib/licensing/company-cnpj-slots'
@@ -21,26 +19,16 @@ interface Props {
 }
 
 export default async function EmpresasPage({ searchParams }: Props) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
   const { saved, nome } = await searchParams
+  const { user, role, userClient, db } = await getPageActor()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .returns<{ role: UserRole }[]>()
-    .single()
-  const role = profile?.role ?? 'consultant'
   const isContratante = isContratanteRole(role)
   const isGerente = isGerenteRole(role)
   const showSlots = isLicensingV2() && role === 'consultant'
   const slotsUsage = showSlots ? await getCompanyCnpjSlotsUsageForActor(user.id) : null
 
   const { data: companies, error: listErr } = await fetchCompaniesForActor<Company>(
-    supabase,
+    userClient,
     user.id,
     role,
     COMPANY_GRID_SELECT,
@@ -49,10 +37,7 @@ export default async function EmpresasPage({ searchParams }: Props) {
     console.error('[empresas] list:', listErr.message)
   }
 
-  const empresas = await enrichCompaniesWithIlCounts(
-    supabaseForActorRole(role, supabase),
-    (companies ?? []) as Company[],
-  )
+  const empresas = await enrichCompaniesWithIlCounts(db, (companies ?? []) as Company[])
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">

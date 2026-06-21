@@ -9,8 +9,8 @@ import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import type { UserRole } from '@/types/database'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { getPageActor } from '@/lib/org/page-actor'
-import { loadOrgActorContext } from '@/lib/org/access'
-import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
+import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
+import { loadCompanyIdsForGerente } from '@/lib/org/queries'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 
 const ASSESSMENT_MISS = '/nr01/dashboard?error=avaliacao-nao-encontrada'
@@ -40,21 +40,19 @@ export const loadNr01AssessmentForPage = cache(async <T = Record<string, unknown
   }
 
   if (isContratanteRole(role)) {
-    const ctx = await loadOrgActorContext(user.id, role)
-    if (!ctx.org) redirect('/nr01/dashboard?error=organizacao-nao-configurada')
-
-    const companyIds = await loadCompanyIdsForContratante(user.id)
-    if (!companyIds.length) redirect(ASSESSMENT_MISS)
+    const scope = await loadContratanteOrgScope(user.id)
+    if (!scope.org) redirect('/nr01/dashboard?error=organizacao-nao-configurada')
+    if (!scope.companyIds.length) redirect(ASSESSMENT_MISS)
 
     const admin = createServiceRoleAdmin()
     const { data, error } = await admin
       .from('nr01_assessments')
       .select(select)
       .eq('id', assessmentId)
-      .in('company_id', companyIds)
+      .in('company_id', scope.companyIds)
       .maybeSingle()
 
-    if (error) console.error('[loadNr01AssessmentForPage:contratante]', error.message, { assessmentId, orgId: ctx.org.id })
+    if (error) console.error('[loadNr01AssessmentForPage:contratante]', error.message, { assessmentId, orgId: scope.org.id })
     if (error || !data) redirect(ASSESSMENT_MISS)
     return { user, role, userClient, db: admin, assessment: data as T }
   }

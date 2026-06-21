@@ -3,15 +3,12 @@
  * Dashboard gerencial: KPIs + lista de avaliações com filtros.
  */
 
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { userHasNr01License } from '@/lib/billing/nr01-license'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
-import type { UserRole } from '@/types/database'
+import { getPageActor } from '@/lib/org/page-actor'
 import type { Nr01AssessmentResult, Nr01AssessmentStatus, Nr01RiskLevel } from '@/types/nr01'
 import {
   DashboardEmptyState,
@@ -41,20 +38,8 @@ export default async function Nr01DashboardPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const { error: errorParam } = await searchParams
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { user, role, profile, db } = await getPageActor()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, role')
-    .eq('id', user.id)
-    .returns<{ name: string | null; role: UserRole }[]>()
-    .single()
-
-  const role = (profile?.role ?? 'consultant') as UserRole
   const isAdmin = role === 'admin'
   const isLeader = role === 'leader'
   const isContratante = isContratanteRole(role)
@@ -62,12 +47,10 @@ export default async function Nr01DashboardPage({
 
   let canCreateAssessment = isAdmin || isPlatformStaff(role)
   if (isLeader || isContratante || isGerente) {
-    canCreateAssessment = await userHasNr01License(user.id)
+    canCreateAssessment = profile?.module_nr01 === true || (await userHasNr01License(user.id))
   } else if (!isAdmin && isPlatformStaff(role)) {
     canCreateAssessment = true
   }
-
-  const db = supabaseForActorRole(role, supabase)
 
   const query = db
     .from('nr01_assessments')
