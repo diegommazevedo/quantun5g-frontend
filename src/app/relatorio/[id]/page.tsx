@@ -7,8 +7,7 @@
  * PDF: window.print() com @media print no globals.css
  */
 
-import { notFound, redirect } from 'next/navigation'
-import { createClient }       from '@/lib/supabase/server'
+import { loadDiagnosticForPage } from '@/lib/pentagrama/require-diagnostic-page'
 import { PentagramaVisual }   from '@/components/relatorio/PentagramaVisual'
 import { NivelBadge }         from '@/components/relatorio/NivelBadge'
 import { GapBar }             from '@/components/relatorio/GapBar'
@@ -69,22 +68,15 @@ interface Props {
 
 export default async function RelatorioPage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  // ── Diagnóstico + empresa
-  const { data: diag } = await supabase
-    .from('diagnostics')
-    .select('*, companies(id, name, total_collaborators)')
-    .eq('id', id)
-    .single() as { data: DiagWithCompany | null }
-
-  if (!diag) notFound()
+  const { db, user, role, diagnostic: diagRaw } = await loadDiagnosticForPage(
+    id,
+    '*, companies:companies!diagnostics_company_id_fkey(id, name, total_collaborators)',
+  )
+  const diag = diagRaw as unknown as DiagWithCompany
 
   // ── Resultado calculado
-  const { data: result } = await supabase
+  const { data: result } = await db
     .from('diagnostic_results')
     .select('*')
     .eq('diagnostic_id', id)
@@ -106,13 +98,13 @@ export default async function RelatorioPage({ params }: Props) {
   }
 
   // ── Perfil do consultor
-  const { data: profile } = await supabase
+  const { data: profile } = await db
     .from('profiles')
     .select('name, email, role')
     .eq('id', user.id)
     .single() as { data: Pick<Profile, 'name' | 'email' | 'role'> | null }
 
-  const isConsultantOrAdmin = profile?.role === 'admin' || profile?.role === 'consultant'
+  const isConsultantOrAdmin = role === 'admin' || role === 'consultant'
 
   // ── AI Reports (inicial + expandido)
   const adminSupabase = adminCli(
@@ -137,7 +129,7 @@ export default async function RelatorioPage({ params }: Props) {
   ].filter((v): v is string => !!v)
 
   const { data: laudosRows } = laudoIds.length > 0
-    ? await supabase.from('laudos').select('*').in('id', laudoIds) as { data: Laudo[] | null }
+    ? await db.from('laudos').select('*').in('id', laudoIds) as { data: Laudo[] | null }
     : { data: [] as Laudo[] }
 
   const laudosMap = Object.fromEntries((laudosRows ?? []).map(l => [l.id, l]))

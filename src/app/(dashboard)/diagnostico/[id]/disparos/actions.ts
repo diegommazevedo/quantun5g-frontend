@@ -2,7 +2,6 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import {
   buildPentagramaIcUrl,
   buildPentagramaIlUrl,
@@ -11,40 +10,22 @@ import {
   type DispatchTarget,
 } from '@/lib/survey/dispatch'
 import type { CompanyContact } from '@/types/database'
-import type { UserRole } from '@/types/database'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
-
-async function loadDiagnostic(id: string, userId: string, role: UserRole) {
-  const supabase = await createClient()
-  let q = supabase
-    .from('diagnostics')
-    .select(`
-      id, name, status, il_token, ic_token, il_deadline, ic_deadline, consultant_id,
-      companies:companies!diagnostics_company_id_fkey ( id, name )
-    `)
-    .eq('id', id)
-  if (role !== 'admin') q = q.eq('consultant_id', userId)
-  const { data } = await q.single()
-  return { supabase, diagnostic: data }
-}
+import { ensureDiagnosticAccess } from '@/lib/pentagrama/diagnostic-access'
+import { getDiagnosticPageActor } from '@/lib/pentagrama/require-diagnostic-page'
 
 export async function dispararConvitesPentagrama(formData: FormData) {
   const diagnosticId = formData.get('diagnostic_id') as string
   const kind = formData.get('survey_kind') as 'il' | 'ic'
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, name')
-    .eq('id', user.id)
-    .returns<{ role: UserRole; name: string | null }[]>()
-    .single()
-  const role = profile?.role ?? 'consultant'
-
-  const { diagnostic } = await loadDiagnostic(diagnosticId, user.id, role)
-  if (!diagnostic) redirect('/dashboard')
+  const { profile } = await getDiagnosticPageActor()
+  const { db, diagnostic } = await ensureDiagnosticAccess(
+    diagnosticId,
+    `
+      id, name, status, il_token, ic_token, il_deadline, ic_deadline, consultant_id,
+      companies:companies!diagnostics_company_id_fkey ( id, name )
+    `,
+  )
 
   const d = diagnostic as {
     id: string
@@ -71,10 +52,7 @@ export async function dispararConvitesPentagrama(formData: FormData) {
     )
   }
 
-  const { data: contactsRaw } = await supabase
-    .from('company_contacts')
-    .select('*')
-    .eq('company_id', companyId)
+  const { data: contactsRaw } = await db.from('company_contacts').select('*').eq('company_id', companyId)
 
   const contacts = filterContactsForDispatch(
     (contactsRaw ?? []) as CompanyContact[],

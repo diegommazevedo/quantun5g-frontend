@@ -9,34 +9,24 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
+import { ensureDiagnosticAccess } from '@/lib/pentagrama/diagnostic-access'
 
 /**
  * encerrarECalcular — chamado pelo modal de confirmação no cliente.
- * 1. Valida ownership
+ * 1. Valida ownership (org / consultor / admin)
  * 2. Chama Edge Function calculate_diagnostic
  * 3. Avança status → RELATORIO_GERADO
  * 4. Redireciona para /relatorio/[id]
  */
 export async function encerrarECalcular(diagnosticId: string): Promise<{ error: string }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { db, diagnostic: diagRaw } = await ensureDiagnosticAccess(diagnosticId, 'id, status, consultant_id')
+  const diag = diagRaw as { id: string; status: string; consultant_id: string }
 
-  // Valida ownership + status
-  const { data: diagRaw } = await supabase
-    .from('diagnostics')
-    .select('id, status, consultant_id')
-    .eq('id', diagnosticId)
-    .single()
-
-  const diag = diagRaw as { id: string; status: string; consultant_id: string } | null
-  if (!diag || diag.consultant_id !== user.id) return { error: 'Diagnóstico não encontrado.' }
   if (!isPentagramaColetaAberta(diag.status)) return { error: 'Status inválido para encerramento.' }
 
-  // Chama a Edge Function com service role (a função exige autorização admin)
   const supabaseAdmin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
   const { error: fnError } = await supabaseAdmin.functions.invoke('calculate_diagnostic', {
@@ -47,8 +37,7 @@ export async function encerrarECalcular(diagnosticId: string): Promise<{ error: 
     return { error: `Erro no cálculo: ${fnError.message}` }
   }
 
-  // Avança status → RELATORIO_GERADO
-  await supabase
+  await db
     .from('diagnostics')
     .update({
       status: 'RELATORIO_GERADO',

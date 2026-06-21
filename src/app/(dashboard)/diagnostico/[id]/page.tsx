@@ -4,9 +4,8 @@
  */
 
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import type { Diagnostic, Company } from '@/types/database'
+import { loadDiagnosticForPage } from '@/lib/pentagrama/require-diagnostic-page'
 import { EncerrarColetaButton } from './EncerrarColetaButton'
 import { formatIlLeaderLine } from '@/lib/pentagrama/il-leader'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
@@ -36,25 +35,17 @@ interface Props {
 
 export default async function DiagnosticoPage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: diag } = await supabase
-    .from('diagnostics')
-    .select('*, companies(id, name, total_collaborators, il_leader_name, il_leader_email)')
-    .eq('id', id)
-    .single() as {
-    data: (Diagnostic & {
-      companies: Pick<Company, 'id' | 'name' | 'total_collaborators' | 'il_leader_name' | 'il_leader_email'>
-    }) | null
+  const { db, diagnostic: diagRaw } = await loadDiagnosticForPage(
+    id,
+    '*, companies:companies!diagnostics_company_id_fkey(id, name, total_collaborators, il_leader_name, il_leader_email)',
+  )
+  const diag = diagRaw as unknown as Diagnostic & {
+    companies: Pick<Company, 'id' | 'name' | 'total_collaborators' | 'il_leader_name' | 'il_leader_email'>
   }
 
-  if (!diag) notFound()
-
   // Conta IC responses
-  const { count: nIC } = await supabase
+  const { count: nIC } = await db
     .from('ic_responses')
     .select('*', { count: 'exact', head: true })
     .eq('diagnostic_id', id)

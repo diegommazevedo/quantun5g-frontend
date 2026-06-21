@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { dispararConvitesPentagrama } from './actions'
+import { loadDiagnosticForPage } from '@/lib/pentagrama/require-diagnostic-page'
 import { filterContactsForDispatch } from '@/lib/survey/dispatch'
 import { loadLastDispatchBatch } from '@/lib/survey/dispatch-history'
 import { loadInviteDeliveryStats } from '@/lib/survey/invite-delivery-stats'
@@ -11,7 +10,6 @@ import { getActiveDriver } from '@/lib/email/platform'
 import { DispatchSubmitButton } from '@/components/survey/DispatchSubmitButton'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 import type { CompanyContact } from '@/types/database'
-import type { UserRole } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -21,30 +19,15 @@ interface Props {
 export default async function DiagnosticoDisparosPage({ params, searchParams }: Props) {
   const { id } = await params
   const sp = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .returns<{ role: UserRole }[]>()
-    .single()
-  const role = profile?.role ?? 'consultant'
-
-  let diagQuery = supabase
-    .from('diagnostics')
-    .select(`
+  const { db, diagnostic: diagRaw } = await loadDiagnosticForPage(
+    id,
+    `
       id, name, status, il_deadline, ic_deadline,
       companies:companies!diagnostics_company_id_fkey ( id, name )
-    `)
-    .eq('id', id)
-  if (role !== 'admin') diagQuery = diagQuery.eq('consultant_id', user.id)
-  const { data: diag } = await diagQuery.single()
-
-  if (!diag) notFound()
-  const d = diag as {
+    `,
+  )
+  const d = diagRaw as {
     id: string
     name: string
     status: string
@@ -53,20 +36,20 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
   const companyId = d.companies?.id
 
   const { data: contactsRaw } = companyId
-    ? await supabase.from('company_contacts').select('*').eq('company_id', companyId)
+    ? await db.from('company_contacts').select('*').eq('company_id', companyId)
     : { data: [] }
 
   const all = (contactsRaw ?? []) as CompanyContact[]
   const leaders = filterContactsForDispatch(all, 'pentagrama', 'il')
   const collaborators = filterContactsForDispatch(all, 'pentagrama', 'ic')
-  const lastBatch = await loadLastDispatchBatch(supabase, 'pentagrama', id)
-  const deliveryStats = await loadInviteDeliveryStats(supabase, 'pentagrama', id)
-  const deliveryDetailsIl = await loadInviteDeliveryDetails(supabase, 'pentagrama', id, 'il')
-  const deliveryDetailsIc = await loadInviteDeliveryDetails(supabase, 'pentagrama', id, 'ic')
+  const lastBatch = await loadLastDispatchBatch(db, 'pentagrama', id)
+  const deliveryStats = await loadInviteDeliveryStats(db, 'pentagrama', id)
+  const deliveryDetailsIl = await loadInviteDeliveryDetails(db, 'pentagrama', id, 'il')
+  const deliveryDetailsIc = await loadInviteDeliveryDetails(db, 'pentagrama', id, 'ic')
   const emailDriver = getActiveDriver()
   const failedItems = lastBatch?.items.filter((i) => i.status === 'failed') ?? []
 
-  const { data: batches } = await supabase
+  const { data: batches } = await db
     .from('email_dispatch_batches')
     .select('id, survey_kind, sent_count, failed_count, total_targets, created_at')
     .eq('module', 'pentagrama')
