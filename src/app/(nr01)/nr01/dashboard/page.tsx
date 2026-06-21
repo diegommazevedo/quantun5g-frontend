@@ -35,7 +35,12 @@ type Row = {
   > | null
 }
 
-export default async function Nr01DashboardPage() {
+export default async function Nr01DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const { error: errorParam } = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
@@ -135,7 +140,11 @@ export default async function Nr01DashboardPage() {
       primaryActionLockedHref="/contratacao"
       sectionTitle="Avaliações"
       alert={
-        !canCreateAssessment && !error ? (
+        errorParam === 'avaliacao-nao-encontrada' ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Avaliação não encontrada ou sem permissão para o seu perfil. Verifique o link ou escolha na lista abaixo.
+          </div>
+        ) : !canCreateAssessment && !error ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Licença NR-01 pendente.{' '}
             <Link href="/contratacao" className="font-semibold underline">

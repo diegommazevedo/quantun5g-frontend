@@ -19,11 +19,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createHash } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
-import {
-  fetchNr01AssessmentForActor,
-  resolveActorRole,
-} from '@/lib/nr01/assessment-access'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { tryLoadNr01Assessment } from '@/lib/nr01/require-assessment-page'
 import { loadLaudoData } from '@/lib/nr01/pdf-data'
 import { buildLaudoHtml } from '@/lib/nr01/pdf-template'
 import { launchPdfBrowser } from '@/lib/nr01/launch-pdf-browser'
@@ -44,21 +40,12 @@ export async function POST(
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   }
 
-  const role = await resolveActorRole(supabase, user.id)
-  const db = supabaseForActorRole(role, supabase)
-
-  const { data: scopedAssessment } = await fetchNr01AssessmentForActor(
-    supabase,
-    user.id,
-    role,
-    assessmentId,
-    'id, status',
-  )
-  if (!scopedAssessment) {
+  const ctx = await tryLoadNr01Assessment(assessmentId, 'id, status')
+  if (!ctx) {
     return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 })
   }
 
-  const data = await loadLaudoData(db, assessmentId)
+  const data = await loadLaudoData(ctx.db, assessmentId)
   if (!data) {
     return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 })
   }

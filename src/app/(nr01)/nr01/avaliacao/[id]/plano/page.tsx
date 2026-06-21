@@ -5,13 +5,8 @@
  */
 
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import {
-  fetchNr01AssessmentForActor,
-  resolveActorRole,
-} from '@/lib/nr01/assessment-access'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { redirect } from 'next/navigation'
+import { loadNr01AssessmentForPage } from '@/lib/nr01/require-assessment-page'
 import {
   NR01_DIMENSION_LABEL,
   Nr01ActionItem,
@@ -69,21 +64,11 @@ function isOverdue(dueDate: string, status: Nr01ActionStatus): boolean {
 export default async function PlanoPDCAPage({ params, searchParams }: Props) {
   const { id } = await params
   const { error } = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const role = await resolveActorRole(supabase, user.id)
-  const db = supabaseForActorRole(role, supabase)
-
-  const { data: assessmentData } = await fetchNr01AssessmentForActor(
-    supabase,
-    user.id,
-    role,
+  const { db, assessment: assessmentData } = await loadNr01AssessmentForPage(
     id,
     'id, name, status, consultant_id',
   )
-  if (!assessmentData) notFound()
   const a = assessmentData as Pick<Nr01Assessment, 'id' | 'name' | 'status' | 'consultant_id'>
 
   const [{ data: planData }, { data: scoresData }] = await Promise.all([

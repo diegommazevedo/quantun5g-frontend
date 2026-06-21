@@ -7,13 +7,8 @@
  * Layout sem chrome do app: nada de header/sidebar — só o documento.
  */
 
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import {
-  fetchNr01AssessmentForActor,
-  resolveActorRole,
-} from '@/lib/nr01/assessment-access'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { redirect } from 'next/navigation'
+import { loadNr01AssessmentForPage } from '@/lib/nr01/require-assessment-page'
 import { loadLaudoData } from '@/lib/nr01/pdf-data'
 import { buildLaudoHtml } from '@/lib/nr01/pdf-template'
 
@@ -23,24 +18,10 @@ interface Props {
 
 export default async function LaudoPrintPage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const role = await resolveActorRole(supabase, user.id)
-  const db = supabaseForActorRole(role, supabase)
-
-  const { data: assessment } = await fetchNr01AssessmentForActor(
-    supabase,
-    user.id,
-    role,
-    id,
-    'id',
-  )
-  if (!assessment) notFound()
-
+  const { db } = await loadNr01AssessmentForPage(id, 'id')
   const data = await loadLaudoData(db, id)
-  if (!data) notFound()
+  if (!data) redirect('/nr01/dashboard?error=avaliacao-nao-encontrada')
 
   const html = buildLaudoHtml(data)
 

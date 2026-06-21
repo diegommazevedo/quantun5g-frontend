@@ -4,13 +4,7 @@
  */
 
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import {
-  fetchNr01AssessmentForActor,
-  resolveActorRole,
-} from '@/lib/nr01/assessment-access'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { loadNr01AssessmentForPage } from '@/lib/nr01/require-assessment-page'
 import {
   ASSESSMENT_STATUS_COLOR,
   ASSESSMENT_STATUS_LABEL,
@@ -51,17 +45,8 @@ type AssessFull = Nr01Assessment & {
 
 export default async function Nr01AssessmentDetailPage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const role = await resolveActorRole(supabase, user.id)
-  const db = supabaseForActorRole(role, supabase)
-
-  const { data: assess, error: assessErr } = await fetchNr01AssessmentForActor(
-    supabase,
-    user.id,
-    role,
+  const { db, assessment: assess } = await loadNr01AssessmentForPage(
     id,
     `
       *,
@@ -71,9 +56,6 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
       )
     `,
   )
-  if (assessErr || !assess) {
-    redirect('/nr01/dashboard?error=avaliacao-nao-encontrada')
-  }
   const a = assess as unknown as AssessFull
   const technicalLead = resolveTechnicalLeadForLaudo({
     assessment: a,

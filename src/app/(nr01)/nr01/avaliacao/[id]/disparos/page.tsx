@@ -1,11 +1,6 @@
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import {
-  fetchNr01AssessmentForActor,
-  resolveActorRole,
-} from '@/lib/nr01/assessment-access'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { redirect } from 'next/navigation'
+import { loadNr01AssessmentForPage } from '@/lib/nr01/require-assessment-page'
 import { dispararConvitesNr01 } from './actions'
 import { filterContactsForDispatch } from '@/lib/survey/dispatch'
 import { loadLastDispatchBatch } from '@/lib/survey/dispatch-history'
@@ -24,25 +19,14 @@ interface Props {
 export default async function Nr01DisparosPage({ params, searchParams }: Props) {
   const { id } = await params
   const sp = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const role = await resolveActorRole(supabase, user.id)
-  const db = supabaseForActorRole(role, supabase)
-
-  const { data: assess } = await fetchNr01AssessmentForActor(
-    supabase,
-    user.id,
-    role,
+  const { db, assessment: assess } = await loadNr01AssessmentForPage(
     id,
     `
       id, name, status,
       companies:companies!nr01_assessments_company_id_fkey ( id, name )
     `,
   )
-
-  if (!assess) notFound()
   const a = assess as { id: string; name: string; status: string; companies: { id: string; name: string } | null }
   const companyId = a.companies?.id
 

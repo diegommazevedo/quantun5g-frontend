@@ -11,13 +11,7 @@
  */
 
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import {
-  fetchNr01AssessmentForActor,
-  resolveActorRole,
-} from '@/lib/nr01/assessment-access'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { loadNr01AssessmentForPage } from '@/lib/nr01/require-assessment-page'
 import { getActiveDriver } from '@/lib/nr01/email'
 import { ASSESSMENT_STATUS_LABEL, NR01_DIMENSION_LABEL } from '@/types/nr01'
 import type {
@@ -44,24 +38,14 @@ const WEEK_DAY_LABEL: Record<number, string> = {
 export default async function MonitoramentoPage({ params, searchParams }: Props) {
   const { id } = await params
   const { status, error, sent, failed } = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const role = await resolveActorRole(supabase, user.id)
-  const db = supabaseForActorRole(role, supabase)
-
-  const { data: assessData } = await fetchNr01AssessmentForActor(
-    supabase,
-    user.id,
-    role,
+  const { db, assessment: assessData } = await loadNr01AssessmentForPage(
     id,
     `
       id, name, status, instrument_version, company_id, consultant_id,
       companies:companies!nr01_assessments_company_id_fkey ( id, name, total_collaborators )
     `,
   )
-  if (!assessData) notFound()
   const a = assessData as unknown as Nr01Assessment & {
     companies: { id: string; name: string; total_collaborators: number } | null
   }

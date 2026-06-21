@@ -9,13 +9,7 @@
  */
 
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import {
-  fetchNr01AssessmentForActor,
-  resolveActorRole,
-} from '@/lib/nr01/assessment-access'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { loadNr01AssessmentForPage } from '@/lib/nr01/require-assessment-page'
 import {
   ASSESSMENT_STATUS_LABEL,
   Nr01Assessment,
@@ -47,24 +41,14 @@ type AssessFull = Nr01Assessment & {
 export default async function DashboardEconomicoPage({ params, searchParams }: Props) {
   const { id } = await params
   const { error } = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const role = await resolveActorRole(supabase, user.id)
-  const db = supabaseForActorRole(role, supabase)
-
-  const { data: assessData } = await fetchNr01AssessmentForActor(
-    supabase,
-    user.id,
-    role,
+  const { db, assessment: assessData } = await loadNr01AssessmentForPage(
     id,
     `
       *,
       companies:companies!nr01_assessments_company_id_fkey ( id, name, total_collaborators )
     `,
   )
-  if (!assessData) notFound()
   const a = assessData as unknown as AssessFull
 
   // Bloqueia se não está CONCLUIDO
