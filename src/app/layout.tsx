@@ -7,6 +7,10 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+  // Preload gera warning no Chrome quando o RSC demora ou em soft nav (link duplicado).
+  // A fonte continua self-hosted via className abaixo.
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -20,8 +24,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} h-full antialiased`} data-theme="quantum-dark" suppressHydrationWarning>
-      <body className="min-h-full q-page-bg font-sans">
+    <html
+      lang="pt-BR"
+      className={`${inter.className} ${inter.variable} h-full antialiased`}
+      data-theme="quantum-dark"
+      suppressHydrationWarning
+    >
+      <body className="min-h-full q-page-bg">
         <ThemeInitScript />
         <AuthHashHandler />
         {children}
