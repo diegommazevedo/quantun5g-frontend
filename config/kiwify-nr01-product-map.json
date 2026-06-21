@@ -1,5 +1,5 @@
 {
-  "_comment": "Preenchido via npm run kiwify:sync-map após cadastro mínimo + ofertas na dashboard Kiwify",
+  "_comment": "15 SKUs anual_parcelado 12x — Pentagrama de Ginger incluído de bônus em todos. Preencher kiwify_product_id + checkout_url via npm run kiwify:sync-map após criar os produtos na dashboard Kiwify.",
   "entries": [
     {
       "tier_id": "t01",
@@ -15,70 +15,14 @@
       "synced_at": "2026-05-31T19:32:59.803Z"
     },
     {
-      "tier_id": "t01",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 0–5 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t01-anual_vista-base",
-      "price_cents": 221400
-    },
-    {
-      "tier_id": "t01",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 0–5 trabalhadores",
-      "sku": "q5g-nr01-t01-anual_parcelado-com_ginger",
-      "price_cents": 369000
-    },
-    {
-      "tier_id": "t01",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 0–5 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t01-anual_vista-com_ginger",
-      "price_cents": 332100
-    },
-    {
       "tier_id": "t02",
       "billing_mode": "anual_parcelado",
       "include_pentagrama": false,
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 6–10 trabalhadores",
-      "sku": "q5g-nr01-t02-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t02",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 6–10 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t02-anual_vista-base"
-    },
-    {
-      "tier_id": "t02",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 6–10 trabalhadores",
-      "sku": "q5g-nr01-t02-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t02",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 6–10 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t02-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t02-anual_parcelado-base",
+      "price_cents": 362400
     },
     {
       "tier_id": "t03",
@@ -87,34 +31,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 11–15 trabalhadores",
-      "sku": "q5g-nr01-t03-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t03",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 11–15 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t03-anual_vista-base"
-    },
-    {
-      "tier_id": "t03",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 11–15 trabalhadores",
-      "sku": "q5g-nr01-t03-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t03",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 11–15 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t03-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t03-anual_parcelado-base",
+      "price_cents": 421200
     },
     {
       "tier_id": "t04",
@@ -123,34 +41,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 16–20 trabalhadores",
-      "sku": "q5g-nr01-t04-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t04",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 16–20 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t04-anual_vista-base"
-    },
-    {
-      "tier_id": "t04",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 16–20 trabalhadores",
-      "sku": "q5g-nr01-t04-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t04",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 16–20 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t04-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t04-anual_parcelado-base",
+      "price_cents": 480000
     },
     {
       "tier_id": "t05",
@@ -159,34 +51,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 21–30 trabalhadores",
-      "sku": "q5g-nr01-t05-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t05",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 21–30 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t05-anual_vista-base"
-    },
-    {
-      "tier_id": "t05",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 21–30 trabalhadores",
-      "sku": "q5g-nr01-t05-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t05",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 21–30 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t05-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t05-anual_parcelado-base",
+      "price_cents": 573600
     },
     {
       "tier_id": "t06",
@@ -195,34 +61,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 31–40 trabalhadores",
-      "sku": "q5g-nr01-t06-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t06",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 31–40 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t06-anual_vista-base"
-    },
-    {
-      "tier_id": "t06",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 31–40 trabalhadores",
-      "sku": "q5g-nr01-t06-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t06",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 31–40 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t06-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t06-anual_parcelado-base",
+      "price_cents": 655200
     },
     {
       "tier_id": "t07",
@@ -231,34 +71,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 41–50 trabalhadores",
-      "sku": "q5g-nr01-t07-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t07",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 41–50 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t07-anual_vista-base"
-    },
-    {
-      "tier_id": "t07",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 41–50 trabalhadores",
-      "sku": "q5g-nr01-t07-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t07",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 41–50 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t07-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t07-anual_parcelado-base",
+      "price_cents": 736800
     },
     {
       "tier_id": "t08",
@@ -267,34 +81,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 51–60 trabalhadores",
-      "sku": "q5g-nr01-t08-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t08",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 51–60 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t08-anual_vista-base"
-    },
-    {
-      "tier_id": "t08",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 51–60 trabalhadores",
-      "sku": "q5g-nr01-t08-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t08",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 51–60 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t08-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t08-anual_parcelado-base",
+      "price_cents": 807600
     },
     {
       "tier_id": "t09",
@@ -303,34 +91,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 61–80 trabalhadores",
-      "sku": "q5g-nr01-t09-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t09",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 61–80 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t09-anual_vista-base"
-    },
-    {
-      "tier_id": "t09",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 61–80 trabalhadores",
-      "sku": "q5g-nr01-t09-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t09",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 61–80 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t09-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t09-anual_parcelado-base",
+      "price_cents": 960000
     },
     {
       "tier_id": "t10",
@@ -339,34 +101,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 81–100 trabalhadores",
-      "sku": "q5g-nr01-t10-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t10",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 81–100 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t10-anual_vista-base"
-    },
-    {
-      "tier_id": "t10",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 81–100 trabalhadores",
-      "sku": "q5g-nr01-t10-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t10",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 81–100 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t10-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t10-anual_parcelado-base",
+      "price_cents": 1100400
     },
     {
       "tier_id": "t11",
@@ -375,34 +111,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 101–200 trabalhadores",
-      "sku": "q5g-nr01-t11-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t11",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 101–200 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t11-anual_vista-base"
-    },
-    {
-      "tier_id": "t11",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 101–200 trabalhadores",
-      "sku": "q5g-nr01-t11-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t11",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 101–200 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t11-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t11-anual_parcelado-base",
+      "price_cents": 1755600
     },
     {
       "tier_id": "t12",
@@ -411,34 +121,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 201–300 trabalhadores",
-      "sku": "q5g-nr01-t12-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t12",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 201–300 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t12-anual_vista-base"
-    },
-    {
-      "tier_id": "t12",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 201–300 trabalhadores",
-      "sku": "q5g-nr01-t12-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t12",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 201–300 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t12-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t12-anual_parcelado-base",
+      "price_cents": 2281200
     },
     {
       "tier_id": "t13",
@@ -447,34 +131,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 301–500 trabalhadores",
-      "sku": "q5g-nr01-t13-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t13",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 301–500 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t13-anual_vista-base"
-    },
-    {
-      "tier_id": "t13",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 301–500 trabalhadores",
-      "sku": "q5g-nr01-t13-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t13",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 301–500 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t13-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t13-anual_parcelado-base",
+      "price_cents": 3042000
     },
     {
       "tier_id": "t14",
@@ -483,34 +141,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 501–750 trabalhadores",
-      "sku": "q5g-nr01-t14-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t14",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 501–750 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t14-anual_vista-base"
-    },
-    {
-      "tier_id": "t14",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 501–750 trabalhadores",
-      "sku": "q5g-nr01-t14-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t14",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 501–750 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t14-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t14-anual_parcelado-base",
+      "price_cents": 3978000
     },
     {
       "tier_id": "t15",
@@ -519,34 +151,8 @@
       "kiwify_product_id": "",
       "checkout_url": "",
       "label": "Quantum5G NR-01 · 751–1.000 trabalhadores",
-      "sku": "q5g-nr01-t15-anual_parcelado-base"
-    },
-    {
-      "tier_id": "t15",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": false,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 · 751–1.000 trabalhadores (à vista −10%)",
-      "sku": "q5g-nr01-t15-anual_vista-base"
-    },
-    {
-      "tier_id": "t15",
-      "billing_mode": "anual_parcelado",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 751–1.000 trabalhadores",
-      "sku": "q5g-nr01-t15-anual_parcelado-com_ginger"
-    },
-    {
-      "tier_id": "t15",
-      "billing_mode": "anual_vista",
-      "include_pentagrama": true,
-      "kiwify_product_id": "",
-      "checkout_url": "",
-      "label": "Quantum5G NR-01 + Pentagrama · 751–1.000 trabalhadores (à vista)",
-      "sku": "q5g-nr01-t15-anual_vista-com_ginger"
+      "sku": "q5g-nr01-t15-anual_parcelado-base",
+      "price_cents": 4914000
     }
   ],
   "synced_at": "2026-05-31T19:32:59.803Z"

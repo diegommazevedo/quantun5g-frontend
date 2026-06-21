@@ -30,17 +30,19 @@ export async function provisionNr01Subscription(params: {
     assessmentsPerPeriod: 99,
   })
 
-  const includesPentagrama = meta?.includes_pentagrama === true
+  // Pentagrama de Ginger incluído de bônus em toda licença NR-01.
   const entitlements: Nr01Entitlement[] = meta?.entitlements?.length
     ? meta.entitlements
     : ['core_nr01', 'email_broadcast', 'pdca', 'evidence_pack', 'support_email']
 
+  if (!entitlements.includes('pentagrama_ginger')) {
+    entitlements.push('pentagrama_ginger')
+  }
+
   const profileUpdate: Record<string, unknown> = {
     module_nr01: entitlements.includes('core_nr01'),
+    module_pentagrama: true,
     is_active: true,
-  }
-  if (includesPentagrama || entitlements.includes('pentagrama_ginger')) {
-    profileUpdate.module_pentagrama = true
   }
 
   const { error: profileErr } = await admin
