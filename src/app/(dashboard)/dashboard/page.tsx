@@ -7,8 +7,11 @@ import Link from 'next/link'
 import { userHasPentagramaLicense } from '@/lib/billing/pentagrama-license'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
-import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
 import { getPageActor } from '@/lib/org/page-actor'
+import {
+  loadIcRespondentCounts,
+  loadPentagramaDashboardDiagnostics,
+} from '@/lib/pentagrama/dashboard-data'
 import { DiagnosticosList, type DiagRow } from '@/components/dashboard/DiagnosticosList'
 import {
   DashboardEmptyState,
@@ -34,55 +37,9 @@ export default async function DashboardPage({ searchParams }: Props) {
       profile?.module_pentagrama === true || (await userHasPentagramaLicense(user.id))
   }
 
-  const diagQuery = db
-    .from('diagnostics')
-    .select('id, name, status, created_at, leader_name, companies(name)')
-    .order('created_at', { ascending: false })
-
-  if (!isAdmin && !isLeader && !isContratante && !isGerente) {
-    diagQuery.eq('consultant_id', user.id)
-  } else if (isContratante) {
-    const ids = await loadCompanyIdsForContratante(user.id)
-    if (ids.length) diagQuery.in('company_id', ids)
-    else diagQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
-  } else if (isGerente) {
-    const ids = await loadCompanyIdsForGerente(user.id)
-    if (ids.length) diagQuery.in('company_id', ids)
-    else diagQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
-  }
-
-  const { data: diagRaw } = (await diagQuery) as {
-    data: {
-      id: string
-      name: string
-      status: string
-      created_at: string
-      leader_name: string | null
-      companies: { name: string } | null
-    }[] | null
-  }
-
-  const diags = diagRaw ?? []
-  let icCountMap: Record<string, number> = {}
-
-  if (diags.length > 0) {
-    const diagIds = diags.map((d) => d.id)
-    const { data: icRows } = (await db
-      .from('ic_responses')
-      .select('diagnostic_id, respondente_anonimo_id')
-      .in('diagnostic_id', diagIds)) as {
-      data: { diagnostic_id: string; respondente_anonimo_id: string }[] | null
-    }
-
-    const seen = new Set<string>()
-    for (const row of icRows ?? []) {
-      const key = `${row.diagnostic_id}:${row.respondente_anonimo_id}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        icCountMap[row.diagnostic_id] = (icCountMap[row.diagnostic_id] ?? 0) + 1
-      }
-    }
-  }
+  const diags = await loadPentagramaDashboardDiagnostics(role, user.id, db)
+  const diagIds = diags.map((d) => d.id)
+  const icCountMap = await loadIcRespondentCounts(role, db, diagIds)
 
   const diagnosticos: DiagRow[] = diags.map((d) => ({
     id: d.id,
