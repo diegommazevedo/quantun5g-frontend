@@ -8,9 +8,12 @@ import type { UserRole } from '@/types/database'
 export async function requirePentagramaLicenseOrRedirect(params: {
   userId: string
   role: UserRole
+  modulePentagrama?: boolean
   redirectTo?: string
 }): Promise<{ licensed: boolean }> {
   if (params.role === 'admin') return { licensed: true }
+
+  if (params.modulePentagrama === true) return { licensed: true }
 
   if (isPlatformStaff(params.role)) {
     const admin = createServiceRoleClient()

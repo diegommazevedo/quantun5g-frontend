@@ -12,6 +12,7 @@ import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { NavIcon } from '@/components/navigation/NavIcon'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
+import { staffLinkProps } from '@/lib/navigation/link-props'
 
 interface Props {
   role: string
@@ -60,6 +61,7 @@ function SectionBlock({
               <Link
                 href={item.href}
                 onClick={onNavigate}
+                {...staffLinkProps}
                 className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${activeClasses(section.id, active)}`}
               >
                 <span className={accentForSection(section.id, active)}>

@@ -8,6 +8,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { staffLinkProps } from '@/lib/navigation/link-props'
 
 // ─── Tipos ──────────────────────────────────────────────────────
 
@@ -65,6 +67,7 @@ interface Props {
 }
 
 export function DiagnosticosList({ diagnosticos }: Props) {
+  const router = useRouter()
   const [filtro, setFiltro] = useState<FilterKey>('todos')
 
   const filtered = diagnosticos.filter(d => {
@@ -103,6 +106,7 @@ export function DiagnosticosList({ diagnosticos }: Props) {
           <p className="text-zinc-400 text-sm">Nenhum diagnóstico nesta categoria.</p>
           <Link
             href="/diagnostico/novo"
+            {...staffLinkProps}
             className="mt-3 inline-block text-sm text-zinc-600 hover:text-zinc-900 underline underline-offset-2"
           >
             Criar novo diagnóstico →
@@ -126,7 +130,7 @@ export function DiagnosticosList({ diagnosticos }: Props) {
                 <tr
                   key={d.id}
                   className="hover:bg-zinc-50 transition-colors cursor-pointer group"
-                  onClick={() => { window.location.href = `/diagnostico/${d.id}` }}
+                  onClick={() => { router.push(`/diagnostico/${d.id}`) }}
                 >
                   {/* Empresa */}
                   <td className="px-4 py-3.5">
@@ -166,12 +170,14 @@ export function DiagnosticosList({ diagnosticos }: Props) {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/relatorio/${d.id}`}
+                          {...staffLinkProps}
                           className="rounded-lg bg-purple-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-800 transition-colors whitespace-nowrap"
                         >
                           Ver relatório
                         </Link>
                         <Link
                           href={`/diagnostico/${d.id}`}
+                          {...staffLinkProps}
                           className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
                         >
                           Painel
@@ -180,6 +186,7 @@ export function DiagnosticosList({ diagnosticos }: Props) {
                     ) : (
                       <Link
                         href={`/diagnostico/${d.id}`}
+                        {...staffLinkProps}
                         className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
                       >
                         Ver →

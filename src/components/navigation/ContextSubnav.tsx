@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { isContextTabActive, resolveContextSubnav } from '@/lib/navigation/app-nav'
+import { staffLinkProps } from '@/lib/navigation/link-props'
 
 export function ContextSubnav() {
   const pathname = usePathname() ?? ''
@@ -15,6 +16,7 @@ export function ContextSubnav() {
         <div className="flex items-center gap-3 py-2.5">
           <Link
             href={ctx.backHref}
+            {...staffLinkProps}
             className="shrink-0 text-xs font-medium text-[var(--q-text-muted)] transition-colors hover:text-[var(--q-text)]"
           >
             ← {ctx.backLabel}
@@ -30,6 +32,7 @@ export function ContextSubnav() {
                 <Link
                   key={tab.href}
                   href={tab.href}
+                  {...staffLinkProps}
                   className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
                     active
                       ? 'bg-slate-100 text-slate-900 shadow-sm dark:bg-white/15 dark:text-white'

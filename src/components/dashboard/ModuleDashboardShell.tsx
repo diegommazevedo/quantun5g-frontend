@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { staffLinkProps } from '@/lib/navigation/link-props'
 
 export type DashboardModule = 'pentagrama' | 'nr01'
 
@@ -115,6 +116,7 @@ export function ModuleDashboardShell({
           {primaryActionEnabled ? (
             <Link
               href={primaryAction.href}
+              {...staffLinkProps}
               className={`inline-flex shrink-0 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${meta.ctaClass}`}
             >
               {primaryAction.label}
@@ -122,6 +124,7 @@ export function ModuleDashboardShell({
           ) : (
             <Link
               href={primaryActionLockedHref}
+              {...staffLinkProps}
               className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100"
               title="Licença NR-01 pendente — emitir fatura ou aguardar confirmação de pagamento"
             >
@@ -173,6 +176,7 @@ export function DashboardEmptyState({
       {hint && <p className="mt-2 text-sm text-zinc-500">{hint}</p>}
       <Link
         href={action.href}
+        {...staffLinkProps}
         className="mt-5 inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
       >
         {action.label}

@@ -3,16 +3,14 @@
  */
 
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { requireNr01LicenseOrRedirect } from '@/lib/nr01/require-license'
-import type { UserRole } from '@/types/database'
 import { EmpresaGrid } from '@/components/nr01/EmpresaGrid'
 import { enrichCompaniesWithIlCounts } from '@/lib/companies/enrich'
 import { COMPANY_GRID_SELECT } from '@/lib/companies/grid-select'
 import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
+import { getPageActor } from '@/lib/org/page-actor'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { staffLinkProps } from '@/lib/navigation/link-props'
 import { NovaAvaliacaoSteps } from '@/components/nr01/NovaAvaliacaoSteps'
 
 interface Props {
@@ -21,39 +19,34 @@ interface Props {
 
 export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }: Props) {
   const { error } = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { user, role, profile, userClient, db } = await getPageActor()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .returns<{ role: UserRole }[]>()
-    .single()
-
-  const role = profile?.role ?? 'consultant'
   const isContratante = isContratanteRole(role)
   const isGerente = isGerenteRole(role)
 
-  await requireNr01LicenseOrRedirect({ userId: user.id, role })
+  await requireNr01LicenseOrRedirect({
+    userId: user.id,
+    role,
+    moduleNr01: profile?.module_nr01,
+  })
 
   const { data: companies } = await fetchCompaniesForActor(
-    supabase,
+    userClient,
     user.id,
     role,
     COMPANY_GRID_SELECT,
   )
 
-  const empresas = await enrichCompaniesWithIlCounts(
-    supabaseForActorRole(role, supabase),
-    (companies ?? []) as never[],
-  )
+  const empresas = await enrichCompaniesWithIlCounts(db, (companies ?? []) as never[])
 
   return (
     <div className="space-y-8">
       <div>
-        <Link href="/nr01/dashboard" className="text-sm text-zinc-500 hover:text-zinc-900">
+        <Link
+          href="/nr01/dashboard"
+          {...staffLinkProps}
+          className="text-sm text-zinc-500 hover:text-zinc-900"
+        >
           ← Painel NR-01
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-zinc-900">Nova avaliação NR-01</h1>
@@ -79,6 +72,7 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
           {!isContratante && !isGerente && (
             <Link
               href="/empresas/nova?retorno=/nr01/avaliacao/nova"
+              {...staffLinkProps}
               className="inline-flex items-center justify-center rounded-lg border-2 border-blue-800 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
             >
               + Cadastrar nova empresa
@@ -112,7 +106,7 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
 
       <p className="text-center text-xs text-zinc-400">
         Gestão completa em{' '}
-        <Link href="/empresas" className="text-blue-800 hover:underline">
+        <Link href="/empresas" {...staffLinkProps} className="text-blue-800 hover:underline">
           Empresas
         </Link>
       </p>

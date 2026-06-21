@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { staffLinkProps } from '@/lib/navigation/link-props'
 import {
   ASSESSMENT_STATUS_COLOR,
   ASSESSMENT_STATUS_LABEL,
@@ -59,6 +61,7 @@ interface Props {
 }
 
 export function Nr01AssessmentsList({ rows }: Props) {
+  const router = useRouter()
   const [filtro, setFiltro] = useState<FilterKey>('todos')
 
   const filtered = rows.filter((r) => {
@@ -96,6 +99,7 @@ export function Nr01AssessmentsList({ rows }: Props) {
           <p className="text-sm text-zinc-500">Nenhuma avaliação nesta categoria.</p>
           <Link
             href="/nr01/avaliacao/nova"
+            {...staffLinkProps}
             className="mt-3 inline-block text-sm text-blue-800 underline underline-offset-2 hover:text-blue-900"
           >
             Criar nova avaliação →
@@ -121,7 +125,7 @@ export function Nr01AssessmentsList({ rows }: Props) {
                   key={r.id}
                   className="cursor-pointer transition-colors hover:bg-zinc-50"
                   onClick={() => {
-                    window.location.href = `/nr01/avaliacao/${r.id}`
+                    router.push(`/nr01/avaliacao/${r.id}`)
                   }}
                 >
                   <td className="px-4 py-3.5">
@@ -169,6 +173,7 @@ export function Nr01AssessmentsList({ rows }: Props) {
                   <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                     <Link
                       href={`/nr01/avaliacao/${r.id}`}
+                      {...staffLinkProps}
                       className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
                     >
                       Abrir →

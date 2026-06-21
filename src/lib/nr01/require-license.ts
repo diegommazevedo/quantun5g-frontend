@@ -10,9 +10,12 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role'
 export async function requireNr01LicenseOrRedirect(params: {
   userId: string
   role: UserRole
+  moduleNr01?: boolean
   redirectTo?: string
 }): Promise<{ licensed: boolean }> {
   if (params.role === 'admin') return { licensed: true }
+
+  if (params.moduleNr01 === true) return { licensed: true }
 
   if (isPlatformStaff(params.role)) {
     const admin = createServiceRoleClient()

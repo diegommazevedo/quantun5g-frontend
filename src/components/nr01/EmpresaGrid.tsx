@@ -6,6 +6,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import { staffLinkProps } from '@/lib/navigation/link-props'
 
 export type EmpresaGridRow = {
   id: string
@@ -109,6 +110,7 @@ export function EmpresaGrid({
         {!hideEmptyCadastro && (
           <Link
             href={novaHref}
+            {...staffLinkProps}
             className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
           >
             Cadastrar primeira empresa
@@ -204,6 +206,7 @@ export function EmpresaGrid({
                         ready ? (
                           <Link
                             href={pickUrl}
+                            {...staffLinkProps}
                             className={`inline-flex rounded-lg px-3 py-1.5 text-xs font-semibold text-white ${btnPick}`}
                           >
                             Usar esta empresa →
@@ -211,6 +214,7 @@ export function EmpresaGrid({
                         ) : (
                           <Link
                             href={editUrl}
+                            {...staffLinkProps}
                             className="inline-flex rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
                           >
                             Completar cadastro
@@ -220,12 +224,14 @@ export function EmpresaGrid({
                         <div className="flex flex-col items-end gap-1">
                           <Link
                             href={manageHref?.(e.id) ?? `/empresas/${e.id}`}
+                            {...staffLinkProps}
                             className="text-zinc-900 hover:underline"
                           >
                             Editar
                           </Link>
                           <Link
                             href={`/empresas/${e.id}/equipe`}
+                            {...staffLinkProps}
                             className="text-xs text-purple-700 hover:underline"
                           >
                             Equipe / e-mail
