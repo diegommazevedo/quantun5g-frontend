@@ -9,9 +9,8 @@ import type { UserRole } from '@/types/database'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { getPageActor } from '@/lib/org/page-actor'
 import { loadOrgActorContext } from '@/lib/org/access'
-import { loadCompanyIdsForGerente } from '@/lib/org/queries'
+import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
-import { withCompanyInnerJoin } from '@/lib/org/with-company-inner-join'
 
 const DIAG_MISS = '/dashboard?error=diagnostico-nao-encontrado'
 
@@ -42,13 +41,15 @@ export const loadDiagnosticForPage = cache(async <T = Record<string, unknown>>(
     const ctx = await loadOrgActorContext(user.id, role)
     if (!ctx.org) redirect('/dashboard?error=organizacao-nao-configurada')
 
+    const companyIds = await loadCompanyIdsForContratante(user.id)
+    if (!companyIds.length) redirect(DIAG_MISS)
+
     const admin = createServiceRoleAdmin()
-    const scopedSelect = withCompanyInnerJoin(select, 'diagnostics_company_id_fkey')
     const { data, error } = await admin
       .from('diagnostics')
-      .select(scopedSelect)
+      .select(select)
       .eq('id', diagnosticId)
-      .eq('companies.org_account_id', ctx.org.id)
+      .in('company_id', companyIds)
       .maybeSingle()
 
     if (error) console.error('[loadDiagnosticForPage:contratante]', error.message)

@@ -1,5 +1,5 @@
 /**
- * Actor da sessão para páginas server — perfil via service role (evita RLS inconsistente).
+ * Actor da sessão para páginas server — perfil via sessão (igual ao dashboard), fallback service role.
  */
 
 import { cache } from 'react'
@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import type { Profile, UserRole } from '@/types/database'
 import { supabaseForActorRole } from '@/lib/org/scoped-db'
+
+const PROFILE_SELECT = 'role, module_pentagrama, module_nr01, is_active, name'
 
 export interface PageActor {
   user: { id: string; email?: string | null }
@@ -24,14 +26,23 @@ export const getPageActor = cache(async (): Promise<PageActor> => {
   } = await userClient.auth.getUser()
   if (!user) redirect('/login')
 
-  const admin = createServiceRoleAdmin()
-  const { data: profileRaw } = await admin
+  const { data: profileFromSession } = await userClient
     .from('profiles')
-    .select('role, module_pentagrama, module_nr01, is_active, name')
+    .select(PROFILE_SELECT)
     .eq('id', user.id)
     .maybeSingle()
 
-  const profile = profileRaw as PageActor['profile']
+  let profile = profileFromSession as PageActor['profile']
+  if (!profile) {
+    const admin = createServiceRoleAdmin()
+    const { data: profileRaw } = await admin
+      .from('profiles')
+      .select(PROFILE_SELECT)
+      .eq('id', user.id)
+      .maybeSingle()
+    profile = profileRaw as PageActor['profile']
+  }
+
   if (profile?.is_active === false) redirect('/login')
 
   const role = (profile?.role ?? 'consultant') as UserRole
