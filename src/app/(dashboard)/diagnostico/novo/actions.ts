@@ -18,6 +18,7 @@ import {
   parseCompetenciaForm,
 } from '@/lib/survey/competencia'
 import { fetchNextCompetenciaSeq } from '@/lib/survey/competencia-db'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
 
 export async function criarDiagnostico(formData: FormData) {
   const supabase = await createClient()
@@ -46,7 +47,16 @@ export async function criarDiagnostico(formData: FormData) {
     redirect(`${errBase}?error=${encodeURIComponent(nameMismatch)}`)
   }
 
-  const expectedSeq = await fetchNextCompetenciaSeq(supabase, companyId, 'pentagrama')
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
+  const db = supabaseForActorRole(role, supabase)
+
+  const expectedSeq = await fetchNextCompetenciaSeq(db, companyId, 'pentagrama')
   if (competenciaParsed.seq !== expectedSeq) {
     redirect(
       `${errBase}?error=${encodeURIComponent(
@@ -58,14 +68,6 @@ export async function criarDiagnostico(formData: FormData) {
   if (ilDeadline && icDeadline && icDeadline < ilDeadline) {
     redirect(`${errBase}?error=${encodeURIComponent('Encerramento deve ser igual ou posterior ao início da pesquisa.')}`)
   }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .returns<{ role: UserRole }[]>()
-    .single()
-  const role = profile?.role ?? 'consultant'
 
   const { data: companyRaw } = await fetchCompanyForActor(
     supabase,
@@ -100,7 +102,7 @@ export async function criarDiagnostico(formData: FormData) {
     )
   }
 
-  const { data: leadersData } = await supabase
+  const { data: leadersData } = await db
     .from('company_contacts')
     .select('id, full_name, email')
     .eq('company_id', companyId)
@@ -139,7 +141,7 @@ export async function criarDiagnostico(formData: FormData) {
     competencia_label: competenciaParsed.label,
   }
 
-  const { data: diag, error: errDiag } = await supabase
+  const { data: diag, error: errDiag } = await db
     .from('diagnostics')
     .insert(diagInsert as never)
     .select('id')

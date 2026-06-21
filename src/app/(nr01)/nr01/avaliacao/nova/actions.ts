@@ -37,6 +37,8 @@ import {
 } from '@/lib/survey/competencia'
 
 import { fetchNextCompetenciaSeq } from '@/lib/survey/competencia-db'
+import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 
 
 
@@ -108,9 +110,16 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
   }
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .returns<{ role: UserRole }[]>()
+    .single()
+  const role = profile?.role ?? 'consultant'
+  const db = supabaseForActorRole(role, supabase)
 
-
-  const expectedSeq = await fetchNextCompetenciaSeq(supabase, companyId, 'nr01')
+  const expectedSeq = await fetchNextCompetenciaSeq(db, companyId, 'nr01')
 
   if (competenciaParsed.seq !== expectedSeq) {
 
@@ -133,16 +142,6 @@ export async function criarAvaliacaoNr01(formData: FormData) {
     redirect(`${errBase}?error=${encodeURIComponent('Encerramento deve ser igual ou posterior à abertura.')}`)
 
   }
-
-
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .returns<{ role: UserRole }[]>()
-    .single()
-  const role = profile?.role ?? 'consultant'
 
   const { data: company } = await fetchCompanyForActor(
     supabase,
@@ -190,7 +189,7 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
 
 
-  const { data: assess, error: errAssess } = await supabase
+  const { data: assess, error: errAssess } = await db
 
     .from('nr01_assessments')
 
@@ -252,13 +251,17 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
 
 
-  await supabase.from('nr01_audit_log').insert({
+  await db.from('nr01_audit_log').insert({
 
     assessment_id: assessmentId,
 
     actor_id: user.id,
 
-    actor_role: 'consultant',
+    actor_role: isContratanteRole(role)
+      ? 'contratante'
+      : isGerenteRole(role)
+        ? 'gerente'
+        : 'consultant',
 
     event_type: 'ASSESSMENT_CREATED',
 
