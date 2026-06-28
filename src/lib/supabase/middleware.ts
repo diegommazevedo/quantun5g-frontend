@@ -52,6 +52,7 @@ export async function updateSession(request: NextRequest) {
     '/faturas',
     '/nr01/dashboard',
     '/nr01/avaliacao',
+    '/organizacao',  // contratante self-serve: equipe, filiais, configurações
   ]
   const pathname = request.nextUrl.pathname
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))

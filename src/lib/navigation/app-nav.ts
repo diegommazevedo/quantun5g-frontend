@@ -329,7 +329,9 @@ export function buildNavSections(opts: {
   const v2Operator = isLicensingV2() && role === 'leader'
   const orgActor = isContratanteRole(role) || isGerenteRole(role)
 
-  const source = staff || v2Operator ? STAFF_SECTIONS : LEADER_SECTIONS
+  // contratante/gerente precisam da seção "Empresas & equipe" (STAFF_SECTIONS);
+  // leader legado segue v2Operator se aplicável, senão LEADER_SECTIONS.
+  const source = staff || v2Operator || orgActor ? STAFF_SECTIONS : LEADER_SECTIONS
 
   const sections: NavSection[] = []
 

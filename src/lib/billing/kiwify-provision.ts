@@ -91,7 +91,12 @@ export async function provisionFromKiwifyWebhook(
   }
 
   // KIWIFY_TEST_MODE=true → pula validação da API (apenas para testes locais)
+  // Guarda de segurança: impede que test mode escape para produção
   const testMode = process.env.KIWIFY_TEST_MODE === 'true'
+  if (testMode && process.env.NODE_ENV === 'production') {
+    console.error('[kiwify-provision] KIWIFY_TEST_MODE=true em NODE_ENV=production — BLOQUEADO por segurança')
+    return { action: 'failed', reason: 'KIWIFY_TEST_MODE não permitido em produção' }
+  }
 
   const sale = testMode ? null : await fetchKiwifySale(normalized.orderId)
   if (!testMode && !sale) {

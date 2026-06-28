@@ -86,23 +86,22 @@ CREATE POLICY email_dispatch_batches_org_contratante ON email_dispatch_batches
 
 -- ============================================================
 -- survey_invites — contratante pode ver/criar invites das suas empresas
+-- (survey_invites.company_id é FK direta para companies)
 -- ============================================================
 
 DROP POLICY IF EXISTS survey_invites_org_contratante ON survey_invites;
 CREATE POLICY survey_invites_org_contratante ON survey_invites
   FOR ALL
   USING (
-    dispatch_id IN (
-      SELECT edb.id FROM email_dispatch_batches edb
-      INNER JOIN companies c ON c.id = edb.company_id
+    company_id IN (
+      SELECT c.id FROM companies c
       INNER JOIN org_accounts oa ON oa.id = c.org_account_id
       WHERE oa.owner_user_id = auth.uid()
     )
   )
   WITH CHECK (
-    dispatch_id IN (
-      SELECT edb.id FROM email_dispatch_batches edb
-      INNER JOIN companies c ON c.id = edb.company_id
+    company_id IN (
+      SELECT c.id FROM companies c
       INNER JOIN org_accounts oa ON oa.id = c.org_account_id
       WHERE oa.owner_user_id = auth.uid()
     )
