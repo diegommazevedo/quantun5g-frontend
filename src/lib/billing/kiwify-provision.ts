@@ -5,6 +5,7 @@
 import { createServiceRoleAdmin, createServiceRoleClient } from '@/lib/supabase/service-role'
 import { provisionNr01Subscription } from '@/lib/billing/provision-nr01'
 import { findKiwifyEntryByProductId } from '@/lib/billing/kiwify-product-map'
+import { invitePlatformUser } from '@/lib/auth/user-invite'
 import {
   buildSubscriptionMetadata,
   computeCheckoutPricing,
@@ -89,22 +90,29 @@ export async function provisionFromKiwifyWebhook(
     return { action: 'ignored', reason: 'sem order_id' }
   }
 
-  const sale = await fetchKiwifySale(normalized.orderId)
-  if (!sale) {
+  // KIWIFY_TEST_MODE=true → pula validação da API (apenas para testes locais)
+  const testMode = process.env.KIWIFY_TEST_MODE === 'true'
+
+  const sale = testMode ? null : await fetchKiwifySale(normalized.orderId)
+  if (!testMode && !sale) {
     return { action: 'failed', reason: 'venda não encontrada na API' }
   }
 
-  if (sale.status !== 'paid') {
-    return { action: 'ignored', reason: `status=${sale.status}` }
+  // Em test mode usa dados do payload; em produção valida o status da API
+  const saleStatus = testMode ? 'paid' : sale?.status
+  if (saleStatus !== 'paid') {
+    return { action: 'ignored', reason: `status=${saleStatus}` }
   }
 
   const admin = createServiceRoleClient()
   const adminUntyped = createServiceRoleAdmin()
-  const orderId = sale.id
+
+  // Em test mode, orderId vem do payload normalizado; em produção da API
+  const orderId = testMode ? (normalized.orderId ?? '') : (sale!.id ?? normalized.orderId ?? '')
   const externalPayId = kiwifyPaymentExternalId(orderId)
 
   let subscriptionRef =
-    normalized.subscriptionRef ?? saleSubscriptionRef(sale)
+    normalized.subscriptionRef ?? (testMode ? null : saleSubscriptionRef(sale!))
 
   let subscription: Subscription | null = null
 
@@ -122,15 +130,43 @@ export async function provisionFromKiwifyWebhook(
     subscription = byPay ? (byPay as Subscription) : null
   }
 
-  const productId = sale.product?.id ?? normalized.productId
-  const chargeCents = Math.round(sale.payment?.charge_amount ?? sale.net_amount ?? 0)
+  const productId = (testMode ? null : sale?.product?.id) ?? normalized.productId
+  const chargeCents = testMode
+    ? 0
+    : Math.round(sale!.payment?.charge_amount ?? sale!.net_amount ?? 0)
   const mapEntry = productId
     ? findKiwifyEntryByProductId(productId, { priceCents: chargeCents > 0 ? chargeCents : undefined })
     : null
-  const customerEmail = sale.customer?.email ?? normalized.customerEmail
+  const customerEmail = (testMode ? null : sale?.customer?.email) ?? normalized.customerEmail
 
   if (!subscription && customerEmail && mapEntry) {
-    const userId = await findUserIdByEmail(customerEmail)
+    let userId = await findUserIdByEmail(customerEmail)
+
+    // Cliente novo: cria conta automaticamente e envia e-mail de acesso
+    if (!userId) {
+      const customerName =
+        sale?.customer?.name?.trim() ||
+        customerEmail.split('@')[0] ||
+        'Cliente'
+      const invite = await invitePlatformUser({
+        email: customerEmail,
+        name: customerName,
+        role: 'contratante',
+        modulePentagrama: true,
+        moduleNr01: true,
+        invitedByName: null,
+      }).catch((err: Error) => {
+        console.error('[kiwify-provision] falha ao criar conta automática:', err.message)
+        return null
+      })
+      if (invite?.userId) {
+        userId = invite.userId
+        console.info('[kiwify-provision] conta criada automaticamente', { email: customerEmail, userId })
+      } else {
+        console.warn('[kiwify-provision] não foi possível criar conta para', customerEmail, invite?.error)
+      }
+    }
+
     if (userId) {
       const subId = randomUUID()
       const meta = metadataFromMapEntry(mapEntry, null) as unknown as Record<string, unknown>
@@ -166,17 +202,17 @@ export async function provisionFromKiwifyWebhook(
     return { action: 'ignored', reason: 'subscription não encontrada' }
   }
 
-  const paidAt = sale.approved_date ? new Date(sale.approved_date) : new Date()
-  const amountCents = Math.round(
-    (sale.payment?.charge_amount ?? sale.net_amount ?? 0),
-  )
+  const paidAt = sale?.approved_date ? new Date(sale.approved_date) : new Date()
+  const amountCents = testMode
+    ? 1000
+    : Math.round(sale!.payment?.charge_amount ?? sale!.net_amount ?? 0)
 
   await upsertKiwifyPayment({
     subscriptionId: subscription.id,
     orderId,
     amountCents,
-    status: sale.status,
-    paymentMethod: sale.payment_method ?? null,
+    status: saleStatus ?? 'paid',
+    paymentMethod: sale?.payment_method ?? null,
     paidAt,
     payload: normalized.raw,
   })
@@ -212,10 +248,30 @@ export async function cancelFromKiwifyRefund(
   const externalPayId = kiwifyPaymentExternalId(normalized.orderId)
   const { data } = await admin
     .from('subscriptions')
-    .select('id')
+    .select('id, user_id')
     .eq('asaas_payment_id', externalPayId)
     .maybeSingle()
   if (!data?.id) return { action: 'ignored', reason: 'subscription não encontrada' }
+
   await admin.from('subscriptions').update({ status: 'cancelled' }).eq('id', data.id)
+
+  // Revoga acesso imediatamente: verifica se há outra subscription ativa antes de zerar
+  if (data.user_id) {
+    const { data: stillActive } = await admin
+      .from('active_subscriptions')
+      .select('id')
+      .eq('user_id', data.user_id)
+      .eq('product_id', 'nr01')
+      .limit(1)
+
+    if (!stillActive || stillActive.length === 0) {
+      await admin
+        .from('profiles')
+        .update({ module_nr01: false, is_active: false })
+        .eq('id', data.user_id)
+      console.info('[kiwify-provision] acesso NR-01 revogado por cancelamento', { userId: data.user_id })
+    }
+  }
+
   return { action: 'activated', subscriptionId: data.id, reason: 'cancelled' }
 }
