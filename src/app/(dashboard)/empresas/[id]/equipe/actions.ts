@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import type { CompanyContactRole, UserRole } from '@/types/database'
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 
@@ -17,9 +18,12 @@ async function authCompany(companyId: string) {
     .returns<{ role: UserRole }[]>()
     .single()
   const role = profile?.role ?? 'consultant'
+  // Valida escopo (contratante: empresas da org; consultor: próprias empresas)
   const { data: co } = await fetchCompanyForActor(supabase, user.id, role, companyId, 'id')
   if (!co) redirect('/empresas')
-  return { supabase, user }
+  // Service role para bypass RLS nas tabelas de contato (escopo já validado acima)
+  const admin = createServiceRoleAdmin()
+  return { supabase: admin, user }
 }
 
 function revalidateEquipe(companyId: string) {

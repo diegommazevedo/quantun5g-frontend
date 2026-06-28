@@ -27,6 +27,7 @@ export interface Nr01DashboardRow {
   adherence_pct: number | null
   response_count: number
   expected_respondents: number
+  k_anonymity_min: number
 }
 
 type FilterKey = 'todos' | 'andamento' | 'concluido' | 'arquivado'

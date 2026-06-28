@@ -154,3 +154,44 @@ export async function assertCanAddConsultantCompany(
     )
   }
 }
+
+/** Conta CNPJs cadastrados na org do contratante self-serve. */
+async function countOrgCompanies(orgAccountId: string): Promise<number> {
+  const admin = createServiceRoleAdmin()
+  const { count, error } = await admin
+    .from('companies')
+    .select('id', { count: 'exact', head: true })
+    .eq('org_account_id', orgAccountId)
+  if (error) throw new Error(error.message)
+  return count ?? 0
+}
+
+/** Self-serve — bloqueia novo CNPJ quando o contratante atingiu o limite do plano contratado.
+ *  Limite lido da fatura/assinatura do `ownerUserId` (auth.uid() do contratante). */
+export async function assertCanAddOrgCompany(
+  ownerUserId: string,
+  orgAccountId: string,
+  opts?: { slotsFromCurrentContract?: number },
+): Promise<void> {
+  const resolved = await getCompanyCnpjSlotsLimitForUser(ownerUserId)
+  const limit = opts?.slotsFromCurrentContract
+    ? Math.max(resolved, parseCompanyCnpjSlots(opts.slotsFromCurrentContract))
+    : resolved
+  const count = await countOrgCompanies(orgAccountId)
+  if (count >= limit) {
+    throw new Error(
+      `Limite de ${formatCompanyCnpjSlotsShort(limit)} atingido no seu plano. ` +
+        'Para adicionar mais CNPJs, atualize seu plano em Contratação.',
+    )
+  }
+}
+
+/** Retorna uso de slots para uma org de contratante. */
+export async function getCompanyCnpjSlotsUsageForOrg(
+  ownerUserId: string,
+  orgAccountId: string,
+): Promise<CompanyCnpjSlotsUsage> {
+  const limit = await getCompanyCnpjSlotsLimitForUser(ownerUserId)
+  const used = await countOrgCompanies(orgAccountId)
+  return { limit, used, remaining: Math.max(0, limit - used) }
+}

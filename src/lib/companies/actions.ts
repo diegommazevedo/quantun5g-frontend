@@ -20,7 +20,7 @@ import { isContratanteRole } from '@/lib/org/roles'
 import type { UserRole } from '@/types/database'
 import { assignCompanyAccountUser, resolveUserIdByEmail } from '@/lib/companies/assign-account-user'
 import { isLicensingV2 } from '@/lib/licensing/model'
-import { assertCanAddConsultantCompany } from '@/lib/licensing/company-cnpj-slots'
+import { assertCanAddConsultantCompany, assertCanAddOrgCompany } from '@/lib/licensing/company-cnpj-slots'
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
 
@@ -372,9 +372,13 @@ export async function criarEmpresa(formData: FormData) {
   const dup = await assertNoDuplicate(supabase, consultantId, fields.name, fields.cnpj)
   if (dup) redirect(novaEmpresaErrorUrl(retorno, dup))
 
-  if (isLicensingV2() && role === 'consultant') {
+  if (isLicensingV2()) {
     try {
-      await assertCanAddConsultantCompany(user.id)
+      if (isSelfServe && orgAccountId) {
+        await assertCanAddOrgCompany(user.id, orgAccountId)
+      } else if (role === 'consultant') {
+        await assertCanAddConsultantCompany(user.id)
+      }
     } catch (e) {
       redirect(novaEmpresaErrorUrl(retorno, e instanceof Error ? e.message : 'Limite de CNPJs atingido'))
     }
@@ -414,10 +418,11 @@ export async function criarEmpresa(formData: FormData) {
   }
 
   const companyId = (data as { id: string }).id
-  const syncLeaderErr = await syncIlLeaders(supabase, companyId, fields.ilLeaders)
+  // Usa adminClient para sync (bypass RLS em company_contacts/il_leaders — escopo validado acima)
+  const syncLeaderErr = await syncIlLeaders(adminClient as Parameters<typeof syncIlLeaders>[0], companyId, fields.ilLeaders)
   if (syncLeaderErr) redirect(novaEmpresaErrorUrl(retorno, syncLeaderErr))
   if (fields.collaborators.length > 0) {
-    const syncColErr = await syncCollaborators(supabase, companyId, fields.collaborators)
+    const syncColErr = await syncCollaborators(adminClient as Parameters<typeof syncCollaborators>[0], companyId, fields.collaborators)
     if (syncColErr) redirect(novaEmpresaErrorUrl(retorno, syncColErr))
   }
 
@@ -473,9 +478,10 @@ export async function atualizarEmpresa(formData: FormData) {
 
   if (error) redirect(editEmpresaErrorUrl(id, mapDbError(error.message), retorno ?? undefined))
 
-  const syncLeaderErr = await syncIlLeaders(supabase, id, fields.ilLeaders)
+  // Usa adminUpdate para sync (bypass RLS — escopo validado por fetchCompanyForActor acima)
+  const syncLeaderErr = await syncIlLeaders(adminUpdate as Parameters<typeof syncIlLeaders>[0], id, fields.ilLeaders)
   if (syncLeaderErr) redirect(editEmpresaErrorUrl(id, syncLeaderErr, retorno ?? undefined))
-  const syncColErr = await syncCollaborators(supabase, id, fields.collaborators)
+  const syncColErr = await syncCollaborators(adminUpdate as Parameters<typeof syncCollaborators>[0], id, fields.collaborators)
   if (syncColErr) redirect(editEmpresaErrorUrl(id, syncColErr, retorno ?? undefined))
 
   await maybeAssignPayerFromForm(formData, role, id, (msg) =>

@@ -19,6 +19,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createHash } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { tryLoadNr01Assessment } from '@/lib/nr01/require-assessment-page'
 import { loadLaudoData } from '@/lib/nr01/pdf-data'
 import { buildLaudoHtml } from '@/lib/nr01/pdf-template'
@@ -40,6 +41,7 @@ export async function POST(
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   }
 
+  // tryLoadNr01Assessment valida escopo (consultor, contratante, gerente, admin)
   const ctx = await tryLoadNr01Assessment(assessmentId, 'id, status')
   if (!ctx) {
     return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 })
@@ -109,9 +111,12 @@ export async function POST(
   const generatedAt = new Date().toISOString()
   const byteSize = pdfBuffer.length
 
+  // Service role para persitência (RLS de nr01_evidence_pack exige consultor_id; contratante/gerente não passam)
+  const adminDb = createServiceRoleAdmin()
+
   // Atualiza pacote de evidências (se já existe) ou cria linha mínima
   // (situação esperada: pacote já gerado em /avaliacao/[id] antes do PDF).
-  const { data: existingPack } = await supabase
+  const { data: existingPack } = await adminDb
     .from('nr01_evidence_pack')
     .select('id, pdf_sha256')
     .eq('assessment_id', assessmentId)
@@ -122,7 +127,7 @@ export async function POST(
     // Se pdf_sha256 já existe, NÃO sobrescreve (Diego P4: hash original imutável).
     // Apenas atualiza pdf_generated_at + pdf_byte_size + pdf_page_count para tracking.
     if (e.pdf_sha256 == null) {
-      await supabase
+      await adminDb
         .from('nr01_evidence_pack')
         .update({
           pdf_sha256: sha256,
@@ -133,7 +138,7 @@ export async function POST(
         .eq('id', e.id)
     } else {
       // Regeneração: tracking só, sem mexer no hash original.
-      await supabase
+      await adminDb
         .from('nr01_evidence_pack')
         .update({
           pdf_byte_size: byteSize,
@@ -146,12 +151,12 @@ export async function POST(
   // não criamos pacote silenciosamente (ele exige hash do instrumento etc).
 
   // ============================================================
-  // AUDIT
+  // AUDIT — actor_role dinâmico (contratante/gerente/consultant/admin)
   // ============================================================
-  await supabase.from('nr01_audit_log').insert({
+  await adminDb.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: ctx.role ?? 'consultant',
     event_type: 'PDF_GENERATED',
     payload: {
       pdf_sha256: sha256,

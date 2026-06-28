@@ -6,7 +6,7 @@
 
 
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 
 import { resolveAppBaseUrl } from '@/lib/auth/app-url'
 
@@ -142,7 +142,7 @@ export async function upsertSurveyInvite(input: {
 
 }): Promise<{ id: string; token: string }> {
 
-  const supabase = await createClient()
+  const supabase = createServiceRoleAdmin()
 
   const resolved = await resolveInviteForDispatch(
 
@@ -192,7 +192,7 @@ export async function dispatchSurveyInvites(input: {
 
 }): Promise<DispatchResult> {
 
-  const supabase = await createClient()
+  const supabase = createServiceRoleAdmin()
 
 
 

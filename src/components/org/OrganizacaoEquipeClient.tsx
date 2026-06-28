@@ -73,13 +73,22 @@ export function OrganizacaoEquipeClient({ orgName, companies, gerentes }: Props)
 
       <section className="rounded-xl border border-zinc-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-zinc-900">Filiais do grupo ({companies.length})</h2>
-        <ul className="mt-3 space-y-1 text-sm text-zinc-600">
-          {companies.map((c) => (
-            <li key={c.id}>
-              {c.name} <span className="font-mono text-xs text-zinc-400">{formatCnpj(c.cnpj)}</span>
-            </li>
-          ))}
-        </ul>
+        {companies.length === 0 ? (
+          <div className="mt-3 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-4 text-center text-sm text-zinc-500">
+            Nenhuma filial cadastrada ainda.{' '}
+            <a href="/empresas/nova" className="font-medium text-zinc-900 underline hover:text-zinc-700">
+              Cadastrar primeiro CNPJ →
+            </a>
+          </div>
+        ) : (
+          <ul className="mt-3 space-y-1 text-sm text-zinc-600">
+            {companies.map((c) => (
+              <li key={c.id}>
+                {c.name} <span className="font-mono text-xs text-zinc-400">{formatCnpj(c.cnpj)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div className="flex items-center justify-between">
@@ -92,7 +101,9 @@ export function OrganizacaoEquipeClient({ orgName, companies, gerentes }: Props)
         <button
           type="button"
           onClick={() => { setModal('create'); setErro(null) }}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
+          disabled={companies.length === 0}
+          title={companies.length === 0 ? 'Cadastre ao menos uma filial antes de criar gerente' : undefined}
+          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           + Novo gerente
         </button>

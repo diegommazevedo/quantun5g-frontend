@@ -26,6 +26,7 @@ type Row = {
   created_at: string
   linked_diagnostic_id: string | null
   expected_respondents: number
+  k_anonymity_min: number
   companies: { name: string } | null
   nr01_assessment_results: Pick<
     Nr01AssessmentResult,
@@ -60,7 +61,7 @@ export default async function Nr01DashboardPage({
     .from('nr01_assessments')
     .select(`
       id, name, status, reference_period, competencia_label, created_at, linked_diagnostic_id,
-      expected_respondents,
+      expected_respondents, k_anonymity_min,
       companies:companies!nr01_assessments_company_id_fkey ( name ),
       nr01_assessment_results ( iso_score, iso_risk_level, adherence_pct )
     `)
@@ -108,6 +109,7 @@ export default async function Nr01DashboardPage({
     adherence_pct: r.nr01_assessment_results?.adherence_pct ?? null,
     response_count: responseCountByAssessment[r.id] ?? 0,
     expected_respondents: r.expected_respondents ?? 0,
+    k_anonymity_min: r.k_anonymity_min ?? 5,
   }))
 
   const total = rows.length
@@ -126,8 +128,17 @@ export default async function Nr01DashboardPage({
     const hasColeta = rows.some((r) =>
       ['COLETANDO', 'COLETA_ENCERRADA', 'PROCESSANDO', 'CONCLUIDO'].includes(r.status),
     )
-    const hasRespostas = rows.some((r) => r.response_count >= 5)
+    // Usa k_anonymity_min por avaliação (default 5 se não configurado)
+    const hasRespostas = rows.some((r) => r.response_count >= r.k_anonymity_min)
     const hasLaudo = rows.some((r) => r.status === 'CONCLUIDO')
+    // Referência para exibir o limiar no texto (avaliação ativa ou default 5)
+    const activeRow = rows.find((r) => ['CRIADO', 'COLETANDO'].includes(r.status))
+    const kMin = activeRow?.k_anonymity_min ?? 5
+
+    // Evitar dupla chamada a rows.find (href consistente com o mesmo objeto)
+    const primeiraAvaliacao = rows.find((r) => r.status === 'CRIADO')
+    const coletaAberta = rows.find((r) => r.status === 'COLETANDO')
+    const coletaEncerrada = rows.find((r) => r.status === 'COLETA_ENCERRADA')
 
     onboardingSteps = [
       {
@@ -154,28 +165,22 @@ export default async function Nr01DashboardPage({
       {
         id: 'coleta',
         label: 'Abrir coleta com colaboradores',
-        description: 'Envie o link anônimo para sua equipe responder. Mínimo 5 respostas.',
-        href: rows.find((r) => r.status === 'CRIADO')
-          ? `/nr01/avaliacao/${rows.find((r) => r.status === 'CRIADO')!.id}`
-          : '/nr01/avaliacao/nova',
+        description: 'Envie o link anônimo para sua equipe responder.',
+        href: primeiraAvaliacao ? `/nr01/avaliacao/${primeiraAvaliacao.id}` : '/nr01/avaliacao/nova',
         done: hasColeta,
       },
       {
         id: 'respostas',
-        label: 'Atingir respostas mínimas (5+)',
-        description: 'Aguarde os colaboradores responderem. Acompanhe o progresso na avaliação.',
-        href: rows.find((r) => r.status === 'COLETANDO')
-          ? `/nr01/avaliacao/${rows.find((r) => r.status === 'COLETANDO')!.id}`
-          : '/nr01/dashboard',
+        label: `Atingir respostas mínimas (${kMin}+)`,
+        description: `Aguarde os colaboradores responderem (mínimo ${kMin} para anonimato k). Acompanhe na avaliação.`,
+        href: coletaAberta ? `/nr01/avaliacao/${coletaAberta.id}` : '/nr01/dashboard',
         done: hasRespostas,
       },
       {
         id: 'laudo',
         label: 'Emitir seu primeiro laudo',
         description: 'Encerre a coleta e gere o pacote de evidências e laudo NR-01.',
-        href: rows.find((r) => r.status === 'COLETA_ENCERRADA')
-          ? `/nr01/avaliacao/${rows.find((r) => r.status === 'COLETA_ENCERRADA')!.id}`
-          : '/nr01/dashboard',
+        href: coletaEncerrada ? `/nr01/avaliacao/${coletaEncerrada.id}` : '/nr01/dashboard',
         done: hasLaudo,
       },
     ]

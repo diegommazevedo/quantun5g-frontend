@@ -225,7 +225,7 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
       linked_diagnostic_id: linkedDiagId,
 
-      technical_lead_id: user.id,
+      technical_lead_id: null, // FK para RT não é o criador; dados do RT já estão em rtSnapshot
 
       competencia_seq: competenciaParsed.seq,
 

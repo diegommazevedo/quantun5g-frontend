@@ -82,15 +82,23 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (user && isAuthPage) {
+    if (user && (isAuthPage || pathname === '/')) {
+      // Redirect role-aware: contratante/gerente sem módulo Pentagrama vão direto ao NR-01
+      const { data: profileRaw } = await supabase
+        .from('profiles')
+        .select('role, module_nr01, module_pentagrama')
+        .eq('id', user.id)
+        .single()
+      const role = (profileRaw as { role?: string } | null)?.role ?? 'consultant'
+      const hasNr01 = (profileRaw as { module_nr01?: boolean } | null)?.module_nr01 === true
+      const hasPentagrama = (profileRaw as { module_pentagrama?: boolean } | null)?.module_pentagrama === true
       const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
-
-    if (user && pathname === '/') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
+      // contratante ou gerente → nr01/dashboard se tiver módulo NR-01 e não Pentagrama
+      if ((isContratanteRole(role) || isGerenteRole(role)) && hasNr01 && !hasPentagrama) {
+        url.pathname = '/nr01/dashboard'
+      } else {
+        url.pathname = '/dashboard'
+      }
       return NextResponse.redirect(url)
     }
 
