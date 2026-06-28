@@ -16,6 +16,7 @@ import {
   ModuleDashboardShell,
 } from '@/components/dashboard/ModuleDashboardShell'
 import { Nr01AssessmentsList, type Nr01DashboardRow } from '@/components/nr01/Nr01AssessmentsList'
+import { OnboardingChecklist, type OnboardingStep } from '@/components/onboarding/OnboardingChecklist'
 
 type Row = {
   id: string
@@ -58,6 +59,9 @@ export default async function Nr01DashboardPage({
     hasOrg = !!orgRow
   }
 
+  // IDs de empresas do contratante (carregado cedo para reuso no checklist)
+  let contratanteCompanyIds: string[] = []
+
   let canCreateAssessment = isAdmin || isPlatformStaff(role)
   if (isLeader || isContratante || isGerente) {
     canCreateAssessment = profile?.module_nr01 === true || (await userHasNr01License(user.id))
@@ -78,8 +82,8 @@ export default async function Nr01DashboardPage({
   if (!isAdmin && !isLeader && !isContratante && !isGerente) {
     query.eq('consultant_id', user.id)
   } else if (isContratante) {
-    const ids = await loadCompanyIdsForContratante(user.id)
-    if (ids.length) query.in('company_id', ids)
+    contratanteCompanyIds = await loadCompanyIdsForContratante(user.id)
+    if (contratanteCompanyIds.length) query.in('company_id', contratanteCompanyIds)
     else query.eq('company_id', '00000000-0000-0000-0000-000000000000')
   } else if (isGerente) {
     const ids = await loadCompanyIdsForGerente(user.id)
@@ -127,6 +131,69 @@ export default async function Nr01DashboardPage({
 
   const firstName = profile?.name?.split(' ')[0]
 
+  // Checklist de onboarding — apenas para contratante, some quando tudo concluído
+  let onboardingSteps: OnboardingStep[] | null = null
+  if (isContratante) {
+    const hasCnpj = contratanteCompanyIds.length > 0
+    const hasAssessment = rows.length > 0
+    const hasColeta = rows.some((r) =>
+      ['COLETANDO', 'COLETA_ENCERRADA', 'PROCESSANDO', 'CONCLUIDO'].includes(r.status),
+    )
+    const hasRespostas = rows.some((r) => r.response_count >= 5)
+    const hasLaudo = rows.some((r) => r.status === 'CONCLUIDO')
+
+    onboardingSteps = [
+      {
+        id: 'conta',
+        label: 'Ativar sua conta',
+        description: 'Senha definida e acesso liberado.',
+        href: '/nr01/dashboard',
+        done: true,
+      },
+      {
+        id: 'cnpj',
+        label: 'Cadastrar CNPJ da empresa',
+        description: 'Registre a empresa que será avaliada (razão social, CNPJ e RT assinante).',
+        href: '/empresas/nova',
+        done: hasCnpj,
+      },
+      {
+        id: 'avaliacao',
+        label: 'Criar avaliação NR-01',
+        description: 'Defina o período de competência, número de colaboradores e datas da coleta.',
+        href: '/nr01/avaliacao/nova',
+        done: hasAssessment,
+      },
+      {
+        id: 'coleta',
+        label: 'Abrir coleta com colaboradores',
+        description: 'Envie o link anônimo para sua equipe responder. Mínimo 5 respostas.',
+        href: rows.find((r) => r.status === 'CRIADO')
+          ? `/nr01/avaliacao/${rows.find((r) => r.status === 'CRIADO')!.id}`
+          : '/nr01/avaliacao/nova',
+        done: hasColeta,
+      },
+      {
+        id: 'respostas',
+        label: 'Atingir respostas mínimas (5+)',
+        description: 'Aguarde os colaboradores responderem. Acompanhe o progresso na avaliação.',
+        href: rows.find((r) => r.status === 'COLETANDO')
+          ? `/nr01/avaliacao/${rows.find((r) => r.status === 'COLETANDO')!.id}`
+          : '/nr01/dashboard',
+        done: hasRespostas,
+      },
+      {
+        id: 'laudo',
+        label: 'Emitir seu primeiro laudo',
+        description: 'Encerre a coleta e gere o pacote de evidências e laudo NR-01.',
+        href: rows.find((r) => r.status === 'COLETA_ENCERRADA')
+          ? `/nr01/avaliacao/${rows.find((r) => r.status === 'COLETA_ENCERRADA')!.id}`
+          : '/nr01/dashboard',
+        done: hasLaudo,
+      },
+    ]
+  }
+
   return (
     <ModuleDashboardShell
       module="nr01"
@@ -136,31 +203,8 @@ export default async function Nr01DashboardPage({
       primaryActionLockedHref="/contratacao"
       sectionTitle="Avaliações"
       alert={
-        /* Boas-vindas: primeiro acesso pós-ativação de senha */
-        welcome === '1' && isContratante ? (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
-            <p className="font-semibold">Bem-vindo(a) ao Quantum5G! 🎉</p>
-            <p className="mt-1">
-              Sua licença NR-01 está ativa. Para criar sua primeira avaliação, cadastre a empresa
-              (CNPJ) que será avaliada em{' '}
-              <Link href="/empresas" className="font-semibold underline">
-                Empresas do grupo
-              </Link>
-              .
-            </p>
-          </div>
-        ) : isContratante && !hasOrg ? (
-          /* Org não configurada — orienta o próximo passo */
-          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-900">
-            <p className="font-semibold">Configure sua organização para começar</p>
-            <p className="mt-1">
-              Adicione o(s) CNPJ(s) da sua empresa em{' '}
-              <Link href="/empresas" className="font-semibold underline">
-                Empresas do grupo
-              </Link>{' '}
-              para poder criar avaliações NR-01.
-            </p>
-          </div>
+        onboardingSteps ? (
+          <OnboardingChecklist steps={onboardingSteps} />
         ) : errorParam === 'avaliacao-nao-encontrada' ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Avaliação não encontrada ou sem permissão para o seu perfil. Verifique o link ou escolha na lista abaixo.
