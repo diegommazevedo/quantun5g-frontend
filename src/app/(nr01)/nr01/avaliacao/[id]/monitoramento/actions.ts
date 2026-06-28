@@ -22,11 +22,11 @@ import type {
 } from '@/types/nr01'
 
 async function ensureOwnership(assessmentId: string) {
-  const { db, user, assessment } = await ensureNr01AssessmentAccess<Nr01Assessment>(
+  const { db, user, role, assessment } = await ensureNr01AssessmentAccess<Nr01Assessment>(
     assessmentId,
     'id, consultant_id, status, instrument_version, company_id',
   )
-  return { supabase: db, user, assessment }
+  return { supabase: db, user, role, assessment }
 }
 
 // ============================================================
@@ -67,7 +67,7 @@ export async function ativarMonitoramento(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'PULSE_MONITORING_ACTIVATED',
     payload: {
       n_emails: valid.length,
@@ -86,7 +86,7 @@ export async function ativarMonitoramento(formData: FormData) {
 // ============================================================
 export async function desativarMonitoramento(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
-  const { supabase, user } = await ensureOwnership(assessmentId)
+  const { supabase, user, role } = await ensureOwnership(assessmentId)
 
   await supabase
     .from('nr01_pulse_config')
@@ -96,7 +96,7 @@ export async function desativarMonitoramento(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'PULSE_MONITORING_DEACTIVATED',
     payload: {},
   } as never)
@@ -243,7 +243,7 @@ export async function dispararPulsoSemanal(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'MICRO_PULSE_DISPATCHED',
     payload: {
       dispatch_id: dispatch.id,

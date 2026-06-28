@@ -24,21 +24,6 @@ import { assertCanAddConsultantCompany } from '@/lib/licensing/company-cnpj-slot
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
 
-async function authConsultant() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .returns<{ role: UserRole }[]>()
-    .single()
-  const role = profile?.role ?? 'consultant'
-  if (!isPlatformStaff(role) && role !== 'leader') redirect('/dashboard')
-  return { supabase, user, role }
-}
-
 /** Auth para contratante self-serve E consultores/staff. */
 async function authCompanyActor() {
   const supabase = await createClient()
@@ -367,6 +352,16 @@ export async function criarEmpresa(formData: FormData) {
   const fields = companyFormFields(formData)
   const isSelfServe = isContratanteRole(role)
 
+  // Resolve escopo da org antes de qualquer validação (necessário para consultantId correto)
+  let orgAccountId: string | null = null
+  let consultantId: string = user.id
+  if (isSelfServe) {
+    const scope = await loadContratanteOrgScope(user.id)
+    if (!scope.org) redirect(novaEmpresaErrorUrl(retorno, 'Organização não configurada. Contacte o suporte.'))
+    orgAccountId = scope.org.id
+    consultantId = scope.org.consultant_id ?? user.id
+  }
+
   const schemaErr = await assertSchemaReady(supabase)
   if (schemaErr) redirect(novaEmpresaErrorUrl(retorno, schemaErr))
 
@@ -374,7 +369,7 @@ export async function criarEmpresa(formData: FormData) {
   const validationErr = validateCompanyPayload(fields, { requireIl: !isSelfServe || modulePentagrama })
   if (validationErr) redirect(novaEmpresaErrorUrl(retorno, validationErr))
 
-  const dup = await assertNoDuplicate(supabase, user.id, fields.name, fields.cnpj)
+  const dup = await assertNoDuplicate(supabase, consultantId, fields.name, fields.cnpj)
   if (dup) redirect(novaEmpresaErrorUrl(retorno, dup))
 
   if (isLicensingV2() && role === 'consultant') {
@@ -383,16 +378,6 @@ export async function criarEmpresa(formData: FormData) {
     } catch (e) {
       redirect(novaEmpresaErrorUrl(retorno, e instanceof Error ? e.message : 'Limite de CNPJs atingido'))
     }
-  }
-
-  // Para contratante: carrega org e vincula a empresa automaticamente
-  let orgAccountId: string | null = null
-  let consultantId: string = user.id
-  if (isSelfServe) {
-    const scope = await loadContratanteOrgScope(user.id)
-    if (!scope.org) redirect(novaEmpresaErrorUrl(retorno, 'Organização não configurada. Contacte o suporte.'))
-    orgAccountId = scope.org.id
-    consultantId = scope.org.consultant_id ?? user.id
   }
 
   const insert: CompanyInsert = {

@@ -18,12 +18,12 @@ import { suggestActionsFromScores } from '@/lib/nr01/plan-suggestions'
 import { pdcaPhaseForItemStatus } from '@/lib/nr01/plan-pdca'
 
 async function ensureOwnership(assessmentId: string) {
-  const { db, user, assessment } = await ensureNr01AssessmentAccess(assessmentId)
-  return { supabase: db, user, assessment }
+  const { db, user, role, assessment } = await ensureNr01AssessmentAccess(assessmentId)
+  return { supabase: db, user, role, assessment }
 }
 
 async function getOrCreatePlan(assessmentId: string) {
-  const { supabase, user } = await ensureOwnership(assessmentId)
+  const { supabase, user, role } = await ensureOwnership(assessmentId)
   const { data: existing } = await supabase
     .from('nr01_action_plans')
     .select('id, status')
@@ -43,7 +43,7 @@ async function getOrCreatePlan(assessmentId: string) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ACTION_PLAN_CREATED',
     payload: {},
   } as never)
@@ -94,7 +94,7 @@ export async function adicionarItemPlano(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ACTION_ITEM_ADDED',
     payload: { dimension_code: dimensionCode, title, priority },
   } as never)
@@ -170,7 +170,7 @@ export async function sugerirAcoesAuto(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ACTION_ITEMS_AUTO_SUGGESTED',
     payload: { n_added: toInsert.length },
   } as never)
@@ -188,7 +188,7 @@ export async function atualizarStatusItem(formData: FormData) {
   const status       = (formData.get('status') as string) as Nr01ActionStatus
   const notes        = (formData.get('completion_notes') as string)?.trim() || null
 
-  const { supabase, user } = await ensureOwnership(assessmentId)
+  const { supabase, user, role } = await ensureOwnership(assessmentId)
 
   const update: Partial<Nr01ActionItem> = {
     status,
@@ -231,7 +231,7 @@ export async function atualizarStatusItem(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ACTION_ITEM_STATUS_CHANGED',
     payload: { item_id: itemId, status },
   } as never)
@@ -249,7 +249,7 @@ export async function marcarCheckpoint(formData: FormData) {
   const checkpoint   = formData.get('checkpoint') as '30' | '60' | '90'
   const note         = (formData.get('check_note') as string)?.trim() || null
 
-  const { supabase, user } = await ensureOwnership(assessmentId)
+  const { supabase, user, role } = await ensureOwnership(assessmentId)
 
   const field =
     checkpoint === '30' ? 'check_30d_at'
@@ -275,7 +275,7 @@ export async function marcarCheckpoint(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ACTION_ITEM_CHECKPOINT',
     payload: { item_id: itemId, checkpoint },
   } as never)
@@ -318,7 +318,7 @@ export async function aprovarPlano(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ACTION_PLAN_APPROVED',
     payload: { plan_id: plan.id, next_review_at: reviewIn.toISOString().split('T')[0] },
   } as never)
@@ -342,7 +342,7 @@ export async function atualizarItemPlano(formData: FormData) {
     redirect(`/nr01/avaliacao/${assessmentId}/plano?error=Respons%C3%A1vel+e+prazo+s%C3%A3o+obrigat%C3%B3rios.`)
   }
 
-  const { supabase, user } = await ensureOwnership(assessmentId)
+  const { supabase, user, role } = await ensureOwnership(assessmentId)
 
   await supabase
     .from('nr01_action_items')
@@ -352,7 +352,7 @@ export async function atualizarItemPlano(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ACTION_ITEM_UPDATED',
     payload: { item_id: itemId },
   } as never)
@@ -378,7 +378,7 @@ export async function removerItemPlano(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ACTION_ITEM_REMOVED',
     payload: { item_id: itemId },
   } as never)

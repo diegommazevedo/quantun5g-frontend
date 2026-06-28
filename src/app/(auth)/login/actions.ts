@@ -60,6 +60,7 @@ export async function login(formData: FormData) {
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
+    .eq('id', user?.id ?? '')
     .returns<{ role: UserRole }[]>()
     .single()
 

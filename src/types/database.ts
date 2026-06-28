@@ -165,13 +165,17 @@ export interface Company {
   name_normalized: string | null
   total_collaborators: number
   consultant_id: string
+  /** Vínculo com a org do contratante self-serve (nullable para empresas legacy de consultor). */
+  org_account_id: string | null
+  /** Usuário pagante/contratante vinculado à empresa (legacy account_user model). */
+  account_user_id: string | null
   created_at: string
   updated_at: string
 }
 
 export type CompanyInsert = Omit<
   Company,
-  'id' | 'created_at' | 'updated_at' | 'name_normalized' | 'legal_name' | 'trade_name' | 'cnpj' | 'rh_contact_name' | 'rh_contact_email' | 'technical_lead_name' | 'technical_lead_crp' | 'technical_lead_profession' | 'technical_lead_email' | 'il_leader_name' | 'il_leader_email'
+  'id' | 'created_at' | 'updated_at' | 'name_normalized' | 'legal_name' | 'trade_name' | 'cnpj' | 'rh_contact_name' | 'rh_contact_email' | 'technical_lead_name' | 'technical_lead_crp' | 'technical_lead_profession' | 'technical_lead_email' | 'il_leader_name' | 'il_leader_email' | 'org_account_id' | 'account_user_id'
 > & {
   legal_name?: string | null
   trade_name?: string | null
@@ -185,6 +189,8 @@ export type CompanyInsert = Omit<
   il_leader_name?: string | null
   il_leader_email?: string | null
   name_normalized?: string | null
+  org_account_id?: string | null
+  account_user_id?: string | null
 }
 export type CompanyUpdate = Partial<Omit<Company, 'id' | 'created_at' | 'consultant_id'>>
 

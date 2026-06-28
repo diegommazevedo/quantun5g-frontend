@@ -17,16 +17,16 @@ import {
 } from '@/types/nr01'
 
 async function ensureOwnership(assessmentId: string) {
-  const { db, user, assessment } = await ensureNr01AssessmentAccess(
+  const { db, user, role, assessment } = await ensureNr01AssessmentAccess(
     assessmentId,
     'id, consultant_id, status',
   )
-  return { supabase: db, user, assessment: assessment as { id: string; consultant_id: string; status: string } }
+  return { supabase: db, user, role, assessment: assessment as { id: string; consultant_id: string; status: string } }
 }
 
 export async function recalcularEconomico(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
-  const { supabase, user, assessment } = await ensureOwnership(assessmentId)
+  const { supabase, user, role, assessment } = await ensureOwnership(assessmentId)
 
   if (assessment.status !== 'CONCLUIDO') {
     redirect(`/nr01/avaliacao/${assessmentId}/economico?error=Processe+os+resultados+antes.`)
@@ -124,7 +124,7 @@ export async function recalcularEconomico(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'ECONOMIC_RECALCULATED',
     payload: {
       iso: r?.iso_score,

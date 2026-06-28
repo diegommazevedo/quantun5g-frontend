@@ -16,8 +16,8 @@ import { randomBytes } from 'crypto'
 import { ensureNr01AssessmentAccess } from '@/lib/nr01/assessment-access'
 
 async function ensureOwnership(assessmentId: string) {
-  const { db, user, assessment } = await ensureNr01AssessmentAccess(assessmentId)
-  return { supabase: db, user, assessment }
+  const { db, user, role, assessment } = await ensureNr01AssessmentAccess(assessmentId)
+  return { supabase: db, user, role, assessment }
 }
 
 function generatePublicToken(): string {
@@ -30,7 +30,7 @@ export async function criarTokenStatusPublico(formData: FormData) {
   const revokeOthersRaw = formData.get('revoke_others') as string | null
   const revokeOthers = revokeOthersRaw === 'true' || revokeOthersRaw === 'on'
 
-  const { supabase, user } = await ensureOwnership(assessmentId)
+  const { supabase, user, role } = await ensureOwnership(assessmentId)
 
   if (revokeOthers) {
     await supabase
@@ -55,7 +55,7 @@ export async function criarTokenStatusPublico(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'PUBLIC_STATUS_TOKEN_CREATED',
     payload: { revoke_others: revokeOthers },
   } as never)
@@ -68,7 +68,7 @@ export async function revogarTokenStatusPublico(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
   const tokenId      = formData.get('token_id') as string
 
-  const { supabase, user } = await ensureOwnership(assessmentId)
+  const { supabase, user, role } = await ensureOwnership(assessmentId)
 
   await supabase
     .from('nr01_public_status_tokens')
@@ -79,7 +79,7 @@ export async function revogarTokenStatusPublico(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: assessmentId,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'PUBLIC_STATUS_TOKEN_REVOKED',
     payload: { token_id: tokenId },
   } as never)

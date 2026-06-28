@@ -39,6 +39,7 @@ import {
 import { fetchNextCompetenciaSeq } from '@/lib/survey/competencia-db'
 import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
+import { requireNr01LicenseOrRedirect } from '@/lib/nr01/require-license'
 
 
 
@@ -112,11 +113,18 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, module_nr01')
     .eq('id', user.id)
-    .returns<{ role: UserRole }[]>()
+    .returns<{ role: UserRole; module_nr01: boolean }[]>()
     .single()
-  const role = profile?.role ?? 'consultant'
+  const role = (profile?.role ?? 'consultant') as UserRole
+
+  await requireNr01LicenseOrRedirect({
+    userId: user.id,
+    role,
+    moduleNr01: profile?.module_nr01,
+  })
+
   const db = supabaseForActorRole(role, supabase)
 
   const expectedSeq = await fetchNextCompetenciaSeq(db, companyId, 'nr01')

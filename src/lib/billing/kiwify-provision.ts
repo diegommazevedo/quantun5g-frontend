@@ -284,11 +284,12 @@ export async function cancelFromKiwifyRefund(
       .limit(1)
 
     if (!stillActive || stillActive.length === 0) {
+      // Revoga apenas o módulo NR-01; is_active mantido (conta persiste para reativação)
       await admin
         .from('profiles')
-        .update({ module_nr01: false, is_active: false })
+        .update({ module_nr01: false })
         .eq('id', data.user_id)
-      console.info('[kiwify-provision] acesso NR-01 revogado por cancelamento', { userId: data.user_id })
+      console.info('[kiwify-provision] módulo NR-01 revogado por cancelamento', { userId: data.user_id })
     }
   }
 

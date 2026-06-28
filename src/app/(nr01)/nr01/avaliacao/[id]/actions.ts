@@ -27,8 +27,8 @@ import {
 } from '@/lib/nr01/technical-lead'
 
 async function ensureOwnership(assessmentId: string) {
-  const { db, user, assessment } = await ensureNr01AssessmentAccess(assessmentId)
-  return { supabase: db, user, assessment }
+  const { db, user, role, assessment } = await ensureNr01AssessmentAccess(assessmentId)
+  return { supabase: db, user, role, assessment }
 }
 
 // ============================================================
@@ -36,7 +36,7 @@ async function ensureOwnership(assessmentId: string) {
 // ============================================================
 export async function abrirColeta(formData: FormData) {
   const id = formData.get('assessment_id') as string
-  const { supabase, user } = await ensureOwnership(id)
+  const { supabase, user, role } = await ensureOwnership(id)
 
   await supabase
     .from('nr01_assessments')
@@ -46,7 +46,7 @@ export async function abrirColeta(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: id,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'COLLECTION_OPENED',
     payload: {},
   } as never)
@@ -60,7 +60,7 @@ export async function abrirColeta(formData: FormData) {
 // ============================================================
 export async function encerrarColeta(formData: FormData) {
   const id = formData.get('assessment_id') as string
-  const { supabase, user } = await ensureOwnership(id)
+  const { supabase, user, role } = await ensureOwnership(id)
 
   await supabase
     .from('nr01_assessments')
@@ -70,7 +70,7 @@ export async function encerrarColeta(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: id,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'COLLECTION_CLOSED',
     payload: {},
   } as never)
@@ -84,7 +84,7 @@ export async function encerrarColeta(formData: FormData) {
 // ============================================================
 export async function processarResultados(formData: FormData) {
   const id = formData.get('assessment_id') as string
-  const { supabase, user } = await ensureOwnership(id)
+  const { supabase, user, role } = await ensureOwnership(id)
 
   // Carrega avaliação completa
   const { data: assessment } = await supabase
@@ -204,7 +204,7 @@ export async function processarResultados(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: id,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'RESULTS_PROCESSED',
     payload: {
       iso_score: result.iso_score,
@@ -226,7 +226,7 @@ export async function processarResultados(formData: FormData) {
 // ============================================================
 export async function gerarPacoteEvidencias(formData: FormData) {
   const id = formData.get('assessment_id') as string
-  const { supabase, user } = await ensureOwnership(id)
+  const { supabase, user, role } = await ensureOwnership(id)
 
   const { data: a } = await supabase
     .from('nr01_assessments')
@@ -329,7 +329,7 @@ export async function gerarPacoteEvidencias(formData: FormData) {
   await supabase.from('nr01_audit_log').insert({
     assessment_id: id,
     actor_id: user.id,
-    actor_role: 'consultant',
+    actor_role: role,
     event_type: 'EVIDENCE_PACK_GENERATED',
     payload: {
       pack_sha256: packSha,

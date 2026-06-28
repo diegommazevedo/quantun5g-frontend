@@ -9,7 +9,6 @@ import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
 import { getPageActor } from '@/lib/org/page-actor'
-import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import type { Nr01AssessmentResult, Nr01AssessmentStatus, Nr01RiskLevel } from '@/types/nr01'
 import {
   DashboardEmptyState,
@@ -37,27 +36,15 @@ type Row = {
 export default async function Nr01DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; welcome?: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
-  const { error: errorParam, welcome } = await searchParams
+  const { error: errorParam } = await searchParams
   const { user, role, profile, db } = await getPageActor()
 
   const isAdmin = role === 'admin'
   const isLeader = role === 'leader'
   const isContratante = isContratanteRole(role)
   const isGerente = isGerenteRole(role)
-
-  // Verifica se o contratante já tem uma organização configurada
-  let hasOrg = true
-  if (isContratante) {
-    const adminClient = createServiceRoleAdmin()
-    const { data: orgRow } = await adminClient
-      .from('org_accounts')
-      .select('id')
-      .eq('owner_user_id', user.id)
-      .maybeSingle()
-    hasOrg = !!orgRow
-  }
 
   // IDs de empresas do contratante (carregado cedo para reuso no checklist)
   let contratanteCompanyIds: string[] = []

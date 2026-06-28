@@ -21,9 +21,9 @@ export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET
   const authHeader = req.headers.get('authorization')
 
-  // Vercel injeta o token automaticamente em produção; exige mesmo
-  // segredo em chamadas manuais (curl -H "Authorization: Bearer <secret>").
-  if (secret && authHeader !== `Bearer ${secret}`) {
+  // Sempre obrigatório — Vercel injeta em produção; requer mesmo segredo em chamadas manuais.
+  // Falhar aberto (sem CRON_SECRET configurado) bloqueia o endpoint por segurança.
+  if (!secret || authHeader !== `Bearer ${secret}`) {
     return unauthorized()
   }
 
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
       if (!active || active.length === 0) {
         await admin
           .from('profiles')
-          .update({ module_nr01: false, is_active: false })
+          .update({ module_nr01: false })
           .eq('id', profile.id)
         revoked++
       }
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
   if (revokedIds.length > 0) {
     await admin
       .from('profiles')
-      .update({ module_nr01: false, is_active: false })
+      .update({ module_nr01: false })
       .in('id', revokedIds)
   }
 
