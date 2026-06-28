@@ -156,7 +156,7 @@ export async function criarAvaliacaoNr01(formData: FormData) {
   }
 
   const co = company as {
-    consultant_id: string
+    consultant_id: string | null
     cnpj: string | null
     technical_lead_name: string | null
     technical_lead_crp: string | null
@@ -197,7 +197,7 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
       company_id: companyId,
 
-      consultant_id: co.consultant_id,
+      consultant_id: co.consultant_id ?? user.id,
 
       name: competenciaParsed.surveyName,
 
