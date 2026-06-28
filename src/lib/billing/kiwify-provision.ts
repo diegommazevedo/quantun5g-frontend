@@ -168,6 +168,25 @@ export async function provisionFromKiwifyWebhook(
     }
 
     if (userId) {
+      // Auto-cria org_accounts para contratante self-service (sem consultor atribuído)
+      const { data: existingOrg } = await adminUntyped
+        .from('org_accounts')
+        .select('id')
+        .eq('owner_user_id', userId)
+        .maybeSingle()
+
+      if (!existingOrg) {
+        const orgName =
+          (testMode ? null : sale?.customer?.name?.trim()) ||
+          (customerEmail ? customerEmail.split('@')[0] : 'Minha Organização')
+        await adminUntyped.from('org_accounts').insert({
+          name: orgName,
+          owner_user_id: userId,
+          consultant_id: null,
+        })
+        console.info('[kiwify-provision] org_account criada automaticamente', { userId, orgName })
+      }
+
       const subId = randomUUID()
       const meta = metadataFromMapEntry(mapEntry, null) as unknown as Record<string, unknown>
       const insert: SubscriptionInsert = {

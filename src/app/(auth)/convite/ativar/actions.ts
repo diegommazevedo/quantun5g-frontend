@@ -9,7 +9,7 @@ const ROLE_REDIRECT: Record<UserRole, string> = {
   consultant: '/dashboard',
   leader: '/dashboard',
   // Compradores NR-01 (auto-criados via webhook Kiwify) → módulo NR-01
-  contratante: '/nr01/dashboard',
+  contratante: '/nr01/dashboard?welcome=1',
   gerente: '/dashboard',
   collaborator: '/dashboard',
 }

@@ -16,7 +16,7 @@ const ROLE_REDIRECT: Record<UserRole, string> = {
   admin: '/admin',
   consultant: '/dashboard',
   leader: '/dashboard',
-  contratante: '/organizacao/equipe',
+  contratante: '/nr01/dashboard',
   gerente: '/dashboard',
   collaborator: '/dashboard',
 }

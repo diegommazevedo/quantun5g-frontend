@@ -9,6 +9,7 @@ import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
 import { getPageActor } from '@/lib/org/page-actor'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import type { Nr01AssessmentResult, Nr01AssessmentStatus, Nr01RiskLevel } from '@/types/nr01'
 import {
   DashboardEmptyState,
@@ -35,15 +36,27 @@ type Row = {
 export default async function Nr01DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; welcome?: string }>
 }) {
-  const { error: errorParam } = await searchParams
+  const { error: errorParam, welcome } = await searchParams
   const { user, role, profile, db } = await getPageActor()
 
   const isAdmin = role === 'admin'
   const isLeader = role === 'leader'
   const isContratante = isContratanteRole(role)
   const isGerente = isGerenteRole(role)
+
+  // Verifica se o contratante já tem uma organização configurada
+  let hasOrg = true
+  if (isContratante) {
+    const adminClient = createServiceRoleAdmin()
+    const { data: orgRow } = await adminClient
+      .from('org_accounts')
+      .select('id')
+      .eq('owner_user_id', user.id)
+      .maybeSingle()
+    hasOrg = !!orgRow
+  }
 
   let canCreateAssessment = isAdmin || isPlatformStaff(role)
   if (isLeader || isContratante || isGerente) {
@@ -123,7 +136,32 @@ export default async function Nr01DashboardPage({
       primaryActionLockedHref="/contratacao"
       sectionTitle="Avaliações"
       alert={
-        errorParam === 'avaliacao-nao-encontrada' ? (
+        /* Boas-vindas: primeiro acesso pós-ativação de senha */
+        welcome === '1' && isContratante ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
+            <p className="font-semibold">Bem-vindo(a) ao Quantum5G! 🎉</p>
+            <p className="mt-1">
+              Sua licença NR-01 está ativa. Para criar sua primeira avaliação, cadastre a empresa
+              (CNPJ) que será avaliada em{' '}
+              <Link href="/empresas" className="font-semibold underline">
+                Empresas do grupo
+              </Link>
+              .
+            </p>
+          </div>
+        ) : isContratante && !hasOrg ? (
+          /* Org não configurada — orienta o próximo passo */
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-900">
+            <p className="font-semibold">Configure sua organização para começar</p>
+            <p className="mt-1">
+              Adicione o(s) CNPJ(s) da sua empresa em{' '}
+              <Link href="/empresas" className="font-semibold underline">
+                Empresas do grupo
+              </Link>{' '}
+              para poder criar avaliações NR-01.
+            </p>
+          </div>
+        ) : errorParam === 'avaliacao-nao-encontrada' ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Avaliação não encontrada ou sem permissão para o seu perfil. Verifique o link ou escolha na lista abaixo.
           </div>
