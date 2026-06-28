@@ -34,7 +34,7 @@ async function ensureOwnership(assessmentId: string) {
 // ============================================================
 export async function ativarMonitoramento(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
-  const { supabase, user, assessment } = await ensureOwnership(assessmentId)
+  const { supabase, user, role, assessment } = await ensureOwnership(assessmentId)
 
   if (assessment.status !== 'CONCLUIDO') {
     redirect(`/nr01/avaliacao/${assessmentId}/monitoramento?error=Conclua+a+avalia%C3%A7%C3%A3o+antes+de+ativar+pulsos.`)
@@ -110,7 +110,7 @@ export async function desativarMonitoramento(formData: FormData) {
 // ============================================================
 export async function dispararPulsoSemanal(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
-  const { supabase, user, assessment } = await ensureOwnership(assessmentId)
+  const { supabase, user, role, assessment } = await ensureOwnership(assessmentId)
 
   // 1. Carrega config
   const { data: configData } = await supabase
