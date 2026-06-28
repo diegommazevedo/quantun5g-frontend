@@ -29,7 +29,7 @@ async function getOrCreatePlan(assessmentId: string) {
     .select('id, status')
     .eq('assessment_id', assessmentId)
     .maybeSingle()
-  if (existing) return { supabase, user, plan: existing as { id: string; status: string } }
+  if (existing) return { supabase, user, role, plan: existing as { id: string; status: string } }
 
   const { data: created, error } = await supabase
     .from('nr01_action_plans')
@@ -48,7 +48,7 @@ async function getOrCreatePlan(assessmentId: string) {
     payload: {},
   } as never)
 
-  return { supabase, user, plan: created as { id: string; status: string } }
+  return { supabase, user, role, plan: created as { id: string; status: string } }
 }
 
 // ============================================================
@@ -56,7 +56,7 @@ async function getOrCreatePlan(assessmentId: string) {
 // ============================================================
 export async function adicionarItemPlano(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
-  const { supabase, user, plan } = await getOrCreatePlan(assessmentId)
+  const { supabase, user, role, plan } = await getOrCreatePlan(assessmentId)
 
   const dimensionCode = (formData.get('dimension_code') as string)?.trim()
   const title         = (formData.get('title') as string)?.trim()
@@ -109,7 +109,7 @@ export async function adicionarItemPlano(formData: FormData) {
 // ============================================================
 export async function sugerirAcoesAuto(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
-  const { supabase, user, plan } = await getOrCreatePlan(assessmentId)
+  const { supabase, user, role, plan } = await getOrCreatePlan(assessmentId)
 
   const [{ data: scoresData }, { data: libData }] = await Promise.all([
     supabase.from('nr01_dimension_scores').select('*').eq('assessment_id', assessmentId),
@@ -289,7 +289,7 @@ export async function marcarCheckpoint(formData: FormData) {
 // ============================================================
 export async function aprovarPlano(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
-  const { supabase, user, plan } = await getOrCreatePlan(assessmentId)
+  const { supabase, user, role, plan } = await getOrCreatePlan(assessmentId)
 
   const { data: itemsData } = await supabase
     .from('nr01_action_items')
@@ -367,7 +367,7 @@ export async function atualizarItemPlano(formData: FormData) {
 export async function removerItemPlano(formData: FormData) {
   const assessmentId = formData.get('assessment_id') as string
   const itemId       = formData.get('item_id') as string
-  const { supabase, user, plan } = await getOrCreatePlan(assessmentId)
+  const { supabase, user, role, plan } = await getOrCreatePlan(assessmentId)
 
   if (plan.status !== 'rascunho') {
     redirect(`/nr01/avaliacao/${assessmentId}/plano?error=S%C3%B3+%C3%A9+poss%C3%ADvel+remover+itens+em+rascunho.`)
