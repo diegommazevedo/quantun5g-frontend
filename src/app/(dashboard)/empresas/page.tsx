@@ -51,19 +51,19 @@ export default async function EmpresasPage({ searchParams }: Props) {
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
             {isContratante
-              ? 'Filiais do seu grupo contratual. Para cadastrar novo CNPJ, solicite ao consultor operador.'
+              ? 'CNPJs do seu grupo. Cadastre suas empresas para criar avaliações NR-01.'
               : isGerente
                 ? 'Empresas atribuídas ao seu perfil de gerente.'
                 : 'Cadastro único para Pentagrama e NR-01: CNPJ, RT assinante e contatos IL (pesquisa).'}
           </p>
         </div>
-        {!isContratante && !isGerente && (
+        {!isGerente && (
           <div className="flex flex-wrap gap-2">
             <Link
               href="/empresas/nova"
               className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
             >
-              Nova empresa
+              {isContratante ? 'Cadastrar CNPJ' : 'Nova empresa'}
             </Link>
           </div>
         )}
@@ -86,12 +86,12 @@ export default async function EmpresasPage({ searchParams }: Props) {
         empresas={empresas}
         mode="manage"
         product="unified"
-        hideEmptyCadastro={isContratante || isGerente}
+        hideEmptyCadastro={isGerente}
         emptyHint={
-          isContratante
-            ? 'Nenhuma filial vinculada ao grupo. Solicite ao consultor operador o cadastro dos CNPJs.'
-            : isGerente
-              ? 'Nenhuma empresa atribuída ao seu perfil. Peça ao contratante do grupo.'
+          isGerente
+            ? 'Nenhuma empresa atribuída ao seu perfil. Peça ao contratante do grupo.'
+            : isContratante
+              ? 'Nenhum CNPJ cadastrado ainda. Clique em "Cadastrar CNPJ" para começar.'
               : undefined
         }
       />

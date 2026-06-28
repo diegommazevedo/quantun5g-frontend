@@ -69,13 +69,13 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900">
             {isContratante || isGerente ? 'Empresas do grupo' : 'Empresas cadastradas'}
           </h2>
-          {!isContratante && !isGerente && (
+          {!isGerente && (
             <Link
               href="/empresas/nova?retorno=/nr01/avaliacao/nova"
               {...staffLinkProps}
               className="inline-flex items-center justify-center rounded-lg border-2 border-blue-800 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
             >
-              + Cadastrar nova empresa
+              {isContratante ? '+ Cadastrar meu CNPJ' : '+ Cadastrar nova empresa'}
             </Link>
           )}
         </div>
@@ -85,7 +85,7 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
           <em>Usar esta empresa</em>.
           {isContratante && (
             <span className="block mt-1 text-blue-800/90">
-              Novos CNPJs são cadastrados pelo consultor operador do grupo.
+              Sem CNPJ cadastrado? Clique em <strong>+ Cadastrar meu CNPJ</strong> acima.
             </span>
           )}
         </div>
@@ -95,11 +95,13 @@ export default async function NovaAvaliacaoEscolherEmpresaPage({ searchParams }:
           mode="picker"
           product="nr01"
           retornoPicker="/nr01/avaliacao/nova"
-          hideEmptyCadastro={isContratante || isGerente}
+          hideEmptyCadastro={isGerente}
           emptyHint={
-            isContratante || isGerente
-              ? 'Nenhuma filial vinculada ao seu perfil. Peça ao administrador ou consultor.'
-              : 'Cadastre a empresa do cliente antes de abrir a avaliação NR-01.'
+            isGerente
+              ? 'Nenhuma empresa atribuída ao seu perfil. Peça ao contratante do grupo.'
+              : isContratante
+                ? 'Nenhum CNPJ cadastrado ainda. Clique em "+ Cadastrar meu CNPJ" acima.'
+                : 'Cadastre a empresa do cliente antes de abrir a avaliação NR-01.'
           }
         />
       </section>

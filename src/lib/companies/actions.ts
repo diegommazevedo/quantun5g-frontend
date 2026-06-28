@@ -7,6 +7,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import type { CompanyInsert } from '@/types/database'
 import { normalizeCnpj, normalizeCompanyName } from '@/lib/companies/normalize'
 import { validateCnpj, isValidCnpj } from '@/lib/companies/cnpj'
@@ -15,11 +16,13 @@ import { parseContactsJson, type ContactInput } from '@/lib/companies/contacts'
 import { companyHasTechnicalLead } from '@/lib/nr01/technical-lead'
 import { safeRedirectPath } from '@/lib/auth/safe-redirect'
 import { isPlatformStaff } from '@/lib/auth/roles'
+import { isContratanteRole } from '@/lib/org/roles'
 import type { UserRole } from '@/types/database'
 import { assignCompanyAccountUser, resolveUserIdByEmail } from '@/lib/companies/assign-account-user'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { assertCanAddConsultantCompany } from '@/lib/licensing/company-cnpj-slots'
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
+import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
 
 async function authConsultant() {
   const supabase = await createClient()
@@ -34,6 +37,27 @@ async function authConsultant() {
   const role = profile?.role ?? 'consultant'
   if (!isPlatformStaff(role) && role !== 'leader') redirect('/dashboard')
   return { supabase, user, role }
+}
+
+/** Auth para contratante self-serve E consultores/staff. */
+async function authCompanyActor() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, module_nr01, module_pentagrama')
+    .eq('id', user.id)
+    .returns<{ role: UserRole; module_nr01: boolean; module_pentagrama: boolean }[]>()
+    .single()
+  const role = (profile?.role ?? 'consultant') as UserRole
+  const moduleNr01 = profile?.module_nr01 ?? false
+  const modulePentagrama = profile?.module_pentagrama ?? false
+
+  const allowed = isPlatformStaff(role) || role === 'leader' || isContratanteRole(role)
+  if (!allowed) redirect('/dashboard')
+
+  return { supabase, user, role, moduleNr01, modulePentagrama }
 }
 
 async function maybeAssignPayerFromForm(
@@ -113,7 +137,11 @@ function companyFormFields(formData: FormData) {
   }
 }
 
-function validateCompanyPayload(fields: ReturnType<typeof companyFormFields>): string | null {
+function validateCompanyPayload(
+  fields: ReturnType<typeof companyFormFields>,
+  opts: { requireIl?: boolean } = {},
+): string | null {
+  const requireIl = opts.requireIl !== false // padrão true; false para NR-01-only
   if (!fields.name || fields.total <= 0) {
     return 'Preencha razão/nome e total de colaboradores.'
   }
@@ -122,8 +150,10 @@ function validateCompanyPayload(fields: ReturnType<typeof companyFormFields>): s
   if (!fields.rtName || !fields.rtCrp) {
     return 'Informe nome e CRP do responsável técnico assinante.'
   }
-  const ilErr = validateIlLeaders(fields.ilLeaders)
-  if (ilErr) return ilErr
+  if (requireIl) {
+    const ilErr = validateIlLeaders(fields.ilLeaders)
+    if (ilErr) return ilErr
+  }
   return validateCollaborators(fields.ilLeaders, fields.collaborators)
 }
 
@@ -332,14 +362,16 @@ function empresasListAfterSaveUrl(companyName: string, retorno?: string | null):
 }
 
 export async function criarEmpresa(formData: FormData) {
-  const { supabase, user, role } = await authConsultant()
+  const { supabase, user, role, modulePentagrama } = await authCompanyActor()
   const retorno = safeRedirectPath((formData.get('retorno') as string) || null)
   const fields = companyFormFields(formData)
+  const isSelfServe = isContratanteRole(role)
 
   const schemaErr = await assertSchemaReady(supabase)
   if (schemaErr) redirect(novaEmpresaErrorUrl(retorno, schemaErr))
 
-  const validationErr = validateCompanyPayload(fields)
+  // Contratante self-serve: IL só obrigatório se tiver módulo Pentagrama
+  const validationErr = validateCompanyPayload(fields, { requireIl: !isSelfServe || modulePentagrama })
   if (validationErr) redirect(novaEmpresaErrorUrl(retorno, validationErr))
 
   const dup = await assertNoDuplicate(supabase, user.id, fields.name, fields.cnpj)
@@ -351,6 +383,16 @@ export async function criarEmpresa(formData: FormData) {
     } catch (e) {
       redirect(novaEmpresaErrorUrl(retorno, e instanceof Error ? e.message : 'Limite de CNPJs atingido'))
     }
+  }
+
+  // Para contratante: carrega org e vincula a empresa automaticamente
+  let orgAccountId: string | null = null
+  let consultantId: string = user.id
+  if (isSelfServe) {
+    const scope = await loadContratanteOrgScope(user.id)
+    if (!scope.org) redirect(novaEmpresaErrorUrl(retorno, 'Organização não configurada. Contacte o suporte.'))
+    orgAccountId = scope.org.id
+    consultantId = scope.org.consultant_id ?? user.id
   }
 
   const insert: CompanyInsert = {
@@ -367,10 +409,13 @@ export async function criarEmpresa(formData: FormData) {
     technical_lead_email: fields.rtEmail,
     il_leader_name: fields.ilLeaders[0]?.name ?? null,
     il_leader_email: fields.ilLeaders[0]?.email ?? null,
-    consultant_id: user.id,
+    consultant_id: consultantId,
+    ...(orgAccountId ? { org_account_id: orgAccountId } : {}),
   }
 
-  const { data, error } = await supabase
+  // Usa service role para bypass RLS (escopo já validado acima)
+  const adminClient = createServiceRoleAdmin()
+  const { data, error } = await adminClient
     .from('companies')
     .insert(insert as never)
     .select('id')
@@ -402,7 +447,7 @@ export async function criarEmpresa(formData: FormData) {
 }
 
 export async function atualizarEmpresa(formData: FormData) {
-  const { supabase, user, role } = await authConsultant()
+  const { supabase, user, role, modulePentagrama } = await authCompanyActor()
   const id = formData.get('company_id') as string
   const retorno = safeRedirectPath((formData.get('retorno') as string) || null)
   const fields = companyFormFields(formData)
@@ -410,7 +455,8 @@ export async function atualizarEmpresa(formData: FormData) {
   const schemaErr = await assertSchemaReady(supabase)
   if (schemaErr) redirect(editEmpresaErrorUrl(id || '', schemaErr, retorno ?? undefined))
 
-  const validationErr = validateCompanyPayload(fields)
+  const isSelfServe = isContratanteRole(role)
+  const validationErr = validateCompanyPayload(fields, { requireIl: !isSelfServe || modulePentagrama })
   if (validationErr) redirect(editEmpresaErrorUrl(id || '', validationErr, retorno ?? undefined))
 
   const { data: owned } = await fetchCompanyForActor(supabase, user.id, role, id, 'id')
@@ -419,7 +465,9 @@ export async function atualizarEmpresa(formData: FormData) {
   const dup = await assertNoDuplicate(supabase, user.id, fields.name, fields.cnpj, id)
   if (dup) redirect(editEmpresaErrorUrl(id, dup, retorno ?? undefined))
 
-  const { error } = await supabase
+  // Usa service role para bypass RLS (escopo já validado por fetchCompanyForActor)
+  const adminUpdate = createServiceRoleAdmin()
+  const { error } = await adminUpdate
     .from('companies')
     .update({
       name: fields.name,

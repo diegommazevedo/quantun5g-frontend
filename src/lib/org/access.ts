@@ -9,7 +9,7 @@ export interface OrgAccount {
   id: string
   name: string
   owner_user_id: string
-  consultant_id: string
+  consultant_id: string | null
 }
 
 export interface OrgActorContext {
