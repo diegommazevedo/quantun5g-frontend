@@ -46,3 +46,20 @@ next-env.d.ts
 .claude/settings.local.json
 .claude/settings.json
 
+# local backups / exports
+/backups/
+/exports/
+
+# automation artifacts (playwright/puppeteer runs)
+scripts/*.png
+scripts/chrome-profile/
+scripts/_otp_input.txt
+scripts/.edge-session-ok
+scripts/_sim/
+
+# supabase cli temp
+supabase/.temp/
+
+# vendas-nr01 vendored deps
+/vendas-nr01/node_modules/
+

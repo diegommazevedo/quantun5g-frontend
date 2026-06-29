@@ -1,0 +1,9 @@
+{
+  "kiwify_product_id": "9650b7a0-7021-11f1-805b-4385727a028b",
+  "checkout_url": null,
+  "edit_url": "https://dashboard.kiwify.com/products/edit/9650b7a0-7021-11f1-805b-4385727a028b",
+  "created_at": "2026-06-28T03:33:14.279Z",
+  "purpose": "test_flow_R$10",
+  "tier_id": "t01",
+  "billing_mode": "anual_parcelado"
+}
