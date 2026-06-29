@@ -21,6 +21,7 @@ import type { UserRole } from '@/types/database'
 import { assignCompanyAccountUser, resolveUserIdByEmail } from '@/lib/companies/assign-account-user'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { assertCanAddConsultantCompany, assertCanAddOrgCompany } from '@/lib/licensing/company-cnpj-slots'
+import { assertHeadcountWithinLicense } from '@/lib/licensing/nr01-tier-enforcement'
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
 
@@ -384,6 +385,17 @@ export async function criarEmpresa(formData: FormData) {
     }
   }
 
+  try {
+    await assertHeadcountWithinLicense({
+      actorUserId: user.id,
+      actorRole: role,
+      count: fields.total,
+      fieldLabel: 'Total de colaboradores',
+    })
+  } catch (e) {
+    redirect(novaEmpresaErrorUrl(retorno, e instanceof Error ? e.message : 'Faixa de colaboradores inválida'))
+  }
+
   const insert: CompanyInsert = {
     name: fields.name,
     legal_name: fields.legalName,
@@ -454,6 +466,18 @@ export async function atualizarEmpresa(formData: FormData) {
 
   const dup = await assertNoDuplicate(supabase, user.id, fields.name, fields.cnpj, id)
   if (dup) redirect(editEmpresaErrorUrl(id, dup, retorno ?? undefined))
+
+  try {
+    await assertHeadcountWithinLicense({
+      actorUserId: user.id,
+      actorRole: role,
+      count: fields.total,
+      fieldLabel: 'Total de colaboradores',
+      companyId: id,
+    })
+  } catch (e) {
+    redirect(editEmpresaErrorUrl(id, e instanceof Error ? e.message : 'Faixa inválida', retorno ?? undefined))
+  }
 
   // Usa service role para bypass RLS (escopo já validado por fetchCompanyForActor)
   const adminUpdate = createServiceRoleAdmin()

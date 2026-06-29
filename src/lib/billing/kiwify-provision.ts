@@ -9,6 +9,7 @@ import { invitePlatformUser } from '@/lib/auth/user-invite'
 import {
   buildSubscriptionMetadata,
   computeCheckoutPricing,
+  getTier,
   planDbId,
   type Nr01SubscriptionMetadata,
 } from '@/lib/billing/nr01-catalog'
@@ -75,12 +76,18 @@ function metadataFromMapEntry(
   entry: NonNullable<ReturnType<typeof findKiwifyEntryByProductId>>,
   headcountDeclared: number | null,
 ): Nr01SubscriptionMetadata {
+  const tier = getTier(entry.tier_id)
+  const declared =
+    headcountDeclared ??
+    (tier.workerMax != null
+      ? Math.round((tier.workerMin + tier.workerMax) / 2)
+      : Math.max(tier.workerMin, 1))
   const pricing = computeCheckoutPricing({
     tierId: entry.tier_id,
     billingMode: entry.billing_mode,
     includePentagrama: entry.include_pentagrama,
   })
-  return buildSubscriptionMetadata(pricing, headcountDeclared)
+  return buildSubscriptionMetadata(pricing, declared)
 }
 
 export async function provisionFromKiwifyWebhook(

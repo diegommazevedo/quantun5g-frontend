@@ -10,6 +10,8 @@ import type { OrgAccount } from '@/lib/org/access'
 export interface ContratanteOrgScope {
   org: OrgAccount | null
   companyIds: string[]
+  /** Empresas via account_user_id (líder legado) sem org_accounts */
+  isLegacyAccountUser?: boolean
 }
 
 async function fetchContratanteOrgScope(userId: string): Promise<ContratanteOrgScope> {
@@ -26,22 +28,40 @@ async function fetchContratanteOrgScope(userId: string): Promise<ContratanteOrgS
   }
 
   const org = (orgRaw as OrgAccount | null) ?? null
-  if (!org?.id) return { org: null, companyIds: [] }
+  if (org?.id) {
+    const { data: cos, error: cosError } = await admin
+      .from('companies')
+      .select('id')
+      .eq('org_account_id', org.id)
 
-  const { data: cos, error: cosError } = await admin
+    if (cosError) {
+      console.error('[loadContratanteOrgScope:companies]', cosError.message)
+      return { org, companyIds: [] }
+    }
+
+    return {
+      org,
+      companyIds: ((cos ?? []) as { id: string }[]).map((c) => c.id),
+    }
+  }
+
+  // Fallback: líder legado (account_user_id) ou contratante sem org_accounts ainda
+  const { data: legacyCos, error: legacyErr } = await admin
     .from('companies')
     .select('id')
-    .eq('org_account_id', org.id)
+    .eq('account_user_id', userId)
 
-  if (cosError) {
-    console.error('[loadContratanteOrgScope:companies]', cosError.message)
-    return { org, companyIds: [] }
+  if (legacyErr) {
+    console.error('[loadContratanteOrgScope:legacy]', legacyErr.message)
+    return { org: null, companyIds: [] }
   }
 
-  return {
-    org,
-    companyIds: ((cos ?? []) as { id: string }[]).map((c) => c.id),
+  const legacyIds = ((legacyCos ?? []) as { id: string }[]).map((c) => c.id)
+  if (legacyIds.length) {
+    return { org: null, companyIds: legacyIds, isLegacyAccountUser: true }
   }
+
+  return { org: null, companyIds: [] }
 }
 
 export const loadContratanteOrgScope = cache(fetchContratanteOrgScope)

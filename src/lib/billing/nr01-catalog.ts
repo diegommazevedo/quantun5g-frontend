@@ -4,6 +4,7 @@
  */
 
 import type { ProductPlan } from '@/types/database'
+import { COMPANY_CNPJ_SLOTS_DEFAULT } from '@/lib/licensing/company-cnpj-slots'
 
 export type Nr01TierId =
   | 't01' | 't02' | 't03' | 't04' | 't05' | 't06' | 't07' | 't08'
@@ -103,6 +104,7 @@ export interface Nr01SubscriptionMetadata {
   ginger_cents: number
   total_cents: number
   installments: number
+  company_cnpj_slots: number
 }
 
 const LEGACY_PLAN_TO_TIER: Record<string, Nr01TierId> = {
@@ -204,6 +206,7 @@ export function computeCheckoutPricing(params: {
 export function buildSubscriptionMetadata(
   pricing: Nr01CheckoutPricing,
   headcountDeclared: number | null,
+  opts?: { companyCnpjSlots?: number },
 ): Nr01SubscriptionMetadata {
   const tier = getTier(pricing.tierId)
   return {
@@ -220,6 +223,7 @@ export function buildSubscriptionMetadata(
     ginger_cents: pricing.gingerCents,
     total_cents: pricing.totalCents,
     installments: 12,
+    company_cnpj_slots: opts?.companyCnpjSlots ?? COMPANY_CNPJ_SLOTS_DEFAULT,
   }
 }
 

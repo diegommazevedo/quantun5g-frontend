@@ -9,9 +9,10 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { safeRedirectPath } from '@/lib/auth/safe-redirect'
+import { resolvePostAuthPath } from '@/lib/auth/post-auth-redirect'
 import type { UserRole } from '@/types/database'
 
-// Mapa de destino por role após login bem-sucedido
+// Mapa legado — preferir resolvePostAuthPath quando módulos disponíveis
 const ROLE_REDIRECT: Record<UserRole, string> = {
   admin: '/admin',
   consultant: '/dashboard',
@@ -59,9 +60,9 @@ export async function login(formData: FormData) {
   // Busca role do perfil para redirect correto
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, module_nr01, module_pentagrama')
     .eq('id', user?.id ?? '')
-    .returns<{ role: UserRole }[]>()
+    .returns<{ role: UserRole; module_nr01: boolean; module_pentagrama: boolean }[]>()
     .single()
 
   if (redirectTo) {
@@ -70,7 +71,13 @@ export async function login(formData: FormData) {
   }
 
   const role = (profile?.role ?? 'consultant') as UserRole
-  const dest = ROLE_REDIRECT[role] ?? '/dashboard'
+  const dest = profile
+    ? resolvePostAuthPath({
+        role,
+        module_nr01: profile.module_nr01,
+        module_pentagrama: profile.module_pentagrama,
+      })
+    : (ROLE_REDIRECT[role] ?? '/dashboard')
   revalidatePath(dest, 'page')
   redirect(dest)
 }

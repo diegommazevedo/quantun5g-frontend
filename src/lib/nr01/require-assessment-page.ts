@@ -41,8 +41,12 @@ export const loadNr01AssessmentForPage = cache(async <T = Record<string, unknown
 
   if (isContratanteRole(role)) {
     const scope = await loadContratanteOrgScope(user.id)
-    if (!scope.org) redirect('/nr01/dashboard?error=organizacao-nao-configurada')
-    if (!scope.companyIds.length) redirect(ASSESSMENT_MISS)
+    if (!scope.companyIds.length) {
+      if (!scope.org && !scope.isLegacyAccountUser) {
+        redirect('/nr01/dashboard?error=organizacao-nao-configurada')
+      }
+      redirect(ASSESSMENT_MISS)
+    }
 
     const admin = createServiceRoleAdmin()
     const { data, error } = await admin
@@ -52,7 +56,7 @@ export const loadNr01AssessmentForPage = cache(async <T = Record<string, unknown
       .in('company_id', scope.companyIds)
       .maybeSingle()
 
-    if (error) console.error('[loadNr01AssessmentForPage:contratante]', error.message, { assessmentId, orgId: scope.org.id })
+    if (error) console.error('[loadNr01AssessmentForPage:contratante]', error.message, { assessmentId, orgId: scope.org?.id })
     if (error || !data) redirect(ASSESSMENT_MISS)
     return { user, role, userClient, db: admin, assessment: data as T }
   }

@@ -6,11 +6,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { UserRole } from '@/types/database'
 import { isLicensingV2 } from '@/lib/licensing/model'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
-import { loadOrgActorContext } from '@/lib/org/access'
 import {
   loadGerenteCompaniesWithSelect,
   loadOrgCompaniesWithSelect,
 } from '@/lib/org/queries'
+import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { supabaseForActorRole } from '@/lib/org/scoped-db'
 
 function useAccountUserFilter(role: UserRole): boolean {
@@ -24,10 +25,21 @@ export async function fetchCompaniesForActor<T = Record<string, unknown>>(
   select: string,
 ): Promise<{ data: T[] | null; error: { message: string } | null }> {
   if (isContratanteRole(role)) {
-    const ctx = await loadOrgActorContext(userId, role)
-    if (!ctx.org) return { data: [], error: null }
-    const { data, error } = await loadOrgCompaniesWithSelect<T>(ctx.org.id, select)
-    return { data, error: error ? { message: error } : null }
+    const scope = await loadContratanteOrgScope(userId)
+    if (scope.org) {
+      const { data, error } = await loadOrgCompaniesWithSelect<T>(scope.org.id, select)
+      return { data, error: error ? { message: error } : null }
+    }
+    if (scope.companyIds.length) {
+      const admin = createServiceRoleAdmin()
+      const { data, error } = await admin
+        .from('companies')
+        .select(select)
+        .in('id', scope.companyIds)
+        .order('name')
+      return { data: (data ?? []) as T[], error: error ? { message: error.message } : null }
+    }
+    return { data: [], error: null }
   }
 
   if (isGerenteRole(role)) {
@@ -58,11 +70,22 @@ export async function fetchCompanyForActor<T = Record<string, unknown>>(
   select: string,
 ): Promise<{ data: T | null; error: { message: string } | null }> {
   if (isContratanteRole(role)) {
-    const ctx = await loadOrgActorContext(userId, role)
-    if (!ctx.org) return { data: null, error: null }
-    const { data } = await loadOrgCompaniesWithSelect<T>(ctx.org.id, select)
-    const row = data.find((c) => (c as { id?: string }).id === companyId) ?? null
-    return { data: row, error: null }
+    const scope = await loadContratanteOrgScope(userId)
+    if (scope.org) {
+      const { data } = await loadOrgCompaniesWithSelect<T>(scope.org.id, select)
+      const row = data.find((c) => (c as { id?: string }).id === companyId) ?? null
+      return { data: row, error: null }
+    }
+    if (scope.companyIds.includes(companyId)) {
+      const admin = createServiceRoleAdmin()
+      const { data, error } = await admin
+        .from('companies')
+        .select(select)
+        .eq('id', companyId)
+        .maybeSingle()
+      return { data: (data as T | null) ?? null, error: error ? { message: error.message } : null }
+    }
+    return { data: null, error: null }
   }
 
   if (isGerenteRole(role)) {

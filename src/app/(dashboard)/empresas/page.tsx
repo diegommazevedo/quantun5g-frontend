@@ -11,7 +11,11 @@ import { fetchCompaniesForActor } from '@/lib/companies/list-for-actor'
 import { getPageActor } from '@/lib/org/page-actor'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { isLicensingV2 } from '@/lib/licensing/model'
-import { getCompanyCnpjSlotsUsageForActor } from '@/lib/licensing/company-cnpj-slots'
+import {
+  getCompanyCnpjSlotsUsageForActor,
+  getCompanyCnpjSlotsUsageForOrg,
+} from '@/lib/licensing/company-cnpj-slots'
+import { loadContratanteOrgScope } from '@/lib/org/contratante-scope'
 import { CnpjSlotsBanner } from '@/components/licensing/CnpjSlotsBanner'
 
 interface Props {
@@ -24,8 +28,15 @@ export default async function EmpresasPage({ searchParams }: Props) {
 
   const isContratante = isContratanteRole(role)
   const isGerente = isGerenteRole(role)
-  const showSlots = isLicensingV2() && role === 'consultant'
-  const slotsUsage = showSlots ? await getCompanyCnpjSlotsUsageForActor(user.id) : null
+  let slotsUsage = null
+  if (isLicensingV2() && role === 'consultant') {
+    slotsUsage = await getCompanyCnpjSlotsUsageForActor(user.id)
+  } else if (isLicensingV2() && isContratante) {
+    const scope = await loadContratanteOrgScope(user.id)
+    if (scope.org) {
+      slotsUsage = await getCompanyCnpjSlotsUsageForOrg(user.id, scope.org.id)
+    }
+  }
 
   const { data: companies, error: listErr } = await fetchCompaniesForActor<Company>(
     userClient,

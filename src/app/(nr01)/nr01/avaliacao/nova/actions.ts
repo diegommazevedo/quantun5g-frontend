@@ -40,6 +40,7 @@ import { fetchNextCompetenciaSeq } from '@/lib/survey/competencia-db'
 import { supabaseForActorRole } from '@/lib/org/scoped-db'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { requireNr01LicenseOrRedirect } from '@/lib/nr01/require-license'
+import { assertHeadcountWithinLicense } from '@/lib/licensing/nr01-tier-enforcement'
 
 
 
@@ -189,6 +190,22 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
     )
 
+  }
+
+  if (expectedResp > 0) {
+    try {
+      await assertHeadcountWithinLicense({
+        actorUserId: user.id,
+        actorRole: role,
+        count: expectedResp,
+        fieldLabel: 'Respondentes esperados',
+        companyId,
+      })
+    } catch (e) {
+      redirect(
+        `${errBase}?error=${encodeURIComponent(e instanceof Error ? e.message : 'Respondentes fora da faixa do plano')}`,
+      )
+    }
   }
 
 

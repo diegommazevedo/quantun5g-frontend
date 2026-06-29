@@ -2,17 +2,8 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { resolvePostAuthPath } from '@/lib/auth/post-auth-redirect'
 import type { UserRole } from '@/types/database'
-
-const ROLE_REDIRECT: Record<UserRole, string> = {
-  admin: '/admin',
-  consultant: '/dashboard',
-  leader: '/dashboard',
-  // Compradores NR-01 (auto-criados via webhook Kiwify) → módulo NR-01
-  contratante: '/nr01/dashboard?welcome=1',
-  gerente: '/dashboard',
-  collaborator: '/dashboard',
-}
 
 export async function definirSenhaConvite(formData: FormData) {
   const password = (formData.get('password') as string) ?? ''
@@ -41,11 +32,19 @@ export async function definirSenhaConvite(formData: FormData) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, module_nr01, module_pentagrama')
     .eq('id', user.id)
-    .returns<{ role: UserRole }[]>()
+    .returns<{ role: UserRole; module_nr01: boolean; module_pentagrama: boolean }[]>()
     .single()
 
   const role = (profile?.role ?? 'consultant') as UserRole
-  redirect(`${ROLE_REDIRECT[role] ?? '/dashboard'}?welcome=1`)
+  const base = profile
+    ? resolvePostAuthPath({
+        role,
+        module_nr01: profile.module_nr01,
+        module_pentagrama: profile.module_pentagrama,
+      })
+    : '/dashboard'
+  const dest = `${base}?welcome=1`
+  redirect(dest)
 }
