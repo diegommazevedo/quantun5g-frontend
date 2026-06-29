@@ -35,6 +35,8 @@ export default async function EmpresasPage({ searchParams }: Props) {
     const scope = await loadContratanteOrgScope(user.id)
     if (scope.org) {
       slotsUsage = await getCompanyCnpjSlotsUsageForOrg(user.id, scope.org.id)
+    } else {
+      slotsUsage = await getCompanyCnpjSlotsUsageForActor(user.id)
     }
   }
 

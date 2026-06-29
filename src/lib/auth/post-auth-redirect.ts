@@ -22,7 +22,9 @@ export function resolvePostAuthPath(profile: ProfileRedirectInput): string {
     module_nr01 === true &&
     module_pentagrama !== true
 
-  if ((isGerenteRole(role) || isContratanteRole(role)) && nr01Primary) {
+  if (isGerenteRole(role) && nr01Primary) return '/nr01/dashboard'
+
+  if (isContratanteRole(role) && nr01Primary) {
     return '/nr01/dashboard'
   }
 

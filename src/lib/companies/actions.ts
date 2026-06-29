@@ -358,9 +358,40 @@ export async function criarEmpresa(formData: FormData) {
   let consultantId: string = user.id
   if (isSelfServe) {
     const scope = await loadContratanteOrgScope(user.id)
-    if (!scope.org) redirect(novaEmpresaErrorUrl(retorno, 'Organização não configurada. Contacte o suporte.'))
-    orgAccountId = scope.org.id
-    consultantId = scope.org.consultant_id ?? user.id
+    if (scope.org) {
+      orgAccountId = scope.org.id
+      consultantId = scope.org.consultant_id ?? user.id
+    } else {
+      // Leader legado ou contratante sem org: auto-provisiona org (mesmo padrão Kiwify webhook)
+      const adminOrg = createServiceRoleAdmin()
+      const { data: profileRow } = await adminOrg
+        .from('profiles')
+        .select('name, email')
+        .eq('id', user.id)
+        .maybeSingle()
+      const orgName =
+        (profileRow as { name?: string } | null)?.name?.trim() ||
+        (profileRow as { email?: string } | null)?.email?.split('@')[0] ||
+        'Minha Organização'
+      const { data: newOrg, error: orgErr } = await adminOrg
+        .from('org_accounts')
+        .insert({ name: orgName, owner_user_id: user.id, consultant_id: null })
+        .select('id, consultant_id')
+        .single()
+      if (orgErr || !newOrg) {
+        redirect(novaEmpresaErrorUrl(retorno, 'Organização não configurada. Contacte o suporte.'))
+      }
+      orgAccountId = (newOrg as { id: string }).id
+      consultantId = (newOrg as { consultant_id: string | null }).consultant_id ?? user.id
+      // Backfill org_account_id em empresas legacy do mesmo pagante
+      if (scope.companyIds.length) {
+        await adminOrg
+          .from('companies')
+          .update({ org_account_id: orgAccountId } as never)
+          .in('id', scope.companyIds)
+          .is('org_account_id', null)
+      }
+    }
   }
 
   const schemaErr = await assertSchemaReady(supabase)
@@ -461,10 +492,12 @@ export async function atualizarEmpresa(formData: FormData) {
   const validationErr = validateCompanyPayload(fields, { requireIl: !isSelfServe || modulePentagrama })
   if (validationErr) redirect(editEmpresaErrorUrl(id || '', validationErr, retorno ?? undefined))
 
-  const { data: owned } = await fetchCompanyForActor(supabase, user.id, role, id, 'id')
+  const { data: owned } = await fetchCompanyForActor(supabase, user.id, role, id, 'id, consultant_id')
   if (!owned) redirect('/empresas')
 
-  const dup = await assertNoDuplicate(supabase, user.id, fields.name, fields.cnpj, id)
+  const dupConsultantId =
+    (owned as { consultant_id?: string | null }).consultant_id ?? user.id
+  const dup = await assertNoDuplicate(supabase, dupConsultantId, fields.name, fields.cnpj, id)
   if (dup) redirect(editEmpresaErrorUrl(id, dup, retorno ?? undefined))
 
   try {

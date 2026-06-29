@@ -131,7 +131,15 @@ export function isKiwifyApprovedEvent(normalized: NormalizedKiwifyWebhook): bool
 
 export function isKiwifyRefundEvent(normalized: NormalizedKiwifyWebhook): boolean {
   const t = normalized.trigger.toLowerCase()
-  return t.includes('reembols') || t.includes('refund') || t.includes('chargeback')
+  return (
+    t.includes('reembols') ||
+    t.includes('refund') ||
+    t.includes('chargeback') ||
+    t.includes('subscription_canceled') ||
+    t.includes('subscription_cancelled') ||
+    t === 'canceled' ||
+    t === 'cancelled'
+  )
 }
 
 /** Idempotência payments.asaas_payment_id (coluna legada, prefixo kiwify:). */

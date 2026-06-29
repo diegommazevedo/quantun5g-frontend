@@ -27,10 +27,7 @@ export async function getNr01LicenseForUser(userId: string): Promise<Nr01License
     return { licensed: true, source: 'admin', subscriptionId: null, invoiceId: null }
   }
 
-  if (profile?.module_nr01 === true) {
-    return { licensed: true, source: 'module_flag', subscriptionId: null, invoiceId: null }
-  }
-
+  // Subscription/fatura ANTES do module_flag — tier enforcement precisa do metadata (worker_max).
   const { data: subs } = await admin
     .from('active_subscriptions' as 'subscriptions')
     .select('id')
@@ -66,6 +63,10 @@ export async function getNr01LicenseForUser(userId: string): Promise<Nr01License
       subscriptionId: (inv.subscription_id as string | null) ?? null,
       invoiceId: inv.id as string,
     }
+  }
+
+  if (profile?.module_nr01 === true) {
+    return { licensed: true, source: 'module_flag', subscriptionId: null, invoiceId: null }
   }
 
   return { licensed: false, source: null, subscriptionId: null, invoiceId: null }

@@ -66,6 +66,26 @@ export async function getNr01TierLimitsForUser(userId: string): Promise<Nr01Tier
     }
   }
 
+  // Fallback: última subscription NR-01 (ex.: module_flag sem active_subscriptions view)
+  const { data: latestSub } = await admin
+    .from('subscriptions')
+    .select('metadata')
+    .eq('user_id', userId)
+    .eq('product_id', 'nr01')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const fallback = parseSubscriptionMetadata(latestSub?.metadata)
+  if (fallback?.tier_id) {
+    return {
+      tierId: fallback.tier_id,
+      workerMin: fallback.worker_min,
+      workerMax: fallback.worker_max,
+      headcountDeclared: fallback.headcount_declared,
+    }
+  }
+
   return null
 }
 

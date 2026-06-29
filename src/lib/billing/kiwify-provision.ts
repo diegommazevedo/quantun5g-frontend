@@ -305,5 +305,5 @@ export async function cancelFromKiwifyRefund(
     }
   }
 
-  return { action: 'activated', subscriptionId: data.id, reason: 'cancelled' }
+  return { action: 'ignored', reason: 'cancelled', subscriptionId: data.id }
 }
