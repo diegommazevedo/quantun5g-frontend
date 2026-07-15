@@ -21,6 +21,8 @@ import {
   type Nr01BillingMode,
   type Nr01TierId,
 } from '@/lib/billing/nr01-catalog'
+import { validateCnpj } from '@/lib/companies/cnpj'
+import { normalizeCnpj } from '@/lib/companies/normalize'
 import type { SubscriptionInsert } from '@/types/database'
 
 interface CheckoutBody {
@@ -61,6 +63,12 @@ export async function POST(req: NextRequest) {
   if (!productId) return bad('productId é obrigatório')
   if (!customerData?.name?.trim()) return bad('customerData.name é obrigatório')
   if (!customerData?.cpfCnpj?.trim()) return bad('customerData.cpfCnpj é obrigatório')
+
+  const cpfCnpjDigits = normalizeCnpj(customerData.cpfCnpj)
+  if (productId === 'nr01') {
+    const cnpjErr = validateCnpj(cpfCnpjDigits)
+    if (cnpjErr) return bad(cnpjErr)
+  }
   if (!customerData?.email?.trim()) return bad('customerData.email é obrigatório')
 
   const billingMode: Nr01BillingMode =
@@ -91,7 +99,11 @@ export async function POST(req: NextRequest) {
     resolvedPlanId = planDbId(tierId)
     pricingTotalCents = pricing.totalCents
     planName = `NR-01 ${tierId.toUpperCase()}`
-    metadata = buildSubscriptionMetadata(pricing, headcountDeclared) as unknown as Record<string, unknown>
+    metadata = {
+      ...(buildSubscriptionMetadata(pricing, headcountDeclared) as unknown as Record<string, unknown>),
+      customer_cnpj: cpfCnpjDigits,
+      customer_contact_name: customerData.name.trim(),
+    }
   } else {
     if (!planId) return bad('planId é obrigatório')
     const plan = await resolveActivePlan(productId, planId)

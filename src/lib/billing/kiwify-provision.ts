@@ -18,12 +18,16 @@ import {
   kiwifyPaymentExternalId,
   type NormalizedKiwifyWebhook,
 } from '@/lib/billing/kiwify-webhook'
+import { normalizeCnpj } from '@/lib/companies/normalize'
+import { provisionCompanyFromKiwify, resolveCustomerCnpj } from '@/lib/billing/provision-company-from-kiwify'
+import { loadOrgAccountIdForUser, loadSubscriptionById } from '@/lib/billing/kiwify-provision-helpers'
 import type { Subscription, SubscriptionInsert } from '@/types/database'
 import { randomUUID } from 'crypto'
 
 export interface KiwifyProvisionResult {
   action: 'activated_nr01' | 'activated' | 'ignored' | 'failed'
   subscriptionId?: string
+  companyId?: string | null
   reason?: string
 }
 
@@ -123,7 +127,7 @@ export async function provisionFromKiwifyWebhook(
   const orderId = testMode ? (normalized.orderId ?? '') : (sale!.id ?? normalized.orderId ?? '')
   const externalPayId = kiwifyPaymentExternalId(orderId)
 
-  let subscriptionRef =
+  const subscriptionRef =
     normalized.subscriptionRef ?? (testMode ? null : saleSubscriptionRef(sale!))
 
   let subscription: Subscription | null = null
@@ -201,6 +205,10 @@ export async function provisionFromKiwifyWebhook(
 
       const subId = randomUUID()
       const meta = metadataFromMapEntry(mapEntry, null) as unknown as Record<string, unknown>
+      const customerCnpj = resolveCustomerCnpj({
+        sale: sale ?? null,
+        webhookPayload: normalized.raw,
+      })
       const insert: SubscriptionInsert = {
         id: subId,
         user_id: userId,
@@ -214,6 +222,7 @@ export async function provisionFromKiwifyWebhook(
           gateway: 'kiwify',
           kiwify_order_id: orderId,
           kiwify_product_id: productId,
+          ...(customerCnpj ? { customer_cnpj: normalizeCnpj(customerCnpj) } : {}),
         },
       }
       const { error } = await adminUntyped.from('subscriptions').insert(insert)
@@ -263,12 +272,50 @@ export async function provisionFromKiwifyWebhook(
     })
     .eq('id', subscription.id)
 
-  if (subscription.product_id === 'nr01') {
-    await provisionNr01Subscription({ subscription, paidAt })
-    return { action: 'activated_nr01', subscriptionId: subscription.id }
+  const { data: refreshedSub } = await admin
+    .from('subscriptions')
+    .select('*')
+    .eq('id', subscription.id)
+    .maybeSingle()
+  let subForProvision = (refreshedSub as Subscription | null) ?? subscription
+
+  let companyId: string | null = null
+  try {
+    const orgAccountId = await loadOrgAccountIdForUser(adminUntyped, subForProvision.user_id)
+    const companyResult = await provisionCompanyFromKiwify({
+      userId: subForProvision.user_id,
+      email: customerEmail?.trim() ?? '',
+      orgAccountId,
+      subscription: subForProvision,
+      sale: sale ?? null,
+      webhookPayload: normalized.raw,
+    })
+    companyId = companyResult.companyId
+    if (companyResult.companyId) {
+      const reloaded = await loadSubscriptionById(admin, subscription.id)
+      if (reloaded) subForProvision = reloaded
+    } else if (companyResult.skippedReason) {
+      console.info('[kiwify-provision] empresa não provisionada:', companyResult.skippedReason)
+    }
+  } catch (err) {
+    console.error('[kiwify-provision] erro ao provisionar empresa (não-bloqueante):', err)
   }
 
-  return { action: 'ignored', reason: 'produto não NR-01', subscriptionId: subscription.id }
+  if (subForProvision.product_id === 'nr01') {
+    await provisionNr01Subscription({ subscription: subForProvision, paidAt })
+    return {
+      action: 'activated_nr01',
+      subscriptionId: subscription.id,
+      companyId,
+    }
+  }
+
+  return {
+    action: 'ignored',
+    reason: 'produto não NR-01',
+    subscriptionId: subscription.id,
+    companyId,
+  }
 }
 
 export async function cancelFromKiwifyRefund(

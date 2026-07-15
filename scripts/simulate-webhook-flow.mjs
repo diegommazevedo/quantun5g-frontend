@@ -31,6 +31,25 @@ const TEST_NAME   = 'Cliente Teste NR01'
 const T01_PRODUCT_ID = '2a82ed80-5d26-11f1-80a8-b56772044fb0'
 const T01_ORDER_ID   = `test-order-${Date.now()}`
 
+/** CNPJ válido único por execução (evita colisão uq_companies_cnpj). */
+function generateTestCnpj(seed = Date.now()) {
+  const base = String(Math.abs(seed) % 100000000).padStart(8, '0')
+  const body = `${base}0001`
+  const calc = (slice, weights) => {
+    let sum = 0
+    for (let i = 0; i < weights.length; i++) sum += parseInt(slice[i], 10) * weights[i]
+    const mod = sum % 11
+    return mod < 2 ? 0 : 11 - mod
+  }
+  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+  const d1 = calc(body, w1)
+  const d2 = calc(body + d1, w2)
+  return body + String(d1) + String(d2)
+}
+
+const TEST_CNPJ = generateTestCnpj()
+
 const supabase = createClient(
   env.NEXT_PUBLIC_SUPABASE_URL,
   env.SUPABASE_SERVICE_ROLE_KEY,
@@ -56,6 +75,7 @@ function buildWebhookPayload() {
       customer: {
         email: TEST_EMAIL,
         name: TEST_NAME,
+        cnpj: TEST_CNPJ,
       },
       payment: {
         charge_amount: 2460.00,
@@ -105,7 +125,12 @@ async function checkDbState(email) {
     .eq('subscription_id', subs?.[0]?.id ?? '')
     .limit(3)
 
-  return { profile, subscriptions: subs ?? [], payments: payments ?? [] }
+  const { data: companies } = await supabase
+    .from('companies')
+    .select('id, name, cnpj, org_account_id')
+    .eq('account_user_id', profile.id)
+
+  return { profile, subscriptions: subs ?? [], payments: payments ?? [], companies: companies ?? [] }
 }
 
 // ── Limpa dados de teste anteriores ──────────────────────────────────────────
@@ -117,6 +142,8 @@ async function cleanup(email) {
     'subscription_id',
     (await supabase.from('subscriptions').select('id').eq('user_id', profile.id)).data?.map(s => s.id) ?? []
   )
+  await supabase.from('companies').delete().eq('account_user_id', profile.id)
+  await supabase.from('org_accounts').delete().eq('owner_user_id', profile.id)
   await supabase.from('subscriptions').delete().eq('user_id', profile.id)
   await supabase.auth.admin?.deleteUser?.(profile.id).catch(() => {})
   await supabase.from('profiles').delete().eq('id', profile.id)
@@ -130,6 +157,7 @@ console.log('╚═════════════════════�
 console.log('Email de teste:', TEST_EMAIL)
 console.log('Produto:       ', T01_PRODUCT_ID, '(t01 anual_parcelado)')
 console.log('Order ID:      ', T01_ORDER_ID)
+console.log('CNPJ teste:    ', TEST_CNPJ)
 console.log('Webhook URL:   ', WEBHOOK_URL)
 console.log('')
 
@@ -216,10 +244,22 @@ if (after.payments.length > 0) {
 }
 
 // 7. Resultado final
+if (after.companies?.length > 0) {
+  const co = after.companies[0]
+  console.log('\n  ── Company ───────────────────────────────────')
+  console.log(`  id             : ${co.id}`)
+  console.log(`  name           : ${co.name}`)
+  console.log(`  cnpj           : ${co.cnpj}   ${co.cnpj ? '✅' : '❌'}`)
+  console.log(`  org_account_id : ${co.org_account_id}`)
+} else {
+  console.log('\n  ⚠ Nenhuma empresa provisionada (CNPJ ausente no payload?)')
+}
+
 const success =
   after.profile?.module_nr01 === true &&
   after.subscriptions[0]?.status === 'active' &&
-  after.profile?.role === 'contratante'
+  after.profile?.role === 'contratante' &&
+  (after.companies?.length ?? 0) > 0
 
 console.log('\n╔══════════════════════════════════════════════════════╗')
 if (success) {
