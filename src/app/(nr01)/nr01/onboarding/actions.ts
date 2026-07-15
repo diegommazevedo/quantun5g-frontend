@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { isContratanteRole } from '@/lib/org/roles'
 import { findCompanyPendingRtOnboarding } from '@/lib/nr01/rt-onboarding-gate'
+import { provisionFirstNr01Assessment } from '@/lib/nr01/provision-first-assessment'
 import type { UserRole } from '@/types/database'
 
 function rtErrorUrl(message: string): never {
@@ -57,6 +58,15 @@ export async function salvarRtOnboarding(formData: FormData) {
     .eq('account_user_id', user.id)
 
   if (error) rtErrorUrl(error.message)
+
+  const assessment = await provisionFirstNr01Assessment({
+    userId: user.id,
+    companyId,
+  })
+
+  if (assessment.assessmentId && assessment.created) {
+    redirect(`/nr01/avaliacao/${assessment.assessmentId}?welcome=1&rt=1`)
+  }
 
   redirect('/nr01/dashboard?welcome=1&rt=1')
 }

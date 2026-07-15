@@ -47,7 +47,7 @@ export default async function Nr01OnboardingPage({ searchParams }: Props) {
       <h1 className="mt-3 text-2xl font-bold tracking-tight">Último passo antes do painel</h1>
       <p className="mt-2 text-sm text-slate-300">
         Sua licença está ativa. Cadastre o <strong className="text-white">responsável técnico (RT)</strong> que
-        assinará o laudo perante o MTE.
+        assinará o laudo perante o MTE. Em seguida abriremos sua primeira avaliação NR-01 automaticamente.
       </p>
 
       <div className="mt-6 rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm">
@@ -122,7 +122,7 @@ export default async function Nr01OnboardingPage({ searchParams }: Props) {
           type="submit"
           className="w-full rounded-lg bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
         >
-          Concluir e abrir painel NR-01
+          Concluir e iniciar avaliação NR-01
         </button>
       </form>
 
