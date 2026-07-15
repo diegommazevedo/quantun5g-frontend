@@ -12,6 +12,11 @@ import { supabaseClientOptions } from './options'
 import { withDualScope } from '@/lib/auth/cookie-scope'
 import { resolvePostAuthPath } from '@/lib/auth/post-auth-redirect'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
+import {
+  findCompanyPendingRtOnboarding,
+  shouldEnforceRtOnboarding,
+  RT_ONBOARDING_PATH,
+} from '@/lib/nr01/rt-onboarding-gate'
 import type { UserRole } from '@/types/database'
 
 export async function updateSession(request: NextRequest) {
@@ -54,6 +59,7 @@ export async function updateSession(request: NextRequest) {
     '/faturas',
     '/nr01/dashboard',
     '/nr01/avaliacao',
+    '/nr01/onboarding',
     '/organizacao',  // contratante self-serve: equipe, filiais, configurações
   ]
   const pathname = request.nextUrl.pathname
@@ -182,6 +188,20 @@ export async function updateSession(request: NextRequest) {
         url.pathname = role === 'leader' ? '/faturas' : '/dashboard'
         url.searchParams.set('error', 'Módulo NR-01 não habilitado. Emita fatura ou aguarde pagamento.')
         return NextResponse.redirect(url)
+      }
+
+      if (
+        needsNr01Access &&
+        profile &&
+        profile.module_nr01 === true &&
+        shouldEnforceRtOnboarding(role as UserRole, pathname)
+      ) {
+        const pendingRt = await findCompanyPendingRtOnboarding(user.id)
+        if (pendingRt) {
+          const url = request.nextUrl.clone()
+          url.pathname = RT_ONBOARDING_PATH
+          return NextResponse.redirect(url)
+        }
       }
     }
   }

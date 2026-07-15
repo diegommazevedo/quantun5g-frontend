@@ -270,11 +270,11 @@ if (success) {
 console.log('╚══════════════════════════════════════════════════════╝\n')
 
 if (success) {
-  console.log('🎯 Próximo passo (requer interação humana):')
-  console.log(`   1. Abra o email ${TEST_EMAIL} (ou verifique o Resend dashboard)`)
-  console.log('   2. Clique no link "Ativar acesso"')
-  console.log('   3. Defina uma senha')
-  console.log('   4. Confirme o redirect para /nr01/dashboard')
+  console.log('🎯 Próximo passo:')
+  console.log(`   1. Abra o email ${TEST_EMAIL}`)
+  console.log('   2. Clique em "Acessar plataforma agora" (magic link)')
+  console.log('   3. Cadastre o RT em /nr01/onboarding')
+  console.log('   4. Confirme redirect para /nr01/dashboard')
   console.log('')
   console.log('   Ou acesse diretamente: http://localhost:3000/login')
 }

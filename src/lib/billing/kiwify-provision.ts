@@ -5,7 +5,7 @@
 import { createServiceRoleAdmin, createServiceRoleClient } from '@/lib/supabase/service-role'
 import { provisionNr01Subscription } from '@/lib/billing/provision-nr01'
 import { findKiwifyEntryByProductId } from '@/lib/billing/kiwify-product-map'
-import { invitePlatformUser } from '@/lib/auth/user-invite'
+import { sendPurchaseAccessEmail } from '@/lib/auth/purchase-access'
 import {
   buildSubscriptionMetadata,
   computeCheckoutPricing,
@@ -158,28 +158,30 @@ export async function provisionFromKiwifyWebhook(
   if (!subscription && customerEmail && mapEntry) {
     let userId = await findUserIdByEmail(customerEmail)
 
-    // Cliente novo: cria conta automaticamente e envia e-mail de acesso
+    // Cliente novo: cria conta e envia magic link → onboarding NR-01
     if (!userId) {
       const customerName =
         sale?.customer?.name?.trim() ||
         customerEmail.split('@')[0] ||
         'Cliente'
-      const invite = await invitePlatformUser({
+      const access = await sendPurchaseAccessEmail({
         email: customerEmail,
         name: customerName,
-        role: 'contratante',
         modulePentagrama: true,
         moduleNr01: true,
-        invitedByName: null,
       }).catch((err: Error) => {
-        console.error('[kiwify-provision] falha ao criar conta automática:', err.message)
+        console.error('[kiwify-provision] falha ao enviar acesso pós-compra:', err.message)
         return null
       })
-      if (invite?.userId) {
-        userId = invite.userId
-        console.info('[kiwify-provision] conta criada automaticamente', { email: customerEmail, userId })
+      if (access?.userId) {
+        userId = access.userId
+        console.info('[kiwify-provision] acesso pós-compra enviado', {
+          email: customerEmail,
+          userId,
+          emailSent: access.emailSent,
+        })
       } else {
-        console.warn('[kiwify-provision] não foi possível criar conta para', customerEmail, invite?.error)
+        console.warn('[kiwify-provision] não foi possível criar conta para', customerEmail, access?.error)
       }
     }
 
