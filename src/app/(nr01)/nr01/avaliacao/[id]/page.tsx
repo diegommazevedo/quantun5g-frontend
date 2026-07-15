@@ -27,6 +27,14 @@ import {
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{
+    welcome?: string
+    rt?: string
+    sent?: string
+    failed?: string
+    skipped?: string
+    hint?: string
+  }>
 }
 
 export const dynamic = 'force-dynamic'
@@ -43,8 +51,13 @@ type AssessFull = Nr01Assessment & {
   } | null
 }
 
-export default async function Nr01AssessmentDetailPage({ params }: Props) {
+export default async function Nr01AssessmentDetailPage({ params, searchParams }: Props) {
   const { id } = await params
+  const sp = await searchParams
+  const showWelcome = sp.welcome === '1' && sp.rt === '1'
+  const invitesSent = sp.sent ? parseInt(sp.sent, 10) : null
+  const invitesFailed = sp.failed ? parseInt(sp.failed, 10) : null
+  const showTeamHint = sp.hint === 'adicione_equipe'
 
   const { db, assessment: assess } = await loadNr01AssessmentForPage(
     id,
@@ -87,6 +100,30 @@ export default async function Nr01AssessmentDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-8">
+      {showWelcome && (
+        <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <strong>Coleta NR-01 ativa.</strong>{' '}
+          {invitesSent != null && invitesSent > 0 ? (
+            <>
+              Enviamos {invitesSent} convite{invitesSent === 1 ? '' : 's'} por e-mail para sua equipe.
+              {invitesFailed != null && invitesFailed > 0 && (
+                <> {invitesFailed} falhou{invitesFailed === 1 ? '' : 'ram'} — reenvie em Disparos.</>
+              )}
+            </>
+          ) : showTeamHint ? (
+            <>
+              Cadastre colaboradores em{' '}
+              <Link href={`/empresas/${a.companies?.id}/equipe?retorno=/nr01/avaliacao/${id}`} className="font-semibold underline">
+                Equipe
+              </Link>{' '}
+              ou compartilhe o link abaixo.
+            </>
+          ) : (
+            <> Compartilhe o link de coleta com sua equipe ou use Disparos para enviar por e-mail.</>
+          )}
+        </section>
+      )}
+
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-wide text-zinc-500">{a.companies?.name ?? '—'}</p>
