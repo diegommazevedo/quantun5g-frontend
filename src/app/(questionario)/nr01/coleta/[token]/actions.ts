@@ -19,6 +19,7 @@ import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { loadInstrument, parseAnswersFromFormData } from '@/lib/nr01/instrument'
 import { hashIp } from '@/lib/nr01/evidence'
+import { maybeAutoCompleteOnKThreshold } from '@/lib/nr01/auto-complete-on-k-threshold'
 
 export async function submeterRespostaNr01(formData: FormData) {
   const token = formData.get('token') as string
@@ -212,6 +213,12 @@ export async function submeterRespostaNr01(formData: FormData) {
     ip_hash: ipHash,
     user_agent: ua,
   } as never)
+
+  try {
+    await maybeAutoCompleteOnKThreshold(a.id)
+  } catch (e) {
+    console.error('[coleta] auto-complete pós-k falhou:', e)
+  }
 
   redirect(`/nr01/coleta/${token}?status=ok`)
 }
