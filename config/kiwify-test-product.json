@@ -1,9 +1,12 @@
 {
-  "kiwify_product_id": "9650b7a0-7021-11f1-805b-4385727a028b",
-  "checkout_url": null,
-  "edit_url": "https://dashboard.kiwify.com/products/edit/9650b7a0-7021-11f1-805b-4385727a028b",
-  "created_at": "2026-06-28T03:33:14.279Z",
-  "purpose": "test_flow_R$10",
+  "kiwify_product_id": "aa995e40-80e5-11f1-a0f5-09dbf347c2c3",
+  "checkout_url": "https://pay.kiwify.com.br/87dXrZy",
+  "kiwify_link_id": "87dXrZy",
+  "edit_url": "https://dashboard.kiwify.com/products/edit/aa995e40-80e5-11f1-a0f5-09dbf347c2c3",
+  "created_at": "2026-07-16T07:12:35.918Z",
+  "purpose": "sim_lead_R$10_pix",
   "tier_id": "t01",
-  "billing_mode": "anual_parcelado"
+  "billing_mode": "anual_vista",
+  "price_cents": 1000,
+  "label": "Quantum5G NR-01 · SIMULADO Lead R$10 PIX"
 }

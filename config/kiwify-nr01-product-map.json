@@ -361,6 +361,19 @@
       "sku": "q5g-nr01-t13-anual_vista-base",
       "price_cents": 2737800,
       "synced_at": "2026-06-24T23:08:30.547Z"
+    },
+    {
+      "tier_id": "t01",
+      "billing_mode": "anual_vista",
+      "include_pentagrama": false,
+      "kiwify_product_id": "aa995e40-80e5-11f1-a0f5-09dbf347c2c3",
+      "checkout_url": "https://pay.kiwify.com.br/87dXrZy",
+      "kiwify_link_id": "87dXrZy",
+      "label": "Quantum5G NR-01 · SIMULADO Lead R$10 PIX",
+      "sku": "q5g-nr01-t01-sim-lead-pix",
+      "price_cents": 1000,
+      "synced_at": "2026-07-16T07:12:35.925Z",
+      "purpose": "sim_lead_test"
     }
   ],
   "synced_at": "2026-05-31T19:32:59.803Z"

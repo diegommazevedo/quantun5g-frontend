@@ -13,7 +13,9 @@ import { fileURLToPath } from 'url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-const PROF = join(root, 'scripts', '_edge-kiwify-profile')
+const PROF =
+  process.env.KIWIFY_EDGE_PROFILE?.trim() ||
+  join(root, 'scripts', '_edge-sim-copy')
 const SHOTS = join(root, 'scripts', '_sim')
 const OUT = join(root, 'config', 'kiwify-test-product.json')
 const MAP = join(root, 'config', 'kiwify-nr01-product-map.json')
@@ -87,7 +89,87 @@ function writeVendasConstant(checkoutUrl) {
   writeFileSync(VENDAS_TS, ts)
 }
 
+async function waitForProductsPage(maxSeconds = 300) {
+  for (let i = 0; i < maxSeconds; i++) {
+    const state = await page.evaluate(() => {
+      const url = window.location.href
+      const body = document.body?.innerText ?? ''
+      const hasCriar = [...document.querySelectorAll('button,a,span,div')].some((el) => {
+        const t = el.textContent?.trim() ?? ''
+        return t === 'Criar produto' || t === 'Novo produto'
+      })
+      const on2fa = /autenticação de 2 fatores|código de 6 dígitos/i.test(body)
+      const onLogin = url.includes('/login') || /entrar na sua conta/i.test(body)
+      return { url, hasCriar, on2fa, onLogin }
+    })
+
+    if (state.hasCriar && !state.onLogin && !state.on2fa) return true
+
+    if (state.on2fa) {
+      if (i % 15 === 0) console.log('⏳ Aguardando 2FA no Edge — complete no navegador que abriu...')
+    } else if (state.onLogin) {
+      if (i % 15 === 0) console.log('⏳ Aguardando login na Kiwify...')
+    }
+
+    await sleep(1000)
+    if (i % 30 === 29) {
+      await page.goto('https://dashboard.kiwify.com/products', {
+        waitUntil: 'domcontentloaded',
+        timeout: 60_000,
+      }).catch(() => {})
+    }
+  }
+  return false
+}
+
+async function findCreateButton() {
+  return (
+    (await findByText('Criar produto', { maxY: 260 })) ??
+    (await findByText('Novo produto', { maxY: 260 })) ??
+    (await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button,a')].find((el) => {
+        const r = el.getBoundingClientRect()
+        const t = el.textContent?.trim() ?? ''
+        return r.width > 0 && r.y < 260 && /criar produto|novo produto/i.test(t)
+      })
+      if (!btn) return null
+      const r = btn.getBoundingClientRect()
+      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) }
+    }))
+  )
+}
+
 async function extractCheckoutLink(productId) {
+  const base = (process.env.KIWIFY_API_BASE ?? 'https://public-api.kiwify.com/v1').replace(/\/$/, '')
+  const clientId = process.env.KIWIFY_CLIENT_ID?.trim()
+  const clientSecret =
+    process.env.KIWIFY_CLIENT_SECRET?.trim() ?? process.env.KIWIFY_CLIENT_SECRET_API_KEY?.trim()
+  const accountId = process.env.KIWIFY_ACCOUNT_ID?.trim()
+
+  if (clientId && clientSecret && accountId) {
+    try {
+      const oauthRes = await fetch(`${base}/oauth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret }),
+      })
+      const { access_token: token } = await oauthRes.json()
+      const res = await fetch(`${base}/products/${productId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-kiwify-account-id': accountId,
+          Accept: 'application/json',
+        },
+      })
+      const product = await res.json()
+      const links = (product.links ?? []).filter((l) => l.status === 'active')
+      const priced = links.find((l) => Number(l.price ?? product.price) === 1000) ?? links[0]
+      if (priced?.id) return `https://pay.kiwify.com.br/${priced.id}`
+    } catch (e) {
+      console.warn('[sim-lead] API links fallback falhou:', e)
+    }
+  }
+
   await page.goto(`https://dashboard.kiwify.com/products/edit/${productId}?tab=links`, {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
@@ -111,8 +193,8 @@ async function createSimProduct() {
   }).catch(() => {})
   await sleep(500)
 
-  const criar = await findByText('Criar produto', { maxY: 220 })
-  if (!criar) throw new Error('Botão "Criar produto" não encontrado — faça login na Kiwify')
+  const criar = await findCreateButton()
+  if (!criar) throw new Error('Botão "Criar produto" não encontrado — abra dashboard.kiwify.com/products')
   await snap('before_criar')
   await page.mouse.click(criar.x, criar.y)
 
@@ -170,6 +252,13 @@ async function createSimProduct() {
     )
   }
 
+  const urlField = sorted.find((f) => f.type === 'text' && /https/i.test(f.ph))
+  if (urlField) {
+    await page.mouse.click(urlField.x + urlField.w / 2, urlField.y + urlField.h / 2, { clickCount: 3 })
+    await page.keyboard.press('Backspace')
+    await page.keyboard.type('https://www.quantun5g.app/simulado', { delay: 15 })
+  }
+
   const priceField = sorted.find((f) => f.type === 'tel' || f.type === 'number' || /preço|valor|R\$/i.test(f.ph))
   if (!priceField) throw new Error('Campo preço não encontrado')
   await page.mouse.click(priceField.x + priceField.w / 2, priceField.y + priceField.h / 2, { clickCount: 3 })
@@ -181,14 +270,33 @@ async function createSimProduct() {
   const save = await findByText('Criar produto', { minY: 300, preferLast: true })
   if (!save) throw new Error('Botão final Criar produto não encontrado')
   await page.mouse.click(save.x, save.y)
+  await sleep(5000)
 
-  await page.waitForFunction(() => window.location.href.includes('/products/edit/'), {
-    timeout: 45_000,
-    polling: 500,
-  })
-  await sleep(800)
-  const productId = page.url().match(/([0-9a-f-]{36})/i)?.[1]
-  if (!productId) throw new Error('product_id não extraído da URL')
+  const finalUrl = page.url()
+  let productId = finalUrl.match(/([0-9a-f-]{36})/i)?.[1] ?? null
+
+  if (!productId) {
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button')].find((b) => /criar produto/i.test(b.textContent?.trim() ?? ''))
+      btn?.click()
+    }).catch(() => {})
+    await sleep(5000)
+    productId = page.url().match(/([0-9a-f-]{36})/i)?.[1] ?? null
+  }
+
+  if (!productId) {
+    const fromList = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('tr,a,div')].find((el) =>
+        /simulado lead r\$10/i.test(el.textContent ?? ''),
+      )
+      const link = row?.closest('tr')?.querySelector('a[href*="/products/edit/"]') ?? row?.querySelector?.('a[href*="/products/edit/"]')
+      const m = link?.href?.match(/([0-9a-f-]{36})/i)
+      return m?.[1] ?? null
+    })
+    productId = fromList
+  }
+
+  if (!productId) throw new Error('product_id não extraído — verifique screenshot sim_ERROR')
   return productId
 }
 
@@ -202,27 +310,18 @@ const browser = await puppeteer.launch({
 page = await browser.newPage()
 
 try {
+  console.log('→ Perfil Edge:', PROF)
+  console.log('→ Feche outras janelas do Edge se aparecer erro de perfil em uso.\n')
+
   await page.goto('https://dashboard.kiwify.com/products', { waitUntil: 'domcontentloaded', timeout: 60_000 })
   await sleep(2000)
 
-  if (page.url().includes('/login') || page.url().includes('/verify')) {
-    console.log('\n🔐 Faça LOGIN na Kiwify na janela do Edge que abriu.')
-    console.log('   Aguardando até 5 minutos...\n')
-    for (let i = 0; i < 300; i++) {
-      await sleep(1000)
-      const u = page.url()
-      if (!u.includes('/login') && !u.includes('/verify') && !u.includes('/loading')) {
-        await page.goto('https://dashboard.kiwify.com/products', { waitUntil: 'domcontentloaded', timeout: 60_000 })
-        break
-      }
-    }
+  const ready = await waitForProductsPage(300)
+  if (!ready) {
+    throw new Error('Não chegou à lista de produtos — conclua login/2FA no Edge e rode novamente')
   }
 
-  if (page.url().includes('/login')) {
-    throw new Error('Login não concluído — execute novamente após entrar na Kiwify')
-  }
-
-  console.log('✓ Autenticado')
+  console.log('✓ Lista de produtos acessível')
   const productId = await createSimProduct()
   console.log('✓ Produto criado:', productId)
 
