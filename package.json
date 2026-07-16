@@ -20,7 +20,9 @@
     "kiwify:setup": "node --env-file=.env.local scripts/kiwify-setup.mjs",
     "kiwify:sync-map": "node --env-file=.env.local scripts/kiwify-sync-product-map.mjs",
     "kiwify:planilha": "node scripts/build-nr01-kiwify-planilha.mjs",
-    "audit:global": "node --env-file=.env.local scripts/post-audit-global.mjs"
+    "audit:global": "node --env-file=.env.local scripts/post-audit-global.mjs",
+    "kiwify:sim-lead": "node scripts/kiwify-setup-sim-lead.mjs",
+    "kiwify:sim-register": "node --env-file=.env.local scripts/kiwify-register-sim-lead.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium-min": "^147.0.1",
