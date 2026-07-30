@@ -1,8 +1,10 @@
 /**
- * QUANTUM5G — Módulo NR-01 | Helpers de Instrumento
+ * QUANTUM5G — Módulo NR-01 | Helpers de Instrumento (server-only)
  *
- * Carrega questões + dimensões da base, agrupa para renderização do formulário
- * e processa a submissão respeitando reverse_scored.
+ * Carrega questões + dimensões da base (usa o client Supabase de servidor).
+ * Tipos/constantes/validação client-safe ficam em instrument-shared.ts —
+ * NÃO importe este arquivo a partir de Client Components (traria
+ * next/headers para o bundle do browser). Use instrument-shared.ts nesse caso.
  */
 
 import { createClient } from '@/lib/supabase/server'
@@ -12,11 +14,10 @@ import {
   Nr01Question,
   NR01_DIMENSION_CODES,
 } from '@/types/nr01'
+import type { DimensionWithQuestions } from '@/lib/nr01/instrument-shared'
 
-export interface DimensionWithQuestions {
-  dimension: Nr01Dimension
-  questions: Nr01Question[]
-}
+export type { DimensionWithQuestions, ParsedAnswerInput } from '@/lib/nr01/instrument-shared'
+export { validateAnswers, LIKERT_LABELS } from '@/lib/nr01/instrument-shared'
 
 export async function loadInstrument(version = 'v1.1'): Promise<DimensionWithQuestions[]> {
   const supabase = await createClient()
@@ -49,43 +50,3 @@ export async function loadInstrument(version = 'v1.1'): Promise<DimensionWithQue
       questions: (byCode.get(d.code) ?? []).sort((a, b) => a.ord - b.ord),
     }))
 }
-
-// ============================================================
-// VALIDAÇÃO DE FORM SUBMISSION
-// ============================================================
-
-export interface ParsedAnswerInput {
-  question_id: string
-  value: number
-}
-
-export function validateAnswers(
-  respostas: Record<string, number>,
-  questions: Nr01Question[],
-): { ok: true; answers: ParsedAnswerInput[] } | { ok: false; missing: string[] } {
-  const missing: string[] = []
-  const answers: ParsedAnswerInput[] = []
-  for (const q of questions) {
-    const value = respostas[q.id]
-    if (value == null || !Number.isInteger(value) || value < 1 || value > 5) {
-      missing.push(q.id)
-      continue
-    }
-    answers.push({ question_id: q.id, value })
-  }
-  if (missing.length > 0) return { ok: false, missing }
-  return { ok: true, answers }
-}
-
-// ============================================================
-// LIKERT LABELS — literais do NR01_GRO.docx, linhas 17-25.
-// Patch 005 (2026-04-19): atualizado para texto oficial do doc.
-// ============================================================
-
-export const LIKERT_LABELS = [
-  { value: 1, label: 'Discordo totalmente' },
-  { value: 2, label: 'Discordo parcialmente' },
-  { value: 3, label: 'Nem concordo, nem discordo' },
-  { value: 4, label: 'Concordo parcialmente' },
-  { value: 5, label: 'Concordo totalmente' },
-] as const

@@ -14,7 +14,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { submeterRespostaNr01, type Nr01Contexto } from './actions'
-import { LIKERT_LABELS, type DimensionWithQuestions } from '@/lib/nr01/instrument'
+import { LIKERT_LABELS, type DimensionWithQuestions } from '@/lib/nr01/instrument-shared'
 
 interface Props {
   token: string

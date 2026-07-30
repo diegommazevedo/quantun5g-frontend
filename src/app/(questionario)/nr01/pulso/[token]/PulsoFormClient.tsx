@@ -9,7 +9,7 @@
 
 import { useState, useTransition } from 'react'
 import { submeterPulso } from './actions'
-import { LIKERT_LABELS } from '@/lib/nr01/instrument'
+import { LIKERT_LABELS } from '@/lib/nr01/instrument-shared'
 import type { Nr01Question } from '@/types/nr01'
 
 interface Props {
