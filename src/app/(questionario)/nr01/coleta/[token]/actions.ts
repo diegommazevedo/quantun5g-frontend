@@ -11,18 +11,51 @@
  *  5. Audita o evento (com hash do IP).
  *
  * NUNCA armazena identificação pessoal vinculável.
+ *
+ * IMPORTANTE — client (@/lib/supabase/server) vs service-role:
+ *   As LEITURAS de validação (avaliação, throttle) usam o client anon normal,
+ *   pois já existem policies RLS públicas para elas.
+ *   As ESCRITAS (nr01_responses/nr01_response_answers/throttle/audit) usam o
+ *   client service-role: o papel "anon" não tem (e não deve ter) permissão de
+ *   SELECT em nr01_responses — expô-la quebraria a confidencialidade das
+ *   respostas individuais — e o Postgres exige essa permissão para o
+ *   INSERT ... RETURNING usado por `.insert().select()`. Sem isso, o insert
+ *   falha com "new row violates row-level security policy" mesmo estando
+ *   dentro da janela de coleta. Toda a validação de negócio (token, janela,
+ *   throttle, respostas completas) já acontece em código antes da escrita,
+ *   então o uso do service-role aqui é seguro — mesmo padrão do IC/IL do
+ *   Pentagrama (ver src/app/ic/[token]/actions.ts).
  */
 
-import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
-import { loadInstrument, parseAnswersFromFormData } from '@/lib/nr01/instrument'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { loadInstrument, validateAnswers } from '@/lib/nr01/instrument'
 import { hashIp } from '@/lib/nr01/evidence'
 import { maybeAutoCompleteOnKThreshold } from '@/lib/nr01/auto-complete-on-k-threshold'
 
-export async function submeterRespostaNr01(formData: FormData) {
-  const token = formData.get('token') as string
+export interface Nr01Contexto {
+  setor: string
+  funcao: string
+  vinculo: string
+  tempoCasa: string
+  isLeader: boolean
+  open1: string
+  open2: string
+  open3: string
+  open4: string
+}
+
+export type SubmitNr01Result =
+  | { ok: true }
+  | { ok: false; error: string }
+
+export async function submeterRespostaNr01(
+  token: string,
+  contexto: Nr01Contexto,
+  respostas: Record<string, number>,
+): Promise<SubmitNr01Result> {
   const supabase = await createClient()
 
   const { data: assess } = await supabase
@@ -31,7 +64,7 @@ export async function submeterRespostaNr01(formData: FormData) {
     .eq('collection_token', token)
     .maybeSingle()
 
-  if (!assess) redirect(`/nr01/coleta/${token}?error=Token+inv%C3%A1lido`)
+  if (!assess) return { ok: false, error: 'Link inválido ou expirado.' }
   const a = assess as {
     id: string
     status: string
@@ -42,16 +75,24 @@ export async function submeterRespostaNr01(formData: FormData) {
 
   const now = new Date()
   if (a.status !== 'COLETANDO') {
-    redirect(`/nr01/coleta/${token}?error=Coleta+encerrada`)
+    return { ok: false, error: 'Esta coleta foi encerrada.' }
   }
   if (a.collection_opens_at && new Date(a.collection_opens_at) > now) {
-    redirect(`/nr01/coleta/${token}?error=Coleta+ainda+n%C3%A3o+iniciada`)
+    return { ok: false, error: 'Coleta ainda não iniciada.' }
   }
   if (a.collection_closes_at && new Date(a.collection_closes_at) < now) {
-    redirect(`/nr01/coleta/${token}?error=Janela+de+coleta+expirada`)
+    return { ok: false, error: 'A janela de coleta expirou.' }
   }
 
-  // Captura headers ANTES de qualquer trabalho (necessário para throttle)
+  // Valida respostas ANTES de qualquer escrita (evita registro parcial)
+  const groups = await loadInstrument(a.instrument_version)
+  const allQuestions = groups.flatMap((g) => g.questions)
+  const parsed = validateAnswers(respostas, allQuestions)
+  if (!parsed.ok) {
+    return { ok: false, error: `Responda todas as questões (faltam ${parsed.missing.length}).` }
+  }
+
+  // Captura headers para o throttle anti-poisoning
   const headerStore = await headers()
   const fwd = headerStore.get('x-forwarded-for')
   const ip = fwd?.split(',')[0]?.trim() ?? null
@@ -64,6 +105,8 @@ export async function submeterRespostaNr01(formData: FormData) {
   // Bloqueio é temporário; tentativas durante o bloqueio incrementam o counter
   // e atualizam blocked_until — comportamento sticky para coibir scripts.
   // ============================================================
+  const admin = createServiceRoleClient()
+
   if (ipHash) {
     const { data: existing } = await supabase
       .from('nr01_collection_throttle')
@@ -81,7 +124,7 @@ export async function submeterRespostaNr01(formData: FormData) {
       if (blockedUntil && blockedUntil > now) {
         // Sticky: cada tentativa estende o bloqueio em mais 24h
         const newBlock = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-        await supabase
+        await admin
           .from('nr01_collection_throttle')
           .update({
             submission_count: e.submission_count + 1,
@@ -89,13 +132,13 @@ export async function submeterRespostaNr01(formData: FormData) {
           } as never)
           .eq('assessment_id', a.id)
           .eq('ip_hash', ipHash)
-        redirect(`/nr01/coleta/${token}?error=Limite+de+respostas+por+dispositivo+atingido.`)
+        return { ok: false, error: 'Limite de respostas por dispositivo atingido.' }
       }
 
       if (hoursSinceLast < 24) {
         // Primeira tentativa duplicada — aplica bloqueio
         const blockUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-        await supabase
+        await admin
           .from('nr01_collection_throttle')
           .update({
             submission_count: e.submission_count + 1,
@@ -103,73 +146,55 @@ export async function submeterRespostaNr01(formData: FormData) {
           } as never)
           .eq('assessment_id', a.id)
           .eq('ip_hash', ipHash)
-        redirect(`/nr01/coleta/${token}?error=Voc%C3%AA+j%C3%A1+respondeu+esta+avalia%C3%A7%C3%A3o+nas+%C3%BAltimas+24h.`)
+        return { ok: false, error: 'Você já respondeu esta avaliação nas últimas 24h.' }
       }
     }
   }
 
-  // Carrega instrumento e parseia respostas
-  const groups = await loadInstrument(a.instrument_version)
-  const allQuestions = groups.flatMap((g) => g.questions)
-  const parsed = parseAnswersFromFormData(formData, allQuestions)
-  if (!parsed.ok) {
-    redirect(`/nr01/coleta/${token}?error=Responda+todas+as+quest%C3%B5es+(1-5).`)
-  }
-
-  // Inserts
+  // ============================================================
+  // Inserts (service-role — ver nota no topo do arquivo)
+  // ============================================================
+  const responseId = randomUUID()
   const anonId = randomUUID()
-  const setor       = (formData.get('setor') as string)?.trim() || null
-  const funcao      = (formData.get('funcao') as string)?.trim() || null
-  const vinculo     = (formData.get('vinculo') as string)?.trim() || null
-  const tempoCasa   = (formData.get('tempo_casa') as string)?.trim() || null
-  const isLeaderRaw = formData.get('is_leader') as string | null
-  const isLeader    = isLeaderRaw === 'true' || isLeaderRaw === 'on'
-  const open1       = (formData.get('open_q1') as string)?.trim() || null
-  const open2       = (formData.get('open_q2') as string)?.trim() || null
-  const open3       = (formData.get('open_q3') as string)?.trim() || null
-  const open4       = (formData.get('open_q4') as string)?.trim() || null
-  const open5       = (formData.get('open_q5') as string)?.trim() || null
 
-  const { data: respRow, error: errResp } = await supabase
+  const { error: errResp } = await admin
     .from('nr01_responses')
     .insert({
+      id: responseId,
       assessment_id: a.id,
       anon_id: anonId,
-      setor,
-      funcao,
-      vinculo,
-      tempo_casa: tempoCasa,
-      is_leader: isLeader,
-      open_q1: open1,
-      open_q2: open2,
-      open_q3: open3,
-      open_q4: open4,
-      open_q5: open5,
+      setor: contexto.setor.trim() || null,
+      funcao: contexto.funcao.trim() || null,
+      vinculo: contexto.vinculo.trim() || null,
+      tempo_casa: contexto.tempoCasa.trim() || null,
+      is_leader: contexto.isLeader,
+      open_q1: contexto.open1.trim() || null,
+      open_q2: contexto.open2.trim() || null,
+      open_q3: contexto.open3.trim() || null,
+      open_q4: contexto.open4.trim() || null,
       instrument_version: a.instrument_version,
     } as never)
-    .select('id')
-    .single()
 
-  if (errResp || !respRow) {
-    redirect(`/nr01/coleta/${token}?error=${encodeURIComponent('Erro ao registrar: ' + (errResp?.message ?? ''))}`)
+  if (errResp) {
+    console.error('[nr01/coleta] falha ao registrar resposta:', errResp.message, { assessmentId: a.id })
+    return { ok: false, error: 'Não foi possível registrar sua resposta. Tente novamente em instantes.' }
   }
 
-  const responseId = (respRow as { id: string }).id
-
-  // Insere as 80 respostas item-a-item em um único batch
-  const answersInsert = parsed.answers.map((a) => ({
+  // Insere as respostas item-a-item em um único batch
+  const answersInsert = parsed.answers.map((ans) => ({
     response_id: responseId,
-    question_id: a.question_id,
-    value: a.value,
+    question_id: ans.question_id,
+    value: ans.value,
   }))
-  const { error: errAns } = await supabase
+  const { error: errAns } = await admin
     .from('nr01_response_answers')
     .insert(answersInsert as never)
 
   if (errAns) {
+    console.error('[nr01/coleta] falha ao registrar respostas item-a-item:', errAns.message, { assessmentId: a.id, responseId })
     // melhor esforço: rollback manual da response
-    await supabase.from('nr01_responses').delete().eq('id', responseId)
-    redirect(`/nr01/coleta/${token}?error=${encodeURIComponent('Erro ao registrar respostas: ' + errAns.message)}`)
+    await admin.from('nr01_responses').delete().eq('id', responseId)
+    return { ok: false, error: 'Não foi possível registrar suas respostas. Tente novamente em instantes.' }
   }
 
   // Registra/atualiza throttle (UPSERT manual: insere se não existir, senão atualiza)
@@ -181,7 +206,7 @@ export async function submeterRespostaNr01(formData: FormData) {
       .eq('ip_hash', ipHash)
       .maybeSingle()
     if (t) {
-      await supabase
+      await admin
         .from('nr01_collection_throttle')
         .update({
           last_submission_at: now.toISOString(),
@@ -190,7 +215,7 @@ export async function submeterRespostaNr01(formData: FormData) {
         .eq('assessment_id', a.id)
         .eq('ip_hash', ipHash)
     } else {
-      await supabase.from('nr01_collection_throttle').insert({
+      await admin.from('nr01_collection_throttle').insert({
         assessment_id: a.id,
         ip_hash: ipHash,
         first_seen_at: now.toISOString(),
@@ -201,7 +226,7 @@ export async function submeterRespostaNr01(formData: FormData) {
   }
 
   // Audit (sem PII — apenas hash do IP por-avaliação)
-  await supabase.from('nr01_audit_log').insert({
+  await admin.from('nr01_audit_log').insert({
     assessment_id: a.id,
     actor_id: null,
     actor_role: 'collaborator',
@@ -220,5 +245,5 @@ export async function submeterRespostaNr01(formData: FormData) {
     console.error('[coleta] auto-complete pós-k falhou:', e)
   }
 
-  redirect(`/nr01/coleta/${token}?status=ok`)
+  return { ok: true }
 }

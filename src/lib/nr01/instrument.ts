@@ -59,20 +59,15 @@ export interface ParsedAnswerInput {
   value: number
 }
 
-export function parseAnswersFromFormData(
-  formData: FormData,
+export function validateAnswers(
+  respostas: Record<string, number>,
   questions: Nr01Question[],
 ): { ok: true; answers: ParsedAnswerInput[] } | { ok: false; missing: string[] } {
   const missing: string[] = []
   const answers: ParsedAnswerInput[] = []
   for (const q of questions) {
-    const raw = formData.get(`q_${q.id}`)
-    if (raw == null || raw === '') {
-      missing.push(q.id)
-      continue
-    }
-    const value = Number(raw)
-    if (!Number.isInteger(value) || value < 1 || value > 5) {
+    const value = respostas[q.id]
+    if (value == null || !Number.isInteger(value) || value < 1 || value > 5) {
       missing.push(q.id)
       continue
     }
