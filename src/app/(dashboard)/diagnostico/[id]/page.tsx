@@ -44,11 +44,12 @@ export default async function DiagnosticoPage({ params }: Props) {
     companies: Pick<Company, 'id' | 'name' | 'total_collaborators' | 'il_leader_name' | 'il_leader_email'>
   }
 
-  // Conta IC responses
-  const { count: nIC } = await db
-    .from('ic_responses')
-    .select('*', { count: 'exact', head: true })
-    .eq('diagnostic_id', id)
+  // Conta IC responses + presença de IL (obrigatório para calcular)
+  const [{ count: nIC }, { data: ilRow }] = await Promise.all([
+    db.from('ic_responses').select('*', { count: 'exact', head: true }).eq('diagnostic_id', id),
+    db.from('il_responses').select('id').eq('diagnostic_id', id).maybeSingle(),
+  ])
+  const hasIL = Boolean(ilRow) || Boolean(diag.il_submitted_at)
 
   const baseUrl = resolveAppBaseUrl()
   const linkIL  = `${baseUrl}/il/${diag.il_token}`
@@ -224,6 +225,8 @@ export default async function DiagnosticoPage({ params }: Props) {
             <EncerrarColetaButton
               diagnosticId={id}
               nIC={nIC ?? 0}
+              hasIL={hasIL}
+              linkIL={linkIL}
             />
           )}
         </div>

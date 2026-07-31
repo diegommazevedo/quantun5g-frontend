@@ -17,15 +17,18 @@ import { encerrarECalcular } from './actions'
 interface Props {
   diagnosticId: string
   nIC: number
+  hasIL: boolean
+  linkIL: string
 }
 
-export function EncerrarColetaButton({ diagnosticId, nIC }: Props) {
+export function EncerrarColetaButton({ diagnosticId, nIC, hasIL, linkIL }: Props) {
   const [modalAberto, setModalAberto] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const semRespostas = nIC === 0
   const baixaAmostragem = nIC > 0 && nIC < 3
+  const semIL = !hasIL
 
   function abrirModal() {
     setErro(null)
@@ -118,8 +121,27 @@ export function EncerrarColetaButton({ diagnosticId, nIC }: Props) {
                 </div>
               </div>
 
+              {/* Aviso IL ausente — bloqueia cálculo (Decisão 003) */}
+              {semIL && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  <p className="font-semibold mb-0.5">IL da liderança ainda não respondido</p>
+                  <p className="text-xs leading-relaxed">
+                    O cálculo exige o Instrumento de Liderança (IL) antes do IC.
+                    Compartilhe o link IL com a liderança e aguarde a resposta.
+                  </p>
+                  <a
+                    href={linkIL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-xs font-semibold text-red-900 underline"
+                  >
+                    Abrir link IL →
+                  </a>
+                </div>
+              )}
+
               {/* Aviso baixa amostragem */}
-              {baixaAmostragem && (
+              {baixaAmostragem && !semIL && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   <p className="font-semibold mb-0.5">⚠ Baixa amostragem — N &lt; 3</p>
                   <p className="text-xs leading-relaxed">
@@ -131,7 +153,7 @@ export function EncerrarColetaButton({ diagnosticId, nIC }: Props) {
               )}
 
               {/* Aviso boa amostragem */}
-              {nIC >= 5 && (
+              {nIC >= 5 && !semIL && (
                 <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                   <p className="text-xs leading-relaxed">
                     Amostra adequada. O score combinado usará <strong>IC × 60% + IL × 40%</strong>.
@@ -161,7 +183,7 @@ export function EncerrarColetaButton({ diagnosticId, nIC }: Props) {
               <button
                 type="button"
                 onClick={confirmar}
-                disabled={isPending}
+                disabled={isPending || semIL}
                 className="flex-1 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white
                   hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors
                   flex items-center justify-center gap-2"
