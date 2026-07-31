@@ -34,7 +34,22 @@ interface Props {
     failed?: string
     skipped?: string
     hint?: string
+    error?: string
   }>
+}
+
+const PROCESS_ERROR_LABEL: Record<string, string> = {
+  avaliacao_nao_encontrada: 'Avaliação não encontrada.',
+  rt_ausente:
+    'Cadastre o responsável técnico assinante (RT) na empresa antes de processar os resultados.',
+  dimensoes_ausentes: 'Não há dimensões configuradas para este instrumento. Contate o suporte.',
+  abaixo_k_anonymity:
+    'Ainda não há respostas suficientes para preservar o anonimato (k-anonymity). Aguarde mais adesões antes de processar.',
+  falha_ao_gerar_pacote: 'Falha ao gerar o pacote de evidências. Tente novamente.',
+}
+
+function processErrorLabel(code: string): string {
+  return PROCESS_ERROR_LABEL[code] ?? `Falha ao processar: ${code}`
 }
 
 export const dynamic = 'force-dynamic'
@@ -58,6 +73,7 @@ export default async function Nr01AssessmentDetailPage({ params, searchParams }:
   const invitesSent = sp.sent ? parseInt(sp.sent, 10) : null
   const invitesFailed = sp.failed ? parseInt(sp.failed, 10) : null
   const showTeamHint = sp.hint === 'adicione_equipe'
+  const processError = sp.error ?? null
 
   const { db, assessment: assess } = await loadNr01AssessmentForPage(
     id,
@@ -100,6 +116,12 @@ export default async function Nr01AssessmentDetailPage({ params, searchParams }:
 
   return (
     <div className="space-y-8">
+      {processError && (
+        <section className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <strong>Não foi possível concluir a ação.</strong> {processErrorLabel(processError)}
+        </section>
+      )}
+
       {showWelcome && (
         <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           <strong>Coleta NR-01 ativa.</strong>{' '}
@@ -280,12 +302,19 @@ export default async function Nr01AssessmentDetailPage({ params, searchParams }:
 
       {/* Ações de processamento */}
       {a.status === 'COLETA_ENCERRADA' && (
-        <section className="flex gap-3">
+        <section className="space-y-3">
+          {totalResponses < a.k_anonymity_min && (
+            <p className="rounded-lg border border-amber-300/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              Adesão insuficiente: {totalResponses} de {a.k_anonymity_min} respostas mínimas
+              (k-anonymity). O botão abaixo permanece disponível, mas o processamento será
+              bloqueado até atingir o mínimo — sem isso o anonimato não é preservado.
+            </p>
+          )}
           <form action={processarResultados}>
             <input type="hidden" name="assessment_id" value={a.id} />
             <button
               type="submit"
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
+              className="rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
             >
               Processar resultados
             </button>
