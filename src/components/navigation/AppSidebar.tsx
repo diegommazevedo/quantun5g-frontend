@@ -39,6 +39,23 @@ function activeClasses(sectionId: string, active: boolean): string {
   return 'bg-[var(--q-nav-active-bg)] text-[var(--q-text)] ring-1 ring-[var(--q-border)]'
 }
 
+function isProductModule(sectionId: string): boolean {
+  return sectionId === 'pentagrama' || sectionId === 'nr01'
+}
+
+function sectionHeadingClasses(sectionId: string): string {
+  if (isProductModule(sectionId)) {
+    return 'mb-2 flex items-center gap-2 px-3 text-[12px] font-semibold tracking-wide text-[var(--q-text)]'
+  }
+  return 'mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--q-text-faint)]'
+}
+
+function sectionDotClass(sectionId: string): string {
+  if (sectionId === 'pentagrama') return 'bg-violet-400'
+  if (sectionId === 'nr01') return 'bg-blue-400'
+  return ''
+}
+
 function SectionBlock({
   section,
   pathname,
@@ -48,10 +65,24 @@ function SectionBlock({
   pathname: string
   onNavigate?: () => void
 }) {
+  const moduleSection = isProductModule(section.id)
+
   return (
-    <div className="mb-1">
-      <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--q-text-faint)]">
-        {section.label}
+    <div
+      className={
+        moduleSection
+          ? 'mb-1 border-t border-[var(--q-border)] pt-3 first:border-t-0 first:pt-0'
+          : 'mb-1'
+      }
+    >
+      <p className={sectionHeadingClasses(section.id)}>
+        {moduleSection && (
+          <span
+            aria-hidden
+            className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${sectionDotClass(section.id)}`}
+          />
+        )}
+        <span className={moduleSection ? 'uppercase' : undefined}>{section.label}</span>
       </p>
       <ul className="space-y-0.5">
         {section.items.map((item) => {
