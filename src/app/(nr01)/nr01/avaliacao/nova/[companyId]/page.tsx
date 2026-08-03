@@ -234,8 +234,8 @@ export default async function NovaAvaliacaoDadosPage({ params, searchParams }: P
               id="k_anonymity_min"
               name="k_anonymity_min"
               type="number"
-              min="3"
-              defaultValue="5"
+              min="1"
+              defaultValue="1"
               className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm"
             />
           </div>

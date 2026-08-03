@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS nr01_assessments (
   modality              text NOT NULL DEFAULT 'WEB' CHECK (modality IN ('WEB','QR','WHATSAPP','KIOSK','PAPER')),
   collection_token      uuid UNIQUE NOT NULL DEFAULT gen_random_uuid(),  -- link público de coleta
   expected_respondents  int NOT NULL DEFAULT 0 CHECK (expected_respondents >= 0),
-  k_anonymity_min       int NOT NULL DEFAULT 5 CHECK (k_anonymity_min >= 3),
+  k_anonymity_min       int NOT NULL DEFAULT 1 CHECK (k_anonymity_min >= 1),
   -- Janela
   collection_opens_at   timestamptz,
   collection_closes_at  timestamptz,

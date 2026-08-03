@@ -70,7 +70,8 @@ export async function criarAvaliacaoNr01(formData: FormData) {
 
   const linkedDiagId = (formData.get('linked_diagnostic_id') as string)?.trim() || null
 
-  const kAnonymityMin = parseInt(formData.get('k_anonymity_min') as string) || 5
+  const kAnonymityMinRaw = parseInt(formData.get('k_anonymity_min') as string, 10)
+  const kAnonymityMin = Number.isFinite(kAnonymityMinRaw) && kAnonymityMinRaw >= 1 ? kAnonymityMinRaw : 1
 
 
 

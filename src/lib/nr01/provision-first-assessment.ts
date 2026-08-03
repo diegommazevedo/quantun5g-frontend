@@ -122,7 +122,7 @@ export async function provisionFirstNr01Assessment(params: {
       instrument_version: 'v1.1',
       modality: 'WEB',
       expected_respondents: expectedRespondents,
-      k_anonymity_min: 5,
+      k_anonymity_min: 1,
       collection_opens_at: opensAt.toISOString(),
       collection_closes_at: closesAt.toISOString(),
       linked_diagnostic_id: null,

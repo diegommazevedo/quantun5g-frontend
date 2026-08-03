@@ -109,7 +109,7 @@ export default async function Nr01DashboardPage({
     adherence_pct: r.nr01_assessment_results?.adherence_pct ?? null,
     response_count: responseCountByAssessment[r.id] ?? 0,
     expected_respondents: r.expected_respondents ?? 0,
-    k_anonymity_min: r.k_anonymity_min ?? 5,
+    k_anonymity_min: r.k_anonymity_min ?? 1,
   }))
 
   const total = rows.length
@@ -128,12 +128,12 @@ export default async function Nr01DashboardPage({
     const hasColeta = rows.some((r) =>
       ['COLETANDO', 'COLETA_ENCERRADA', 'PROCESSANDO', 'CONCLUIDO'].includes(r.status),
     )
-    // Usa k_anonymity_min por avaliação (default 5 se não configurado)
+    // Usa k_anonymity_min por avaliação (default 1 se não configurado)
     const hasRespostas = rows.some((r) => r.response_count >= r.k_anonymity_min)
     const hasLaudo = rows.some((r) => r.status === 'CONCLUIDO')
-    // Referência para exibir o limiar no texto (avaliação ativa ou default 5)
+    // Referência para exibir o limiar no texto (avaliação ativa ou default 1)
     const activeRow = rows.find((r) => ['CRIADO', 'COLETANDO'].includes(r.status))
-    const kMin = activeRow?.k_anonymity_min ?? 5
+    const kMin = activeRow?.k_anonymity_min ?? 1
 
     // Evitar dupla chamada a rows.find (href consistente com o mesmo objeto)
     const primeiraAvaliacao = rows.find((r) => r.status === 'CRIADO')
