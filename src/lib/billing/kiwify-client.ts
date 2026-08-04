@@ -56,6 +56,7 @@ export interface KiwifySaleDetails {
   product?: { id: string; name?: string }
   customer?: { email?: string; name?: string; cpf?: string; cnpj?: string }
   payment?: { charge_amount?: number; net_amount?: number }
+  custom_fields?: Array<{ name?: string; label?: string; value?: string; answer?: string }>
   tracking?: {
     utm_content?: string | null
     utm_source?: string | null

@@ -93,7 +93,8 @@ export function normalizeKiwifyWebhook(payload: Record<string, unknown>): Normal
     payload
 
   const orderId =
-    pickString(order, 'order_id', 'id', 'orderId') ?? pickString(payload, 'order_id', 'id')
+    pickString(order, 'order_id', 'id', 'orderId', 'sale_id') ??
+    pickString(payload, 'order_id', 'id', 'sale_id')
 
   const product =
     nested(order.product) ??

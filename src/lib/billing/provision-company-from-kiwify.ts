@@ -9,6 +9,7 @@ import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { normalizeCnpj } from '@/lib/companies/normalize'
 import { isValidCnpj } from '@/lib/companies/cnpj'
 import { assertCanAddOrgCompany, slotsFromMetadata } from '@/lib/licensing/company-cnpj-slots'
+import { licensedCnpjFromMetadata } from '@/lib/nr01/licensed-cnpj'
 import type { KiwifySaleDetails } from '@/lib/billing/kiwify-client'
 import type { Subscription } from '@/types/database'
 
@@ -34,6 +35,38 @@ export interface CompanyProvisionSources {
 
 const PG_UNIQUE_VIOLATION = '23505'
 
+function isUnclaimedContratanteCompany(row: {
+  account_user_id: string | null
+  org_account_id: string | null
+}): boolean {
+  return !row.account_user_id && !row.org_account_id
+}
+
+async function claimCompanyForLicensedBuyer(params: {
+  companyId: string
+  userId: string
+  orgId: string
+  subscriptionId: string
+  licensedCnpj: string
+}): Promise<void> {
+  const admin = createServiceRoleAdmin()
+  await admin
+    .from('companies')
+    .update({
+      account_user_id: params.userId,
+      org_account_id: params.orgId,
+    } as never)
+    .eq('id', params.companyId)
+    .is('account_user_id', null)
+    .is('org_account_id', null)
+  await linkSubscriptionToCompany(params.subscriptionId, params.companyId)
+  console.info('[provision-company-kiwify] empresa existente vinculada à licença', {
+    companyId: params.companyId,
+    userId: params.userId,
+    licensedCnpj: params.licensedCnpj,
+  })
+}
+
 export function extractCnpjFromWebhookPayload(
   raw: Record<string, unknown> | null | undefined,
 ): string | null {
@@ -50,14 +83,64 @@ export function extractCnpjFromWebhookPayload(
     (typeof customer.cnpj === 'string' ? customer.cnpj : null) ??
     (typeof customer.CNPJ === 'string' ? customer.CNPJ : null)
   if (cnpj?.trim()) return cnpj.trim()
+
+  const nestedFields = customer.custom_fields
+  if (Array.isArray(nestedFields)) {
+    for (const field of nestedFields) {
+      if (!field || typeof field !== 'object') continue
+      const row = field as Record<string, unknown>
+      const key = `${row.name ?? ''} ${row.label ?? ''}`.toLowerCase()
+      const val = String(row.value ?? row.answer ?? '').trim()
+      if (!val) continue
+      if (/cnpj/.test(key)) return val
+      const digits = normalizeCnpj(val)
+      if (digits.length === 14 && isValidCnpj(digits)) return digits
+    }
+  }
+
   const cpf = typeof customer.cpf === 'string' ? customer.cpf : null
   if (cpf && normalizeCnpj(cpf).length === 14) return cpf
+  return null
+}
+
+function extractCnpjFromTracking(sale: KiwifySaleDetails | null): string | null {
+  const raw =
+    sale?.tracking?.utm_content?.trim() ??
+    sale?.tracking?.s1?.trim() ??
+    null
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    const fromJson =
+      (typeof parsed.company_cnpj === 'string' ? parsed.company_cnpj : null) ??
+      (typeof parsed.cnpj === 'string' ? parsed.cnpj : null) ??
+      (typeof parsed.cpfCnpj === 'string' ? parsed.cpfCnpj : null)
+    if (fromJson?.trim()) return fromJson.trim()
+  } catch {
+    // utm_content pode ser UUID de subscription ou CNPJ digits
+  }
+
+  const digits = normalizeCnpj(raw)
+  if (digits.length === 14 && isValidCnpj(digits)) return digits
   return null
 }
 
 function extractCnpjFromSale(sale: KiwifySaleDetails | null): string | null {
   const cnpj = sale?.customer?.cnpj?.trim()
   if (cnpj) return cnpj
+
+  for (const field of sale?.custom_fields ?? []) {
+    const key = `${field.name ?? ''} ${field.label ?? ''}`.toLowerCase()
+    const val = (field.value ?? field.answer ?? '').trim()
+    if (!val) continue
+    if (/cnpj/.test(key)) return val
+    const digits = normalizeCnpj(val)
+    if (digits.length === 14 && isValidCnpj(digits)) return digits
+  }
+
+  const fromTracking = extractCnpjFromTracking(sale)
+  if (fromTracking) return fromTracking
   const cpf = sale?.customer?.cpf?.trim()
   if (cpf && normalizeCnpj(cpf).length === 14) return cpf
   return null
@@ -86,6 +169,13 @@ export function resolveCustomerCnpj(sources: CompanyProvisionSources): string | 
     extractCnpjFromSale(sources.sale ?? null) ??
     extractCnpjFromWebhookPayload(sources.webhookPayload)
   )
+}
+
+/** NR-01 self-service exige CNPJ válido de empresa (CPF pessoal não provisiona). */
+export function hasValidCompanyCnpj(sources: CompanyProvisionSources): boolean {
+  const raw = resolveCustomerCnpj(sources)
+  if (!raw) return false
+  return isValidCnpj(normalizeCnpj(raw))
 }
 
 async function findLeadByEmail(email: string) {
@@ -176,6 +266,24 @@ export async function provisionCompanyFromKiwify(
       await linkSubscriptionToCompany(subscription.id, existingByCnpj.id as string)
       return { companyId: existingByCnpj.id as string }
     }
+
+    const licensedCnpj =
+      licensedCnpjFromMetadata(subscription.metadata) ??
+      (isValidCnpj(digits) ? digits : null)
+    if (
+      licensedCnpj === digits &&
+      isUnclaimedContratanteCompany(existingByCnpj as { account_user_id: string | null; org_account_id: string | null })
+    ) {
+      await claimCompanyForLicensedBuyer({
+        companyId: existingByCnpj.id as string,
+        userId,
+        orgId,
+        subscriptionId: subscription.id,
+        licensedCnpj,
+      })
+      return { companyId: existingByCnpj.id as string }
+    }
+
     return { companyId: null, skippedReason: 'cnpj já cadastrado para outro titular' }
   }
 

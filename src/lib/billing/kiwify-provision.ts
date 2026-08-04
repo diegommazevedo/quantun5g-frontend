@@ -13,14 +13,20 @@ import {
   planDbId,
   type Nr01SubscriptionMetadata,
 } from '@/lib/billing/nr01-catalog'
-import { kiwifyRequest, type KiwifySaleDetails } from '@/lib/billing/kiwify-client'
+import { type KiwifySaleDetails } from '@/lib/billing/kiwify-client'
 import {
   kiwifyPaymentExternalId,
   type NormalizedKiwifyWebhook,
 } from '@/lib/billing/kiwify-webhook'
 import { normalizeCnpj } from '@/lib/companies/normalize'
 import { provisionCompanyFromKiwify, resolveCustomerCnpj } from '@/lib/billing/provision-company-from-kiwify'
-import { loadOrgAccountIdForUser, loadSubscriptionById } from '@/lib/billing/kiwify-provision-helpers'
+import { mergeLicensedCnpjMetadata, licensedCnpjFromMetadata } from '@/lib/nr01/licensed-cnpj'
+import { kiwifyChargeAmountCents } from '@/lib/billing/kiwify-charge-cents'
+import {
+  fetchKiwifySale,
+  loadOrgAccountIdForUser,
+  loadSubscriptionById,
+} from '@/lib/billing/kiwify-provision-helpers'
 import type { Subscription, SubscriptionInsert } from '@/types/database'
 import { randomUUID } from 'crypto'
 
@@ -29,15 +35,6 @@ export interface KiwifyProvisionResult {
   subscriptionId?: string
   companyId?: string | null
   reason?: string
-}
-
-export async function fetchKiwifySale(orderId: string): Promise<KiwifySaleDetails | null> {
-  try {
-    return await kiwifyRequest<KiwifySaleDetails>('GET', `/sales/${encodeURIComponent(orderId)}`)
-  } catch (e) {
-    console.error('[kiwify-provision] fetch sale failed:', e)
-    return null
-  }
 }
 
 function saleSubscriptionRef(sale: KiwifySaleDetails): string | null {
@@ -147,9 +144,7 @@ export async function provisionFromKiwifyWebhook(
   }
 
   const productId = (testMode ? null : sale?.product?.id) ?? normalized.productId
-  const chargeCents = testMode
-    ? 0
-    : Math.round(sale!.payment?.charge_amount ?? sale!.net_amount ?? 0)
+  const chargeCents = testMode ? 0 : kiwifyChargeAmountCents(sale)
   const mapEntry = productId
     ? findKiwifyEntryByProductId(productId, { priceCents: chargeCents > 0 ? chargeCents : undefined })
     : null
@@ -157,32 +152,42 @@ export async function provisionFromKiwifyWebhook(
 
   if (!subscription && customerEmail && mapEntry) {
     let userId = await findUserIdByEmail(customerEmail)
+    const wasExistingUser = Boolean(userId)
+    const customerName =
+      sale?.customer?.name?.trim() ||
+      customerEmail.split('@')[0] ||
+      'Cliente'
 
-    // Cliente novo: cria conta e envia magic link → onboarding NR-01
-    if (!userId) {
-      const customerName =
-        sale?.customer?.name?.trim() ||
-        customerEmail.split('@')[0] ||
-        'Cliente'
-      const access = await sendPurchaseAccessEmail({
+    const customerCnpjPreview = resolveCustomerCnpj({
+      sale: sale ?? null,
+      webhookPayload: normalized.raw,
+    })
+    const companyNameHint =
+      sale?.customer?.name?.trim() ||
+      (customerCnpjPreview ? `Empresa ${normalizeCnpj(customerCnpjPreview).slice(0, 8)}` : null)
+
+    // Magic link sempre (cliente novo ou existente) → onboarding NR-01
+    const access = await sendPurchaseAccessEmail({
+      email: customerEmail,
+      name: customerName,
+      modulePentagrama: true,
+      moduleNr01: true,
+      companyName: companyNameHint,
+    }).catch((err: Error) => {
+      console.error('[kiwify-provision] falha ao enviar acesso pós-compra:', err.message)
+      return null
+    })
+
+    if (access?.userId) {
+      userId = access.userId
+      console.info('[kiwify-provision] acesso pós-compra enviado', {
         email: customerEmail,
-        name: customerName,
-        modulePentagrama: true,
-        moduleNr01: true,
-      }).catch((err: Error) => {
-        console.error('[kiwify-provision] falha ao enviar acesso pós-compra:', err.message)
-        return null
+        userId,
+        emailSent: access.emailSent,
+        existingUser: wasExistingUser,
       })
-      if (access?.userId) {
-        userId = access.userId
-        console.info('[kiwify-provision] acesso pós-compra enviado', {
-          email: customerEmail,
-          userId,
-          emailSent: access.emailSent,
-        })
-      } else {
-        console.warn('[kiwify-provision] não foi possível criar conta para', customerEmail, access?.error)
-      }
+    } else if (!userId) {
+      console.warn('[kiwify-provision] não foi possível criar conta para', customerEmail, access?.error)
     }
 
     if (userId) {
@@ -211,6 +216,15 @@ export async function provisionFromKiwifyWebhook(
         sale: sale ?? null,
         webhookPayload: normalized.raw,
       })
+      const { metadata: insertMeta } = mergeLicensedCnpjMetadata(
+        {
+          ...meta,
+          gateway: 'kiwify',
+          kiwify_order_id: orderId,
+          kiwify_product_id: productId,
+        },
+        customerCnpj,
+      )
       const insert: SubscriptionInsert = {
         id: subId,
         user_id: userId,
@@ -219,13 +233,7 @@ export async function provisionFromKiwifyWebhook(
         status: 'pending',
         assessments_remaining: 0,
         asaas_payment_id: externalPayId,
-        metadata: {
-          ...meta,
-          gateway: 'kiwify',
-          kiwify_order_id: orderId,
-          kiwify_product_id: productId,
-          ...(customerCnpj ? { customer_cnpj: normalizeCnpj(customerCnpj) } : {}),
-        },
+        metadata: insertMeta,
       }
       const { error } = await adminUntyped.from('subscriptions').insert(insert)
       if (!error) {
@@ -245,9 +253,7 @@ export async function provisionFromKiwifyWebhook(
   }
 
   const paidAt = sale?.approved_date ? new Date(sale.approved_date) : new Date()
-  const amountCents = testMode
-    ? 1000
-    : Math.round(sale!.payment?.charge_amount ?? sale!.net_amount ?? 0)
+  const amountCents = testMode ? 1000 : kiwifyChargeAmountCents(sale) || chargeCents
 
   await upsertKiwifyPayment({
     subscriptionId: subscription.id,
@@ -259,18 +265,30 @@ export async function provisionFromKiwifyWebhook(
     payload: normalized.raw,
   })
 
+  const priorMeta =
+    typeof subscription.metadata === 'object' && subscription.metadata
+      ? (subscription.metadata as Record<string, unknown>)
+      : {}
+  const resolvedCheckoutCnpj = resolveCustomerCnpj({
+    subscription,
+    sale: sale ?? null,
+    webhookPayload: normalized.raw,
+  })
+  const { metadata: lockedMeta, licensedCnpj: licensedCnpjLocked } = mergeLicensedCnpjMetadata(
+    {
+      ...priorMeta,
+      gateway: 'kiwify',
+      kiwify_order_id: orderId,
+      kiwify_product_id: productId,
+    },
+    resolvedCheckoutCnpj,
+  )
+
   await adminUntyped
     .from('subscriptions')
     .update({
       asaas_payment_id: externalPayId,
-      metadata: {
-        ...(typeof subscription.metadata === 'object' && subscription.metadata
-          ? subscription.metadata
-          : {}),
-        gateway: 'kiwify',
-        kiwify_order_id: orderId,
-        kiwify_product_id: productId,
-      },
+      metadata: lockedMeta,
     })
     .eq('id', subscription.id)
 
@@ -298,6 +316,25 @@ export async function provisionFromKiwifyWebhook(
       if (reloaded) subForProvision = reloaded
     } else if (companyResult.skippedReason) {
       console.info('[kiwify-provision] empresa não provisionada:', companyResult.skippedReason)
+      const skipMeta =
+        typeof subForProvision.metadata === 'object' && subForProvision.metadata
+          ? (subForProvision.metadata as Record<string, unknown>)
+          : {}
+      const needsManualSupport =
+        !licensedCnpjLocked &&
+        !licensedCnpjFromMetadata(skipMeta) &&
+        (companyResult.skippedReason === 'cnpj não disponível' ||
+          companyResult.skippedReason === 'cnpj inválido')
+      await adminUntyped
+        .from('subscriptions')
+        .update({
+          metadata: {
+            ...skipMeta,
+            needs_company_onboarding: needsManualSupport,
+            company_skip_reason: companyResult.skippedReason,
+          },
+        })
+        .eq('id', subForProvision.id)
     }
   } catch (err) {
     console.error('[kiwify-provision] erro ao provisionar empresa (não-bloqueante):', err)
@@ -356,3 +393,5 @@ export async function cancelFromKiwifyRefund(
 
   return { action: 'ignored', reason: 'cancelled', subscriptionId: data.id }
 }
+
+export { fetchKiwifySale } from '@/lib/billing/kiwify-provision-helpers'

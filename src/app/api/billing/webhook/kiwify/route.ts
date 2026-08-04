@@ -67,6 +67,16 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await provisionFromKiwifyWebhook(normalized)
+    if (result.action === 'failed') {
+      const retryable =
+        result.reason === 'venda não encontrada na API' ||
+        result.reason?.includes('Kiwify OAuth') ||
+        result.reason?.includes('Kiwify GET')
+      if (retryable) {
+        return NextResponse.json({ error: result.reason, retry: true }, { status: 503 })
+      }
+      return NextResponse.json({ ok: false, ...result }, { status: 422 })
+    }
     return NextResponse.json({ ok: true, ...result })
   } catch (err) {
     console.error('[webhook/kiwify]', err)
