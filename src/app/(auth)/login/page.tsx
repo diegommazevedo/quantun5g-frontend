@@ -2,7 +2,6 @@
  * Login SaaS — apex quantun5g.app (viewport única, desktop e mobile).
  */
 
-import Link from 'next/link'
 import { login } from './actions'
 import { safeRedirectPath } from '@/lib/auth/safe-redirect'
 
@@ -34,8 +33,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
   const errorMsg = params.error
   const redirectTo = safeRedirectPath(params.redirect)
-  const contratacaoHref =
-    redirectTo === '/contratacao' ? '/contratacao' : '/login?redirect=/contratacao'
 
   return (
     <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
@@ -120,28 +117,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         {/* Ajuda — curta */}
-        <aside className="mt-5 shrink-0 space-y-3 text-center text-xs leading-relaxed text-slate-400">
+        <aside className="mt-5 shrink-0 text-center text-xs leading-relaxed text-slate-400">
           <p>
             Primeira vez? Use o link de <span className="text-slate-300">criar senha</span> enviado
             por e-mail após a contratação.
           </p>
-          <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-4">
-            <Link
-              href={contratacaoHref}
-              className="text-slate-300 underline-offset-2 hover:text-white hover:underline"
-            >
-              Contratação presencial
-            </Link>
-            <span className="hidden text-slate-600 sm:inline" aria-hidden>
-              ·
-            </span>
-            <Link
-              href="/lp/nr01"
-              className="text-slate-300 underline-offset-2 hover:text-white hover:underline"
-            >
-              Oferta NR-01
-            </Link>
-          </div>
         </aside>
       </div>
 
