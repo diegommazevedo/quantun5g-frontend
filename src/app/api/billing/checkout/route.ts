@@ -10,6 +10,7 @@ import { findOrCreateCustomer, createPayment, isAsaasConfigured } from '@/lib/bi
 import { getBillingProvider, isKiwifyBillingEnabled } from '@/lib/billing/billing-provider'
 import { buildKiwifyCheckoutRedirectUrl } from '@/lib/billing/kiwify-checkout'
 import { isKiwifyProductMapReady } from '@/lib/billing/kiwify-product-map'
+import { NR01_PURCHASE_PATH } from '@/lib/billing/sales-path'
 import { resolveActivePlan } from '@/lib/billing/resolve-plan'
 import {
   PENTAGRAMA_GINGER_ADDON,
@@ -188,7 +189,7 @@ export async function POST(req: NextRequest) {
     return bad(
       'Pagamento online indisponível: ASAAS_API_KEY não está configurado na Vercel. Use emissão de fatura presencial.',
       503,
-      { code: 'asaas_not_configured', fallbackUrl: '/contratacao' },
+      { code: 'asaas_not_configured', fallbackUrl: NR01_PURCHASE_PATH },
     )
   }
 

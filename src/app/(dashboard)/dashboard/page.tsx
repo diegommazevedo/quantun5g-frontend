@@ -67,7 +67,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       firstName={firstName}
       primaryAction={{ href: '/diagnostico/novo', label: '+ Novo diagnóstico' }}
       primaryActionEnabled={canCreateDiagnostic}
-      primaryActionLockedHref="/contratacao"
+      primaryActionLockedHref="/checkout/nr01"
       sectionTitle="Diagnósticos"
       alert={
         !canCreateDiagnostic && !error ? (
@@ -80,10 +80,10 @@ export default async function DashboardPage({ searchParams }: Props) {
             ) : (
               <>
                 Licença Pentagrama pendente.{' '}
-                <Link href="/contratacao" className="font-semibold underline">
-                  Emitir fatura
+                <Link href="/checkout/nr01" className="font-semibold underline">
+                  Contratar online
                 </Link>{' '}
-                ou aguarde o administrador marcar o pagamento como pago.
+                para liberar o módulo.
               </>
             )}
           </div>
@@ -114,7 +114,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           message="Nenhum diagnóstico ainda."
           hint="Cadastre uma empresa, defina a competência e dispare os convites IL/IC."
           action={{
-            href: canCreateDiagnostic ? '/diagnostico/novo' : '/contratacao',
+            href: canCreateDiagnostic ? '/diagnostico/novo' : '/checkout/nr01',
             label: canCreateDiagnostic ? 'Criar primeiro diagnóstico' : 'Contratar Pentagrama',
           }}
         />

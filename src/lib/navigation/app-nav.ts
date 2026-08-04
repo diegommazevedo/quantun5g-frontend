@@ -102,16 +102,16 @@ export interface ContextSubnav {
 
 /** Links de consulta — sempre no menu (porta a porta + checkout online). */
 
-/** Comercial 90/10 — só admin vê contratação/faturas no menu; operadores usam o produto. */
+/** Comercial — compra via Kiwify (LP). Fatura presencial descontinuada. */
 const CONSULTA_ITEMS: NavItem[] = [
   {
-    href: '/contratacao',
-    label: isLicensingV2() ? 'Contratar licença' : 'Emitir fatura (presencial)',
+    href: '/lp/nr01',
+    label: 'Contratar NR-01',
     icon: 'credit',
-    match: '/contratacao',
+    match: '/lp/nr01',
     adminOnly: true,
+    alwaysShow: true,
   },
-  { href: '/faturas', label: 'Minhas faturas', icon: 'credit', match: '/faturas', adminOnly: true },
 ]
 
 
@@ -132,7 +132,7 @@ const STAFF_SECTIONS: NavSection[] = [
 
     id: 'consulta',
 
-    label: 'Vendas presenciais',
+    label: 'Comercial',
 
     items: CONSULTA_ITEMS,
 
@@ -221,8 +221,6 @@ const STAFF_SECTIONS: NavSection[] = [
 
       { href: '/admin/consultores', label: 'Consultores', icon: 'shield', match: '/admin/consultores', adminOnly: true },
 
-      { href: '/admin/faturas', label: 'Faturas (aprovar/pagar)', icon: 'credit', match: '/admin/faturas', adminOnly: true },
-
     ],
 
   },
@@ -247,7 +245,7 @@ const LEADER_SECTIONS: NavSection[] = [
 
     id: 'consulta',
 
-    label: 'Vendas presenciais',
+    label: 'Comercial',
 
     items: CONSULTA_ITEMS,
 

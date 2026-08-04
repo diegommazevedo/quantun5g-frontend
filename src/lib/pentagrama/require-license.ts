@@ -3,6 +3,7 @@ import { userHasPentagramaLicense } from '@/lib/billing/pentagrama-license'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { profileHasModule } from '@/lib/auth/modules'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { nr01LicenseRequiredHref } from '@/lib/billing/sales-path'
 import type { UserRole } from '@/types/database'
 
 export async function requirePentagramaLicenseOrRedirect(params: {
@@ -35,7 +36,7 @@ export async function requirePentagramaLicenseOrRedirect(params: {
 
   const licensed = await userHasPentagramaLicense(params.userId)
   if (!licensed) {
-    redirect(params.redirectTo ?? '/faturas?hint=licenca_pentagrama')
+    redirect(params.redirectTo ?? nr01LicenseRequiredHref('licenca_pentagrama'))
   }
   return { licensed: true }
 }

@@ -346,10 +346,10 @@ export function CheckoutForm({
           {fallbackUrl || error.includes('ASAAS') || error.includes('fatura') ? (
             <p>
               <Link
-                href={fallbackUrl ?? '/contratacao'}
+                href={fallbackUrl ?? '/lp/nr01'}
                 className="font-semibold text-red-900 underline"
               >
-                Emitir fatura presencial (porta a porta) →
+                Ver planos e contratar →
               </Link>
             </p>
           ) : null}

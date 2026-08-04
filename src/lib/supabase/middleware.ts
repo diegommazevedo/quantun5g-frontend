@@ -13,8 +13,8 @@ import { withDualScope } from '@/lib/auth/cookie-scope'
 import { resolvePostAuthPath } from '@/lib/auth/post-auth-redirect'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import {
-  findCompanyPendingRtOnboarding,
-  shouldEnforceRtOnboarding,
+  findContratanteOnboardingGap,
+  shouldEnforceNr01SelfServiceOnboarding,
   RT_ONBOARDING_PATH,
 } from '@/lib/nr01/rt-onboarding-gate'
 import type { UserRole } from '@/types/database'
@@ -158,10 +158,10 @@ export async function updateSession(request: NextRequest) {
         profile.module_pentagrama === false
       ) {
         const url = request.nextUrl.clone()
-        url.pathname = '/faturas'
+        url.pathname = '/checkout/nr01'
         url.searchParams.set(
           'error',
-          'Módulo Pentagrama não habilitado. Emita fatura ou aguarde pagamento.',
+          'Módulo Pentagrama não habilitado. Contrate pelo checkout online.',
         )
         return NextResponse.redirect(url)
       }
@@ -173,7 +173,7 @@ export async function updateSession(request: NextRequest) {
         role === 'consultant'
       ) {
         const url = request.nextUrl.clone()
-        url.pathname = '/contratacao'
+        url.pathname = '/checkout/nr01'
         url.searchParams.set('error', 'Módulo Pentagrama não habilitado no seu perfil.')
         return NextResponse.redirect(url)
       }
@@ -185,8 +185,8 @@ export async function updateSession(request: NextRequest) {
         role !== 'admin'
       ) {
         const url = request.nextUrl.clone()
-        url.pathname = role === 'leader' ? '/faturas' : '/dashboard'
-        url.searchParams.set('error', 'Módulo NR-01 não habilitado. Emita fatura ou aguarde pagamento.')
+        url.pathname = role === 'leader' ? '/checkout/nr01' : '/dashboard'
+        url.searchParams.set('error', 'Módulo NR-01 não habilitado. Contrate pelo checkout online.')
         return NextResponse.redirect(url)
       }
 
@@ -194,10 +194,10 @@ export async function updateSession(request: NextRequest) {
         needsNr01Access &&
         profile &&
         profile.module_nr01 === true &&
-        shouldEnforceRtOnboarding(role as UserRole, pathname)
+        shouldEnforceNr01SelfServiceOnboarding(role as UserRole, pathname)
       ) {
-        const pendingRt = await findCompanyPendingRtOnboarding(user.id)
-        if (pendingRt) {
+        const gap = await findContratanteOnboardingGap(user.id)
+        if (gap === 'needs_company' || gap === 'needs_rt') {
           const url = request.nextUrl.clone()
           url.pathname = RT_ONBOARDING_PATH
           return NextResponse.redirect(url)

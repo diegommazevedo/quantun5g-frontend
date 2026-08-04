@@ -5,6 +5,7 @@ import type { UserRole } from '@/types/database'
 import { isPlatformStaff } from '@/lib/auth/roles'
 import { profileHasModule } from '@/lib/auth/modules'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { nr01LicenseRequiredHref } from '@/lib/billing/sales-path'
 
 /** Bloqueia criação de avaliação sem licença (líder/cliente); staff com módulo NR-01 segue liberado. */
 export async function requireNr01LicenseOrRedirect(params: {
@@ -32,10 +33,7 @@ export async function requireNr01LicenseOrRedirect(params: {
 
   const licensed = await userHasNr01License(params.userId)
   if (!licensed) {
-    redirect(
-      params.redirectTo ??
-        '/faturas?hint=licenca_nr01_emita_fatura_ou_aguarde_pagamento',
-    )
+    redirect(params.redirectTo ?? nr01LicenseRequiredHref('licenca_nr01'))
   }
   return { licensed: true }
 }

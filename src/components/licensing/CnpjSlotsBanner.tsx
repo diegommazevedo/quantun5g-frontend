@@ -35,16 +35,16 @@ export function CnpjSlotsBanner({ usage, plan }: Props) {
       </div>
       {atLimit ? (
         <p className="mt-2 text-xs text-amber-900">
-          Emita nova fatura com mais CNPJs em{' '}
-          <a href="/contratacao?plan=b2b" className="font-medium underline">
-            Contratação B2B
+          Emita nova contratação com mais CNPJs em{' '}
+          <a href="/checkout/nr01" className="font-medium underline">
+            Contratar online
           </a>
           .
         </p>
       ) : plan === 'b2c' && limit === 1 ? (
         <p className="mt-2 text-xs text-zinc-600">
           Plano individual (1 CNPJ). Grupos com várias empresas:{' '}
-          <a href="/contratacao?plan=b2b" className="font-medium text-zinc-900 underline">
+          <a href="/checkout/nr01" className="font-medium text-zinc-900 underline">
             contratação B2B
           </a>
           .

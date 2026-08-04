@@ -192,7 +192,7 @@ export default async function Nr01DashboardPage({
       firstName={firstName}
       primaryAction={{ href: '/nr01/avaliacao/nova', label: '+ Nova avaliação' }}
       primaryActionEnabled={canCreateAssessment}
-      primaryActionLockedHref="/contratacao"
+      primaryActionLockedHref="/checkout/nr01"
       sectionTitle="Avaliações"
       alert={
         onboardingSteps ? (
@@ -204,10 +204,10 @@ export default async function Nr01DashboardPage({
         ) : !canCreateAssessment && !error ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Licença NR-01 pendente.{' '}
-            <Link href="/contratacao" className="font-semibold underline">
-              Emitir fatura
+            <Link href="/checkout/nr01" className="font-semibold underline">
+              Contratar online
             </Link>{' '}
-            ou aguarde o administrador marcar o pagamento presencial como paga.
+            para liberar o módulo.
           </div>
         ) : error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -236,7 +236,7 @@ export default async function Nr01DashboardPage({
           message="Nenhuma avaliação NR-01 ainda."
           hint="Vincule a uma empresa, abra a coleta e acompanhe adesão e ISO aqui."
           action={{
-            href: canCreateAssessment ? '/nr01/avaliacao/nova' : '/contratacao',
+            href: canCreateAssessment ? '/nr01/avaliacao/nova' : '/checkout/nr01',
             label: canCreateAssessment ? 'Criar primeira avaliação' : 'Contratar / emitir fatura',
           }}
         />

@@ -38,7 +38,7 @@ interface Props {
   firstName?: string
   stats: DashboardStat[]
   primaryAction: { href: string; label: string }
-  /** Quando false, CTA vira link para contratação/faturas */
+  /** Quando false, CTA vira link para checkout online */
   primaryActionEnabled?: boolean
   primaryActionLockedHref?: string
   sectionTitle: string
@@ -72,7 +72,7 @@ export function ModuleDashboardShell({
   stats,
   primaryAction,
   primaryActionEnabled = true,
-  primaryActionLockedHref = '/contratacao',
+  primaryActionLockedHref = '/checkout/nr01',
   sectionTitle,
   alert,
   children,
