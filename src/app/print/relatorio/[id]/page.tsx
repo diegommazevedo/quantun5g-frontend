@@ -6,6 +6,7 @@
 import { loadDiagnosticForPage } from '@/lib/pentagrama/require-diagnostic-page'
 import { RelatorioDocument } from '@/components/relatorio/RelatorioDocument'
 import { AutoPrint } from './AutoPrint'
+import { loadDepartmentIcSummary } from '@/lib/pentagrama/load-department-ic-summary'
 import type { Diagnostic, Company, DiagnosticResult, Laudo, Profile } from '@/types/database'
 
 type DiagWithCompany = Diagnostic & {
@@ -65,6 +66,7 @@ export default async function RelatorioPrintPage({ params }: Props) {
     month: 'long',
     year: 'numeric',
   })
+  const departmentSummary = await loadDepartmentIcSummary(db, id)
 
   const date = new Date()
     .toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -88,6 +90,7 @@ export default async function RelatorioPrintPage({ params }: Props) {
         result={result}
         laudosMap={laudosMap}
         dataGeracao={dataGeracao}
+        departmentSummary={departmentSummary}
       />
     </>
   )

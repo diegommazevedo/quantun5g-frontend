@@ -10,6 +10,7 @@ import { PrintButton } from './PrintButton'
 import { LiberarLiderButton } from './LiberarLiderButton'
 import { SecaoIA } from '@/components/relatorio/SecaoIA'
 import { RelatorioDocument } from '@/components/relatorio/RelatorioDocument'
+import { loadDepartmentIcSummary } from '@/lib/pentagrama/load-department-ic-summary'
 import { createClient as adminCli } from '@supabase/supabase-js'
 
 type DiagWithCompany = Diagnostic & {
@@ -93,6 +94,7 @@ export default async function RelatorioPage({ params }: Props) {
     month: 'long',
     year: 'numeric',
   })
+  const departmentSummary = await loadDepartmentIcSummary(db, id)
 
   return (
     <div className="min-h-screen bg-white">
@@ -127,6 +129,7 @@ export default async function RelatorioPage({ params }: Props) {
         result={result}
         laudosMap={laudosMap}
         dataGeracao={dataGeracao}
+        departmentSummary={departmentSummary}
       />
 
       {isConsultantOrAdmin && (

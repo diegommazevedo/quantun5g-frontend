@@ -1,7 +1,7 @@
 /**
  * Documento do relatório Pentagrama (capa → metodologia).
  * Usado na tela interativa e na rota /print/relatorio/[id] (sem chrome do app).
- * Suporta diagnóstico só-IC (sem IL / sem líder).
+ * Suporta diagnóstico só-IC e subresumo por departamento.
  */
 
 import { PentagramaVisual } from '@/components/relatorio/PentagramaVisual'
@@ -9,6 +9,7 @@ import { NivelBadge } from '@/components/relatorio/NivelBadge'
 import { GapBar } from '@/components/relatorio/GapBar'
 import { AlertasList } from '@/components/relatorio/AlertasList'
 import { BlocoScoreGrid } from '@/components/relatorio/BlocoScoreGrid'
+import type { DepartmentIcSummary } from '@/lib/pentagrama/ic-department-scores'
 import type { DiagnosticResult, Laudo } from '@/types/database'
 
 const DIM_COLOR: Record<string, string> = {
@@ -51,6 +52,7 @@ export interface RelatorioDocumentProps {
   result: DiagnosticResult
   laudosMap: Record<string, Laudo>
   dataGeracao: string
+  departmentSummary?: DepartmentIcSummary | null
 }
 
 export function RelatorioDocument({
@@ -61,11 +63,25 @@ export function RelatorioDocument({
   result,
   laudosMap,
   dataGeracao,
+  departmentSummary = null,
 }: RelatorioDocumentProps) {
   const nivelGlobal = result.nivel_combined ?? 'sem_dados'
   const gradientBg = NIVEL_BG[nivelGlobal] ?? NIVEL_BG.sem_dados
   const fmt = (v: number | null) => (v !== null ? `${Math.round(v)}%` : '—')
   const hasIl = result.il_global_pct !== null
+  const showDept = Boolean(departmentSummary && departmentSummary.departments.length > 0)
+  let n = 1
+  const sec = {
+    resumo: n++,
+    dept: showDept ? n++ : 0,
+    pentagrama: n++,
+    scores: n++,
+    laudos: n++,
+    gaps: hasIl ? n++ : 0,
+    alertas: n++,
+    blocos: n++,
+    metodo: n++,
+  }
 
   const DIMENSOES = [
     {
@@ -118,18 +134,12 @@ export function RelatorioDocument({
   return (
     <div
       id="relatorio-documento"
-      className="mx-auto max-w-4xl space-y-0 px-6 pb-24 print:max-w-none print:px-0 print:pb-0"
+      className="mx-auto max-w-4xl space-y-0 px-6 pb-16 print:max-w-none print:px-0 print:pb-0"
     >
       {/* CAPA */}
-      <section
-        className="page-break page-break-after relative mb-8 overflow-hidden rounded-2xl print:mb-0 print:rounded-none"
-        style={{ minHeight: 320 }}
-      >
+      <section className="page-break-after relative mb-6 overflow-hidden rounded-2xl print:mb-0 print:rounded-none">
         <div className={`absolute inset-0 bg-gradient-to-br ${gradientBg}`} />
-        <div
-          className="relative z-10 flex flex-col justify-between px-8 py-10 sm:px-10 sm:py-12"
-          style={{ minHeight: 320 }}
-        >
+        <div className="relative z-10 flex flex-col justify-between gap-10 px-8 py-9 sm:px-10 sm:py-10">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="mb-1 text-sm font-medium uppercase tracking-widest text-white/60">
@@ -149,7 +159,7 @@ export function RelatorioDocument({
             </div>
           </div>
 
-          <div className="mt-10 flex items-end justify-between gap-4 pt-6">
+          <div className="flex items-end justify-between gap-4">
             <div className="space-y-1">
               {leaderName && (
                 <p className="text-sm text-white/80">
@@ -175,9 +185,9 @@ export function RelatorioDocument({
       </section>
 
       {/* 1. RESUMO */}
-      <section className="page-break border-b border-zinc-100 py-8">
-        <h2 className="mb-5 text-xl font-bold text-zinc-900">1. Resumo Executivo</h2>
-        <div className="mb-6 flex flex-wrap gap-3">
+      <section className="border-b border-zinc-100 py-7">
+        <h2 className="mb-5 text-xl font-bold text-zinc-900">{sec.resumo}. Resumo Executivo</h2>
+        <div className="mb-5 flex flex-wrap gap-3">
           <div className="relatorio-card min-w-36 flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4 text-center">
             <p className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Score IC Global</p>
             <p className="text-3xl font-black text-zinc-900">{fmt(result.ic_global_pct)}</p>
@@ -213,7 +223,9 @@ export function RelatorioDocument({
           <span className="font-semibold text-zinc-800">{result.n_ic_respondents}</span>{' '}
           colaboradores responderam ao IC
           {!hasIl && (
-            <span className="ml-2 text-zinc-500">· Diagnóstico conduzido sem Instrumento de Liderança (IL).</span>
+            <span className="ml-2 text-zinc-500">
+              · Diagnóstico conduzido sem Instrumento de Liderança (IL).
+            </span>
           )}
           {result.n_ic_respondents < 3 && (
             <span className="ml-2 inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
@@ -223,10 +235,110 @@ export function RelatorioDocument({
         </div>
       </section>
 
-      {/* 2. PENTAGRAMA */}
-      <section className="page-break border-b border-zinc-100 py-8">
-        <h2 className="mb-2 text-xl font-bold text-zinc-900">2. Pentagrama de Saúde Organizacional</h2>
-        <p className="mb-6 text-sm text-zinc-500">
+      {/* 2. POR DEPARTAMENTO */}
+      {showDept && departmentSummary && (
+        <section className="border-b border-zinc-100 py-7">
+          <h2 className="mb-2 text-xl font-bold text-zinc-900">
+            {sec.dept}. Leitura por Departamento
+          </h2>
+          <p className="mb-4 text-sm text-zinc-500">
+            Subresumo do IC por setor. Scores só aparecem com amostra mínima de{' '}
+            {departmentSummary.minSample} (N=1 oculto por confidencialidade). N&nbsp;&lt;&nbsp;3 é
+            leitura indicativa.
+          </p>
+
+          <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm leading-relaxed text-sky-950">
+            {departmentSummary.commentary}
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-zinc-200">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200 bg-zinc-50">
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Departamento
+                  </th>
+                  <th className="px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    N
+                  </th>
+                  <th className="px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Fís
+                  </th>
+                  <th className="px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Afe
+                  </th>
+                  <th className="px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Rac
+                  </th>
+                  <th className="px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Soc
+                  </th>
+                  <th className="px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Cul
+                  </th>
+                  <th className="px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Global
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Nível
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {departmentSummary.departments.map((d) => (
+                  <tr key={`${d.departmentId ?? d.departmentLabel}-${d.n}`}>
+                    <td className="px-3 py-2.5 font-medium text-zinc-900">
+                      {d.departmentLabel}
+                      {d.indicative && (
+                        <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wide text-amber-700">
+                          indicativo
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-2.5 text-center tabular-nums text-zinc-600">{d.n}</td>
+                    {d.scoresVisible ? (
+                      <>
+                        <td className="px-2 py-2.5 text-center tabular-nums text-blue-700">
+                          {fmt(d.fisica)}
+                        </td>
+                        <td className="px-2 py-2.5 text-center tabular-nums text-blue-700">
+                          {fmt(d.afetiva)}
+                        </td>
+                        <td className="px-2 py-2.5 text-center tabular-nums text-blue-700">
+                          {fmt(d.racional)}
+                        </td>
+                        <td className="px-2 py-2.5 text-center tabular-nums text-blue-700">
+                          {fmt(d.social)}
+                        </td>
+                        <td className="px-2 py-2.5 text-center tabular-nums text-blue-700">
+                          {fmt(d.cultural)}
+                        </td>
+                        <td className="px-2 py-2.5 text-center font-bold tabular-nums text-zinc-900">
+                          {fmt(d.global)}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <NivelBadge nivel={d.nivel} size="sm" />
+                        </td>
+                      </>
+                    ) : (
+                      <td colSpan={7} className="px-3 py-2.5 text-xs italic text-zinc-400">
+                        Score oculto (N &lt; {departmentSummary.minSample} — confidencialidade)
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* PENTAGRAMA */}
+      <section className="border-b border-zinc-100 py-7">
+        <h2 className="mb-2 text-xl font-bold text-zinc-900">
+          {sec.pentagrama}. Pentagrama de Saúde Organizacional
+        </h2>
+        <p className="mb-5 text-sm text-zinc-500">
           {hasIl
             ? 'Comparação entre a percepção dos colaboradores (IC, linha sólida azul) e a percepção da liderança (IL, linha tracejada laranja).'
             : 'Percepção dos colaboradores (IC) nas cinco dimensões. IL não aplicado neste diagnóstico.'}
@@ -245,9 +357,11 @@ export function RelatorioDocument({
         />
       </section>
 
-      {/* 3. SCORES */}
-      <section className="page-break border-b border-zinc-100 py-8">
-        <h2 className="mb-5 text-xl font-bold text-zinc-900">3. Scores por Dimensão</h2>
+      {/* SCORES */}
+      <section className="border-b border-zinc-100 py-7">
+        <h2 className="mb-5 text-xl font-bold text-zinc-900">
+          {sec.scores}. Scores por Dimensão
+        </h2>
         <div className="overflow-x-auto rounded-xl border border-zinc-200">
           <table className="w-full text-sm">
             <thead>
@@ -318,9 +432,11 @@ export function RelatorioDocument({
         </div>
       </section>
 
-      {/* 4. LAUDOS */}
-      <section className="page-break border-b border-zinc-100 py-8">
-        <h2 className="mb-2 text-xl font-bold text-zinc-900">4. Laudos por Dimensão</h2>
+      {/* LAUDOS */}
+      <section className="border-b border-zinc-100 py-7">
+        <h2 className="mb-2 text-xl font-bold text-zinc-900">
+          {sec.laudos}. Laudos por Dimensão
+        </h2>
         <p className="mb-5 text-sm text-zinc-500">
           Análise qualitativa de cada dimensão, baseada no nível IC apurado.
         </p>
@@ -348,10 +464,12 @@ export function RelatorioDocument({
         </div>
       </section>
 
-      {/* 5. GAPS — só com IL */}
-      {hasIl ? (
-        <section className="page-break border-b border-zinc-100 py-8">
-          <h2 className="mb-2 text-xl font-bold text-zinc-900">5. Análise de Gaps IL × IC</h2>
+      {/* GAPS — só com IL */}
+      {hasIl && (
+        <section className="border-b border-zinc-100 py-7">
+          <h2 className="mb-2 text-xl font-bold text-zinc-900">
+            {sec.gaps}. Análise de Gaps IL × IC
+          </h2>
           <p className="mb-5 text-sm text-zinc-500">
             Gap = IL% − IC%. Valor positivo indica que a liderança percebe a dimensão melhor do que
             os colaboradores. Valor negativo indica subestimação.
@@ -412,19 +530,13 @@ export function RelatorioDocument({
             </table>
           </div>
         </section>
-      ) : (
-        <section className="page-break border-b border-zinc-100 py-8">
-          <h2 className="mb-2 text-xl font-bold text-zinc-900">5. Análise de Gaps IL × IC</h2>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-zinc-600">
-            Gaps IL × IC não se aplicam: este diagnóstico foi processado somente com o IC (sem
-            resposta de liderança).
-          </div>
-        </section>
       )}
 
-      {/* 6. ALERTAS */}
-      <section className="page-break border-b border-zinc-100 py-8">
-        <h2 className="mb-2 text-xl font-bold text-zinc-900">6. Alertas do Diagnóstico</h2>
+      {/* ALERTAS */}
+      <section className="border-b border-zinc-100 py-7">
+        <h2 className="mb-2 text-xl font-bold text-zinc-900">
+          {sec.alertas}. Alertas do Diagnóstico
+        </h2>
         <p className="mb-5 text-sm text-zinc-500">
           Sinais automáticos detectados pelo motor de cálculo que requerem atenção especial.
         </p>
@@ -452,9 +564,9 @@ export function RelatorioDocument({
         <AlertasList alerts={result.alerts ?? []} />
       </section>
 
-      {/* 7. BLOCOS */}
-      <section className="page-break border-b border-zinc-100 py-8">
-        <h2 className="mb-2 text-xl font-bold text-zinc-900">7. Scores por Bloco</h2>
+      {/* BLOCOS */}
+      <section className="border-b border-zinc-100 py-7">
+        <h2 className="mb-2 text-xl font-bold text-zinc-900">{sec.blocos}. Scores por Bloco</h2>
         <p className="mb-5 text-sm text-zinc-500">
           Cada dimensão é dividida em blocos temáticos. Blocos com score IC ≤ 40% são
           considerados críticos e marcados com ⚠.
@@ -462,90 +574,45 @@ export function RelatorioDocument({
         <BlocoScoreGrid result={result} />
       </section>
 
-      {/* 8. METODOLOGIA */}
-      <section className="py-8">
-        <h2 className="mb-5 text-xl font-bold text-zinc-900">8. Nota Metodológica</h2>
-        <div className="prose prose-sm max-w-none space-y-4 text-zinc-600">
-          <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 px-6 py-5">
-            <div>
-              <h3 className="mb-1 font-semibold text-zinc-800">Instrumentos</h3>
-              <p>
-                {hasIl ? (
-                  <>
-                    O diagnóstico Quantum5G utiliza dois instrumentos do{' '}
-                    <strong>Pentagrama de Ginger</strong>: o{' '}
-                    <strong>IC — Instrumento de Colaboradores</strong> (125 questões, respostas
-                    anônimas) e o <strong>IL — Instrumento de Liderança</strong> (125 questões
-                    espelhadas, resposta única do líder). Ambos avaliam as cinco dimensões
-                    organizacionais: Física, Afetiva, Racional, Social e Cultural.
-                  </>
-                ) : (
-                  <>
-                    Este diagnóstico utilizou o <strong>IC — Instrumento de Colaboradores</strong>{' '}
-                    do <strong>Pentagrama de Ginger</strong> (125 questões, respostas anônimas)
-                    nas cinco dimensões: Física, Afetiva, Racional, Social e Cultural. O IL
-                    (Instrumento de Liderança) não foi aplicado.
-                  </>
-                )}
-              </p>
-            </div>
-            <div>
-              <h3 className="mb-1 font-semibold text-zinc-800">Escala de resposta</h3>
-              <p>
-                Escala Likert de 4 pontos: <strong>1 — Nunca</strong>,{' '}
-                <strong>2 — Raramente</strong>, <strong>3 — Frequentemente</strong>,{' '}
-                <strong>4 — Sempre</strong>. Os scores são convertidos para percentual: (média −
-                1) ÷ 3 × 100.
-              </p>
-            </div>
-            <div>
-              <h3 className="mb-1 font-semibold text-zinc-800">Ponderação</h3>
-              <p>
-                {hasIl ? (
-                  <>
-                    O score combinado usa <strong>IC × 60% + IL × 40%</strong> quando N ≥ 3
-                    respondentes, priorizando a voz coletiva dos colaboradores. Com N &lt; 3, os
-                    pesos são invertidos (IL × 60% + IC × 40%).
-                  </>
-                ) : (
-                  <>
-                    Sem IL, o score do diagnóstico corresponde ao <strong>IC puro (100%)</strong>.
-                    Laudos e nível geral continuam determinados exclusivamente pelo score IC.
-                  </>
-                )}
-              </p>
-            </div>
-            <div>
-              <h3 className="mb-1 font-semibold text-zinc-800">Classificação de nível</h3>
-              <p>
-                <strong>Crítico</strong> (0–40%) · <strong>Vulnerável</strong> (40–60%) ·{' '}
-                <strong>Saudável</strong> (60–80%) · <strong>Excelente</strong> (80–100%). O
-                nível de cada dimensão é determinado exclusivamente pelo score IC. Os laudos são
-                textos fixos associados ao nível IC de cada dimensão.
-              </p>
-            </div>
-            <div>
-              <h3 className="mb-1 font-semibold text-zinc-800">Alertas automáticos</h3>
-              <p>
-                <strong>Bolha Sistêmica</strong>: gap IL−IC ≥ 20pp em ≥ 3 dimensões.{' '}
-                <strong>Questão Âncora</strong>: média IC ≤ 1.5 em questão específica.{' '}
-                <strong>Bloco Crítico Oculto</strong>: bloco com IC ≤ 40% em dimensão com nível ≥
-                Saudável. <strong>Baixa Amostragem</strong>: N &lt; 5 respondentes (aviso) ou N
-                &lt; 3 (pesos invertidos).
-              </p>
-            </div>
-            <div>
-              <h3 className="mb-1 font-semibold text-zinc-800">Anonimato</h3>
-              <p>
-                As respostas dos colaboradores são totalmente anônimas. Nenhuma informação de
-                identidade é registrada ou vinculada às respostas individuais.
-              </p>
-            </div>
-          </div>
-          <p className="pt-2 text-center text-xs text-zinc-400">
-            Quantum5G · Pentagrama de Ginger · Módulo Diagnóstico · {new Date().getFullYear()}
+      {/* METODOLOGIA */}
+      <section className="py-7">
+        <h2 className="mb-4 text-xl font-bold text-zinc-900">{sec.metodo}. Nota Metodológica</h2>
+        <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-zinc-600">
+          <p>
+            <span className="font-semibold text-zinc-800">Instrumento. </span>
+            {hasIl
+              ? 'IC (125 questões anônimas) + IL (125 questões do líder) nas dimensões Física, Afetiva, Racional, Social e Cultural.'
+              : 'IC — Instrumento de Colaboradores (125 questões anônimas) nas cinco dimensões. IL não aplicado.'}
+          </p>
+          <p>
+            <span className="font-semibold text-zinc-800">Escala. </span>
+            Likert 1–5 (máximo 5 por questão). Score dimensional = (soma das médias das 25
+            questões ÷ 125) × 100.
+          </p>
+          <p>
+            <span className="font-semibold text-zinc-800">Ponderação. </span>
+            {hasIl
+              ? 'Combinado IC×60% + IL×40% (N≥3); pesos invertidos se N<3.'
+              : 'Sem IL: score do diagnóstico = IC puro (100%).'}
+          </p>
+          <p>
+            <span className="font-semibold text-zinc-800">Níveis. </span>
+            Crítico 0–40% · Vulnerável 40–60% · Saudável 60–80% · Excelente 80–100% (sempre pelo
+            IC).
+          </p>
+          <p>
+            <span className="font-semibold text-zinc-800">Departamentos. </span>
+            Cortes setoriais usam a mesma fórmula do IC; N&lt;2 oculta o score (confidencialidade).
+            N&lt;3 é leitura indicativa e não substitui o agregado da empresa.
+          </p>
+          <p>
+            <span className="font-semibold text-zinc-800">Anonimato. </span>
+            Respostas individuais do IC nunca são expostas — apenas médias agregadas.
           </p>
         </div>
+        <p className="pt-4 text-center text-xs text-zinc-400">
+          Quantum5G · Pentagrama de Ginger · Módulo Diagnóstico · {new Date().getFullYear()}
+        </p>
       </section>
     </div>
   )
