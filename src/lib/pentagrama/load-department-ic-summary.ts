@@ -20,5 +20,5 @@ export async function loadDepartmentIcSummary(
     .eq('diagnostic_id', diagnosticId)
 
   if (error || !data?.length) return null
-  return summarizeIcByDepartment(data as unknown as IcResponseRow[], { minSample: 2 })
+  return summarizeIcByDepartment(data as unknown as IcResponseRow[], { minSample: 1 })
 }

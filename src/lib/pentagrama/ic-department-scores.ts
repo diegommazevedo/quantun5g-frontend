@@ -109,12 +109,12 @@ function scoreGroup(rows: IcResponseRow[]): Omit<
   return { ...dims, global, nivel: nivelFromPct(global) }
 }
 
-/** Amostra mínima para exibir % (padrão 2 — N=1 fica oculto). */
+/** Amostra mínima para exibir % (1 = sempre expõe, mesmo com 1 respondente). */
 export function summarizeIcByDepartment(
   rows: IcResponseRow[],
   opts?: { minSample?: number },
 ): DepartmentIcSummary {
-  const minSample = opts?.minSample ?? 2
+  const minSample = opts?.minSample ?? 1
   const map = new Map<string, { label: string; rows: IcResponseRow[] }>()
 
   for (const r of rows) {
@@ -172,8 +172,7 @@ function buildDepartmentCommentary(depts: DepartmentIcScore[], minSample: number
     const names = depts.map((d) => `${d.departmentLabel} (N=${d.n})`).join(', ')
     return (
       `Há respostas em ${depts.length} departamento(s) — ${names}. ` +
-      `Nenhum atingiu a amostra mínima de ${minSample} para exibir scores com segurança ` +
-      `(confidencialidade / leitura estável). A leitura permanece no agregado da empresa.`
+      `Não foi possível calcular scores setoriais. A leitura permanece no agregado da empresa.`
     )
   }
 
@@ -182,8 +181,8 @@ function buildDepartmentCommentary(depts: DepartmentIcScore[], minSample: number
   if (visible.length === 1) {
     const d = visible[0]!
     parts.push(
-      `${d.departmentLabel} (N=${d.n}) é o único departamento com amostra suficiente para leitura` +
-        `${d.indicative ? ' indicativa' : ''}: IC global ${Math.round(d.global!)}% (${labelNivel(d.nivel)}).`,
+      `${d.departmentLabel} (N=${d.n}) é o único departamento com resposta` +
+        `${d.indicative ? ' (leitura indicativa)' : ''}: IC global ${Math.round(d.global!)}% (${labelNivel(d.nivel)}).`,
     )
   } else {
     const sorted = [...visible].sort((a, b) => (b.global ?? 0) - (a.global ?? 0))
@@ -193,7 +192,7 @@ function buildDepartmentCommentary(depts: DepartmentIcScore[], minSample: number
 
     if (spread < 3) {
       parts.push(
-        `Os departamentos com amostra suficiente apresentam perfil homogêneo ` +
+        `Os departamentos apresentam perfil homogêneo ` +
           `(IC global entre ${Math.round(bottom.global!)}% e ${Math.round(top.global!)}%, variação < 3pp).`,
       )
     } else {
@@ -239,8 +238,7 @@ function buildDepartmentCommentary(depts: DepartmentIcScore[], minSample: number
 
   if (hidden.length > 0) {
     parts.push(
-      `Scores ocultos por confidencialidade (N < ${minSample}): ` +
-        `${hidden.map((d) => `${d.departmentLabel} (N=${d.n})`).join(', ')}.`,
+      `Sem score calculável: ${hidden.map((d) => `${d.departmentLabel} (N=${d.n})`).join(', ')}.`,
     )
   }
 

@@ -242,9 +242,8 @@ export function RelatorioDocument({
             {sec.dept}. Leitura por Departamento
           </h2>
           <p className="mb-4 text-sm text-zinc-500">
-            Subresumo do IC por setor. Scores só aparecem com amostra mínima de{' '}
-            {departmentSummary.minSample} (N=1 oculto por confidencialidade). N&nbsp;&lt;&nbsp;3 é
-            leitura indicativa.
+            Subresumo do IC por setor. Com N&nbsp;&lt;&nbsp;3 a leitura é indicativa (amostra
+            pequena) e não substitui o agregado da empresa.
           </p>
 
           <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm leading-relaxed text-sky-950">
@@ -322,7 +321,7 @@ export function RelatorioDocument({
                       </>
                     ) : (
                       <td colSpan={7} className="px-3 py-2.5 text-xs italic text-zinc-400">
-                        Score oculto (N &lt; {departmentSummary.minSample} — confidencialidade)
+                        Sem score calculável
                       </td>
                     )}
                   </tr>
@@ -602,8 +601,8 @@ export function RelatorioDocument({
           </p>
           <p>
             <span className="font-semibold text-zinc-800">Departamentos. </span>
-            Cortes setoriais usam a mesma fórmula do IC; N&lt;2 oculta o score (confidencialidade).
-            N&lt;3 é leitura indicativa e não substitui o agregado da empresa.
+            Cortes setoriais usam a mesma fórmula do IC. N&lt;3 é leitura indicativa e não
+            substitui o agregado da empresa.
           </p>
           <p>
             <span className="font-semibold text-zinc-800">Anonimato. </span>
