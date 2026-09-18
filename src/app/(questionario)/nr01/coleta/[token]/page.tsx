@@ -1,10 +1,12 @@
 /**
  * QUANTUM5G — NR-01 · Coleta pública (anônima)
  * Acesso por token de avaliação. Sem autenticação.
+ * Service role no lookup do token (como /ic e /il) — evita 404 quando a janela
+ * fecha e a policy RLS pública deixa de enxergar a linha.
  */
 
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import { loadInstrument } from '@/lib/nr01/instrument'
 import { Nr01Assessment } from '@/types/nr01'
@@ -19,13 +21,25 @@ interface Props {
   searchParams: Promise<{ invite?: string }>
 }
 
+function isWindowOpen(a: {
+  status: string
+  collection_opens_at: string | null
+  collection_closes_at: string | null
+}): boolean {
+  if (a.status !== 'COLETANDO') return false
+  const now = Date.now()
+  if (a.collection_opens_at && new Date(a.collection_opens_at).getTime() > now) return false
+  if (a.collection_closes_at && new Date(a.collection_closes_at).getTime() < now) return false
+  return true
+}
+
 export default async function ColetaPublicaNr01Page({ params, searchParams }: Props) {
   const { token } = await params
   const { invite } = await searchParams
   await markSurveyInviteOpened(invite)
-  const supabase = await createClient()
 
-  const { data: assess } = await supabase
+  const admin = createServiceRoleAdmin()
+  const { data: assess } = await admin
     .from('nr01_assessments')
     .select(
       'id, name, status, instrument_version, collection_opens_at, collection_closes_at, k_anonymity_min, company_id',
@@ -46,12 +60,20 @@ export default async function ColetaPublicaNr01Page({ params, searchParams }: Pr
     | 'company_id'
   >
 
-  if (a.status !== 'COLETANDO') {
+  if (!isWindowOpen(a)) {
+    const closedByDate =
+      a.status === 'COLETANDO' &&
+      a.collection_closes_at &&
+      new Date(a.collection_closes_at).getTime() < Date.now()
     return (
       <div className="mx-auto max-w-xl rounded-xl border border-zinc-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-zinc-900">Coleta não disponível</h1>
+        <h1 className="text-xl font-semibold text-zinc-900">
+          {closedByDate ? 'Prazo de coleta encerrado' : 'Coleta não disponível'}
+        </h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Esta avaliação não está aberta para respostas no momento.
+          {closedByDate
+            ? 'O período definido para respostas desta avaliação já terminou. Fale com o responsável se ainda precisar responder.'
+            : 'Esta avaliação não está aberta para respostas no momento.'}
         </p>
       </div>
     )

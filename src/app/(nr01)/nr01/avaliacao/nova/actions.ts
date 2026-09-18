@@ -27,6 +27,10 @@ import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { requireNr01LicenseOrRedirect } from '@/lib/nr01/require-license'
 import { assertHeadcountWithinLicense } from '@/lib/licensing/nr01-tier-enforcement'
 import { sanitizeSelectedDepartments } from '@/lib/companies/contacts'
+import {
+  parseCollectionClosesAt,
+  parseCollectionOpensAt,
+} from '@/lib/nr01/collection-dates'
 
 export async function criarAvaliacaoNr01(formData: FormData) {
   const supabase = await createClient()
@@ -196,8 +200,8 @@ export async function criarAvaliacaoNr01(formData: FormData) {
       modality,
       expected_respondents: expectedResp,
       k_anonymity_min: kAnonymityMin,
-      collection_opens_at: opensAt ? new Date(opensAt).toISOString() : null,
-      collection_closes_at: closesAt ? new Date(closesAt).toISOString() : null,
+      collection_opens_at: parseCollectionOpensAt(opensAt),
+      collection_closes_at: parseCollectionClosesAt(closesAt),
       linked_diagnostic_id: linkedDiagId,
       technical_lead_id: null,
       competencia_seq: competenciaParsed.seq,
