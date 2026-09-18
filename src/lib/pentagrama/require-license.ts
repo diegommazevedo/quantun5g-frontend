@@ -1,42 +1,12 @@
-import { redirect } from 'next/navigation'
-import { userHasPentagramaLicense } from '@/lib/billing/pentagrama-license'
-import { isPlatformStaff } from '@/lib/auth/roles'
-import { profileHasModule } from '@/lib/auth/modules'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { nr01LicenseRequiredHref } from '@/lib/billing/sales-path'
-import type { UserRole } from '@/types/database'
-
-export async function requirePentagramaLicenseOrRedirect(params: {
+/**
+ * Licença Pentagrama: todo usuário autenticado com perfil pode criar/usar o módulo.
+ * Mantido como ponto único de gate para não espalhar checks de assinatura.
+ */
+export async function requirePentagramaLicenseOrRedirect(_params: {
   userId: string
-  role: UserRole
+  role: string
   modulePentagrama?: boolean
   redirectTo?: string
 }): Promise<{ licensed: boolean }> {
-  if (params.role === 'admin') return { licensed: true }
-
-  if (params.modulePentagrama === true) return { licensed: true }
-
-  if (isPlatformStaff(params.role)) {
-    const admin = createServiceRoleClient()
-    const { data } = await admin
-      .from('profiles')
-      .select('module_pentagrama')
-      .eq('id', params.userId)
-      .returns<{ module_pentagrama: boolean }[]>()
-      .maybeSingle()
-    if (
-      profileHasModule(
-        { role: params.role, module_pentagrama: data?.module_pentagrama ?? false, module_nr01: true },
-        'pentagrama',
-      )
-    ) {
-      return { licensed: true }
-    }
-  }
-
-  const licensed = await userHasPentagramaLicense(params.userId)
-  if (!licensed) {
-    redirect(params.redirectTo ?? nr01LicenseRequiredHref('licenca_pentagrama'))
-  }
   return { licensed: true }
 }

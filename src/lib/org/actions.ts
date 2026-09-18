@@ -14,8 +14,9 @@ export async function criarGerenteOrg(formData: FormData) {
   const ctx = await requireContratanteOrRedirect()
   const name = (formData.get('name') as string)?.trim()
   const email = (formData.get('email') as string)?.trim().toLowerCase()
-  const modulePentagrama = formData.get('module_pentagrama') === 'on'
-  const moduleNr01 = formData.get('module_nr01') === 'on'
+  // Ambos os módulos liberados para todos os usuários cadastrados.
+  const modulePentagrama = true
+  const moduleNr01 = true
   const companyIds = parseCompanyIds(formData)
 
   if (!name || !email) return { error: 'Nome e e-mail são obrigatórios.' }
@@ -83,8 +84,9 @@ export async function criarGerenteOrg(formData: FormData) {
 export async function atualizarGerenteOrg(formData: FormData) {
   const ctx = await requireContratanteOrRedirect()
   const memberId = formData.get('member_id') as string
-  const modulePentagrama = formData.get('module_pentagrama') === 'on'
-  const moduleNr01 = formData.get('module_nr01') === 'on'
+  // Ambos os módulos liberados para todos os usuários cadastrados.
+  const modulePentagrama = true
+  const moduleNr01 = true
   const companyIds = parseCompanyIds(formData)
 
   if (!memberId) return { error: 'Gerente inválido.' }

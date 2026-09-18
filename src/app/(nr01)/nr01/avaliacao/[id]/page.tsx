@@ -92,18 +92,24 @@ export default async function Nr01AssessmentDetailPage({ params, searchParams }:
   })
   const rtFrozen = Boolean(a.technical_lead_name?.trim() && a.status === 'CONCLUIDO')
 
-  const [{ data: result }, { data: scores }, respCountResult, { data: pack }, { data: pubTokensData }] = await Promise.all([
+  const [{ data: result }, { data: scores }, respCountResult, { data: pack }, { data: pubTokensData }, { data: deptRespRows }] = await Promise.all([
     db.from('nr01_assessment_results').select('*').eq('assessment_id', id).maybeSingle(),
     db.from('nr01_dimension_scores').select('*').eq('assessment_id', id).order('dimension_code'),
     db.from('nr01_responses').select('id', { count: 'exact', head: true }).eq('assessment_id', id),
     db.from('nr01_evidence_pack').select('id, signed_at, pack_sha256, generated_at').eq('assessment_id', id).maybeSingle(),
     db.from('nr01_public_status_tokens').select('*').eq('assessment_id', id).order('created_at', { ascending: false }),
+    db.from('nr01_responses').select('department_id, department_label').eq('assessment_id', id),
   ])
 
   const r = result as Nr01AssessmentResult | null
   const ds = (scores ?? []) as Nr01DimensionScore[]
   // count com { head: true } vem como propriedade irmã de data, não dentro dela.
   const totalResponses = respCountResult.count ?? 0
+  const { aggregateDepartmentCounts } = await import('@/lib/survey/department-filter')
+  const deptBreakdown = aggregateDepartmentCounts(
+    (deptRespRows ?? []) as { department_id: string | null; department_label: string | null }[],
+    a.k_anonymity_min,
+  )
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quantun5g.app'
   const collectionFullUrl = `${appUrl}/nr01/coleta/${a.collection_token}`
   const publicTokens = (pubTokensData ?? []) as Nr01PublicStatusToken[]
@@ -189,6 +195,30 @@ export default async function Nr01AssessmentDetailPage({ params, searchParams }:
           )}
         </p>
       </section>
+
+      {deptBreakdown.length > 0 && (
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-sm font-semibold text-zinc-900">Respostas por departamento</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Cortes com menos de {a.k_anonymity_min} respostas (k-anonymity) ficam ocultos.
+          </p>
+          <ul className="mt-4 divide-y divide-zinc-100">
+            {deptBreakdown.map((d) => (
+              <li
+                key={d.departmentId ?? d.departmentLabel}
+                className="flex items-center justify-between py-2 text-sm"
+              >
+                <span className="text-zinc-800">{d.departmentLabel}</span>
+                {d.visible ? (
+                  <span className="font-semibold text-zinc-900">{d.count}</span>
+                ) : (
+                  <span className="text-xs text-zinc-400">amostra insuficiente ({d.count})</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Bloco de status + ações */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">

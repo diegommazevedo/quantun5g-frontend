@@ -111,7 +111,7 @@ map.entries = (map.entries ?? []).filter((e) => e.sku !== SKU)
 map.entries.push(entry)
 writeFileSync(MAP, JSON.stringify(map, null, 2) + '\n')
 
-const ts = `/** Gerado por scripts/kiwify-register-sim-lead.mjs */\nexport const KIWIFY_SIM_CHECKOUT_URL = '${checkoutUrl}'\nexport const KIWIFY_SIM_PRODUCT_LABEL = '${productName.replace(/'/g, "\\'")}'\n`
+const ts = `/** Gerado por scripts/kiwify-register-sim-lead.mjs */\nexport const KIWIFY_SIM_CHECKOUT_URL = '${checkoutUrl}'\nexport const KIWIFY_SIM_PRODUCT_LABEL = '${productName.replace(/'/g, "\\'")}'\n\nexport function isSimCheckoutReady(): boolean {\n  return Boolean(KIWIFY_SIM_CHECKOUT_URL?.trim())\n}\n`
 writeFileSync(VENDAS_TS, ts)
 
 console.log('✅ Simulado registrado')

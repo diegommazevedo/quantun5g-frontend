@@ -6,7 +6,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { DiagnosticInsert, DiagnosticUpdate, UserRole } from '@/types/database'
+import type { CompanyContact, DiagnosticInsert, DiagnosticUpdate, UserRole } from '@/types/database'
 import { isValidCnpj } from '@/lib/companies/cnpj'
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import { companyHasTechnicalLead } from '@/lib/nr01/technical-lead'
@@ -18,7 +18,11 @@ import {
   parseCompetenciaForm,
 } from '@/lib/survey/competencia'
 import { fetchNextCompetenciaSeq } from '@/lib/survey/competencia-db'
-import { supabaseForActorRole } from '@/lib/org/scoped-db'
+import {
+  supabaseForActorRole,
+  supabaseWriteAfterCompanyAuthz,
+} from '@/lib/org/scoped-db'
+import { sanitizeSelectedDepartments } from '@/lib/companies/contacts'
 
 export async function criarDiagnostico(formData: FormData) {
   const supabase = await createClient()
@@ -30,6 +34,9 @@ export async function criarDiagnostico(formData: FormData) {
   const nomeDiag = (formData.get('nome_diagnostico') as string)?.trim()
   const ilDeadline = (formData.get('il_deadline') as string) || null
   const icDeadline = (formData.get('ic_deadline') as string) || null
+  const dispatchScopeRaw = (formData.get('dispatch_scope') as string)?.trim() || 'geral'
+  const dispatchScope =
+    dispatchScopeRaw === 'departamento' ? ('departamento' as const) : ('geral' as const)
 
   if (!companyId) {
     redirect('/diagnostico/novo?error=Selecione+uma+empresa+na+etapa+anterior.')
@@ -102,7 +109,10 @@ export async function criarDiagnostico(formData: FormData) {
     )
   }
 
-  const { data: leadersData } = await db
+  // Escopo validado: escrita com service role (admin não passa no RLS de insert).
+  const writeDb = supabaseWriteAfterCompanyAuthz()
+
+  const { data: leadersData } = await writeDb
     .from('company_contacts')
     .select('id, full_name, email')
     .eq('company_id', companyId)
@@ -112,25 +122,50 @@ export async function criarDiagnostico(formData: FormData) {
 
   const leaders = (leadersData ?? []) as Array<{ id: string; full_name: string; email: string }>
 
-  if (leaders.length === 0) {
-    redirect(
-      `/empresas/${companyId}?error=${encodeURIComponent('Cadastre ao menos um líder IL na empresa.')}&retorno=/diagnostico/novo/${companyId}`,
+  const { data: contactsRaw } = await writeDb
+    .from('company_contacts')
+    .select('department, department_id, is_active')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  const contacts = (contactsRaw ?? []) as Pick<CompanyContact, 'department' | 'department_id'>[]
+  const { data: catalogIds } = await writeDb
+    .from('company_departments')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  let dispatchDepartments: string[] = []
+  if (dispatchScope === 'departamento') {
+    dispatchDepartments = sanitizeSelectedDepartments(
+      contacts,
+      formData.getAll('dispatch_department').map((v) => String(v)),
+      ((catalogIds ?? []) as { id: string }[]).map((d) => d.id),
     )
+    if (dispatchDepartments.length === 0) {
+      redirect(
+        `${errBase}?error=${encodeURIComponent(
+          'Selecione ao menos um departamento para o escopo do diagnóstico.',
+        )}`,
+      )
+    }
   }
 
-  const selected =
-    leaders.find((l) => l.id === ilLeaderId) ??
-    leaders[0]
+  const selected = ilLeaderId
+    ? leaders.find((l) => l.id === ilLeaderId) ?? null
+    : null
 
-  const leaderSnapshot = snapshotIlLeaderToDiagnostic({
-    name: selected.full_name,
-    email: selected.email,
-  })
+  const leaderSnapshot = selected
+    ? snapshotIlLeaderToDiagnostic({
+        name: selected.full_name,
+        email: selected.email,
+      })
+    : { leader_name: null, leader_email: null }
 
   const diagInsert: DiagnosticInsert = {
     company_id: companyId,
     consultant_id: company.consultant_id,
-    name: competenciaParsed.surveyName,
+    name: nomeDiag,
     leader_name: leaderSnapshot.leader_name,
     leader_email: leaderSnapshot.leader_email,
     il_deadline: ilDeadline,
@@ -139,9 +174,11 @@ export async function criarDiagnostico(formData: FormData) {
     competencia_month: competenciaParsed.month,
     competencia_year: competenciaParsed.year,
     competencia_label: competenciaParsed.label,
+    dispatch_scope: dispatchScope,
+    dispatch_departments: dispatchDepartments,
   }
 
-  const { data: diag, error: errDiag } = await db
+  const { data: diag, error: errDiag } = await writeDb
     .from('diagnostics')
     .insert(diagInsert as never)
     .select('id')
@@ -155,7 +192,7 @@ export async function criarDiagnostico(formData: FormData) {
 
   const diagId = (diag as { id: string }).id
   const statusUpdate: DiagnosticUpdate = { status: 'AGUARDANDO_IL' }
-  await supabase.from('diagnostics').update(statusUpdate as never).eq('id', diagId)
+  await writeDb.from('diagnostics').update(statusUpdate as never).eq('id', diagId)
 
   redirect(`/diagnostico/${diagId}`)
 }

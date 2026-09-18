@@ -9,6 +9,10 @@ import { markSurveyInviteOpened } from '@/lib/survey/invites'
 import { loadInstrument } from '@/lib/nr01/instrument'
 import { Nr01Assessment } from '@/types/nr01'
 import ColetaFormClient from './ColetaFormClient'
+import {
+  listCompanyDepartments,
+  resolveDepartmentFromInviteToken,
+} from '@/lib/companies/departments'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -23,12 +27,24 @@ export default async function ColetaPublicaNr01Page({ params, searchParams }: Pr
 
   const { data: assess } = await supabase
     .from('nr01_assessments')
-    .select('id, name, status, instrument_version, collection_opens_at, collection_closes_at, k_anonymity_min')
+    .select(
+      'id, name, status, instrument_version, collection_opens_at, collection_closes_at, k_anonymity_min, company_id',
+    )
     .eq('collection_token', token)
     .maybeSingle()
 
   if (!assess) notFound()
-  const a = assess as Pick<Nr01Assessment, 'id' | 'name' | 'status' | 'instrument_version' | 'collection_opens_at' | 'collection_closes_at' | 'k_anonymity_min'>
+  const a = assess as Pick<
+    Nr01Assessment,
+    | 'id'
+    | 'name'
+    | 'status'
+    | 'instrument_version'
+    | 'collection_opens_at'
+    | 'collection_closes_at'
+    | 'k_anonymity_min'
+    | 'company_id'
+  >
 
   if (a.status !== 'COLETANDO') {
     return (
@@ -42,6 +58,8 @@ export default async function ColetaPublicaNr01Page({ params, searchParams }: Pr
   }
 
   const groups = await loadInstrument(a.instrument_version)
+  const departments = await listCompanyDepartments(a.company_id)
+  const inviteDept = await resolveDepartmentFromInviteToken(invite, a.company_id)
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-8">
@@ -49,13 +67,21 @@ export default async function ColetaPublicaNr01Page({ params, searchParams }: Pr
         <p className="text-xs uppercase tracking-wide text-orange-600">Avaliação NR-01</p>
         <h1 className="text-2xl font-bold text-zinc-900">{a.name}</h1>
         <p className="text-sm text-zinc-600">
-          Sua resposta é <strong>anônima</strong>. Nenhuma identificação pessoal é coletada
-          ou armazenada. Somente agregados com pelo menos {a.k_anonymity_min} respondentes
-          são exibidos a líderes ou consultores.
+          Sua resposta é <strong>anônima</strong>. Nenhuma identificação pessoal é coletada ou
+          armazenada. Somente agregados com pelo menos {a.k_anonymity_min} respondentes são
+          exibidos a líderes ou consultores.
         </p>
       </header>
 
-      <ColetaFormClient token={token} groups={groups} kAnonymityMin={a.k_anonymity_min} />
+      <ColetaFormClient
+        token={token}
+        inviteToken={invite ?? null}
+        groups={groups}
+        kAnonymityMin={a.k_anonymity_min}
+        departments={departments.map((d) => ({ id: d.id, name: d.name }))}
+        lockedDepartmentId={inviteDept.locked ? inviteDept.departmentId : null}
+        lockedDepartmentLabel={inviteDept.locked ? inviteDept.departmentLabel : null}
+      />
     </div>
   )
 }

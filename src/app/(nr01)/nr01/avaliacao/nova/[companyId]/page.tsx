@@ -15,7 +15,7 @@ import {
   formatTechnicalLeadLine,
   technicalLeadFromCompany,
 } from '@/lib/nr01/technical-lead'
-import { CompetenciaSurveyFields } from '@/components/survey/CompetenciaSurveyFields'
+import { Nr01AvaliacaoIdentityFields } from '@/components/nr01/Nr01AvaliacaoIdentityFields'
 import { fetchNextCompetenciaSeq } from '@/lib/survey/competencia-db'
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import {
@@ -23,6 +23,9 @@ import {
   defaultCompetenciaPeriod,
   localDateISO,
 } from '@/lib/survey/competencia'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
+import { listCatalogDepartmentsWithCounts } from '@/lib/companies/departments'
+import type { CompanyContact } from '@/types/database'
 
 interface Props {
   params: Promise<{ companyId: string }>
@@ -71,6 +74,25 @@ export default async function NovaAvaliacaoDadosPage({ params, searchParams }: P
   const fimDefault = addDaysISO(hoje, 15)
   const nextSeq = await fetchNextCompetenciaSeq(supabase, companyId, 'nr01')
   const { mmYyyy } = defaultCompetenciaPeriod()
+
+  const admin = createServiceRoleAdmin()
+  const [{ data: contactsRaw }, { data: catalogRaw }] = await Promise.all([
+    admin
+      .from('company_contacts')
+      .select('department, department_id, is_active')
+      .eq('company_id', companyId)
+      .eq('is_active', true),
+    admin
+      .from('company_departments')
+      .select('id, name, is_active')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .order('sort_order'),
+  ])
+  const departments = listCatalogDepartmentsWithCounts(
+    (catalogRaw ?? []) as { id: string; name: string; is_active: boolean }[],
+    (contactsRaw ?? []) as Pick<CompanyContact, 'department' | 'department_id'>[],
+  ).map((d) => ({ key: d.key, label: d.label, count: d.count }))
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -154,13 +176,14 @@ export default async function NovaAvaliacaoDadosPage({ params, searchParams }: P
             <code>COLETANDO</code>.
           </p>
 
-          <CompetenciaSurveyFields
+          <Nr01AvaliacaoIdentityFields
             module="nr01"
             nextSeq={nextSeq}
             defaultPeriod={mmYyyy}
             pesquisaInicioDefault={hoje}
             pesquisaFimDefault={fimDefault}
             disabled={!ready}
+            departments={departments}
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

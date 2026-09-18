@@ -1,5 +1,6 @@
 /**
- * Licença NR-01 — assinatura ativa (gateway) ou fatura comercial paga (presencial).
+ * Licença NR-01 — política atual: todo usuário autenticado com perfil ativo
+ * acessa o módulo (flags/assinatura mantidos só para billing/tier).
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
@@ -7,7 +8,7 @@ import type { UserRole } from '@/types/database'
 
 export interface Nr01LicenseStatus {
   licensed: boolean
-  source: 'admin' | 'module_flag' | 'subscription' | 'commercial_invoice' | null
+  source: 'admin' | 'module_flag' | 'subscription' | 'commercial_invoice' | 'authenticated' | null
   subscriptionId: string | null
   invoiceId: string | null
 }
@@ -17,17 +18,16 @@ export async function getNr01LicenseForUser(userId: string): Promise<Nr01License
 
   const { data: profile } = await admin
     .from('profiles')
-    .select('role, module_nr01')
+    .select('role, module_nr01, is_active')
     .eq('id', userId)
-    .returns<{ role: UserRole; module_nr01: boolean }[]>()
+    .returns<{ role: UserRole; module_nr01: boolean; is_active: boolean }[]>()
     .maybeSingle()
 
-  const role = profile?.role
-  if (role === 'admin') {
-    return { licensed: true, source: 'admin', subscriptionId: null, invoiceId: null }
+  if (!profile || profile.is_active === false) {
+    return { licensed: false, source: null, subscriptionId: null, invoiceId: null }
   }
 
-  // Subscription/fatura ANTES do module_flag — tier enforcement precisa do metadata (worker_max).
+  // Preferir source real para tier/billing quando existir.
   const { data: subs } = await admin
     .from('active_subscriptions' as 'subscriptions')
     .select('id')
@@ -65,11 +65,16 @@ export async function getNr01LicenseForUser(userId: string): Promise<Nr01License
     }
   }
 
-  if (profile?.module_nr01 === true) {
+  if (profile.role === 'admin') {
+    return { licensed: true, source: 'admin', subscriptionId: null, invoiceId: null }
+  }
+
+  if (profile.module_nr01 === true) {
     return { licensed: true, source: 'module_flag', subscriptionId: null, invoiceId: null }
   }
 
-  return { licensed: false, source: null, subscriptionId: null, invoiceId: null }
+  // Acesso liberado para qualquer perfil ativo (política da plataforma).
+  return { licensed: true, source: 'authenticated', subscriptionId: null, invoiceId: null }
 }
 
 export async function userHasNr01License(userId: string): Promise<boolean> {

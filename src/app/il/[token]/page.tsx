@@ -1,8 +1,5 @@
 /**
  * QUANTUM5G — TELA-05: Formulário IL (Instrumento de Liderança)
- * Rota pública — acessada via token único.
- * 125 questões, escala Likert 1–5.
- * Ao submeter: INSERT il_responses + UPDATE diagnostic status → COLETANDO_IC
  */
 
 import { notFound } from 'next/navigation'
@@ -11,6 +8,10 @@ import ILFormClient from './ILFormClient'
 import { PENTAGRAMA_LIKERT_SCALE } from '@/lib/pentagrama/likert-labels'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 import { resolveDiagnosticByIlToken } from '@/lib/pentagrama/public-diagnostic'
+import {
+  listCompanyDepartments,
+  resolveDepartmentFromInviteToken,
+} from '@/lib/companies/departments'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -25,32 +26,26 @@ export default async function ILPage({ params, searchParams }: Props) {
   const diag = await resolveDiagnosticByIlToken(token)
   if (!diag) notFound()
 
-  // IL já respondido
   if (diag.il_submitted_at) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
-        <div className="max-w-md text-center space-y-4">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-            <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-6">
+        <div className="max-w-md space-y-4 text-center">
           <h1 className="text-xl font-bold text-zinc-900">Instrumento já respondido</h1>
-          <p className="text-zinc-500 text-sm">
-            Este instrumento de liderança já foi preenchido. Cada diagnóstico aceita apenas uma resposta de liderança.
+          <p className="text-sm text-zinc-500">
+            Este instrumento de liderança já foi preenchido. Cada diagnóstico aceita apenas uma
+            resposta de liderança.
           </p>
         </div>
       </div>
     )
   }
 
-  // Status não aceita mais IL
   if (!isPentagramaColetaAberta(diag.status)) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
-        <div className="max-w-md text-center space-y-4">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-6">
+        <div className="max-w-md space-y-4 text-center">
           <h1 className="text-xl font-bold text-zinc-900">Link indisponível</h1>
-          <p className="text-zinc-500 text-sm">
+          <p className="text-sm text-zinc-500">
             Este link de diagnóstico não está mais disponível para resposta.
           </p>
         </div>
@@ -58,49 +53,56 @@ export default async function ILPage({ params, searchParams }: Props) {
     )
   }
 
-  const companyName = diag.companyName
+  const departments = await listCompanyDepartments(diag.companyId)
+  const inviteDept = await resolveDepartmentFromInviteToken(invite, diag.companyId)
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Header */}
-      <div className="bg-white border-b border-zinc-200 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-10 border-b border-zinc-200 bg-white">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
           <div>
             <span className="text-sm font-semibold text-zinc-900">Quantum5G</span>
-            <span className="text-zinc-300 mx-2">|</span>
+            <span className="mx-2 text-zinc-300">|</span>
             <span className="text-sm text-zinc-500">Instrumento de Liderança</span>
           </div>
-          <span className="text-xs text-zinc-400">{companyName}</span>
+          <span className="text-xs text-zinc-400">{diag.companyName}</span>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-8">
-        {/* Intro */}
-        <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-3">
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-10 sm:px-6">
+        <div className="space-y-3 rounded-xl border border-zinc-200 bg-white p-6">
           <h1 className="text-xl font-bold text-zinc-900">
             Pentagrama de Ginger — Instrumento de Liderança
           </h1>
           {diag.leader_name && (
-            <p className="text-zinc-600">Olá, <strong>{diag.leader_name}</strong>.</p>
+            <p className="text-zinc-600">
+              Olá, <strong>{diag.leader_name}</strong>.
+            </p>
           )}
-          <p className="text-sm text-zinc-600 leading-relaxed">
-            Para cada afirmação abaixo, escolha o número que melhor representa sua percepção honesta sobre a realidade atual da empresa que você lidera ou co-lidera.
-          </p>
-          <p className="text-sm text-zinc-600 font-medium">
-            Não responda como gostaria que fosse — responda como você acredita que é hoje.
+          <p className="text-sm leading-relaxed text-zinc-600">
+            Para cada afirmação abaixo, escolha o número que melhor representa sua percepção
+            honesta sobre a realidade atual da empresa que você lidera ou co-lidera.
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
             {PENTAGRAMA_LIKERT_SCALE.map(({ value, lines }) => (
               <span key={value} className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
-                <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-700 font-bold flex items-center justify-center">{value}</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-700">
+                  {value}
+                </span>
                 {lines.join(' ')}
               </span>
             ))}
           </div>
         </div>
 
-        {/* Formulário client-side */}
-        <ILFormClient diagnosticId={diag.id} token={token} />
+        <ILFormClient
+          diagnosticId={diag.id}
+          token={token}
+          inviteToken={invite ?? null}
+          departments={departments.map((d) => ({ id: d.id, name: d.name }))}
+          lockedDepartmentId={inviteDept.locked ? inviteDept.departmentId : null}
+          lockedDepartmentLabel={inviteDept.locked ? inviteDept.departmentLabel : null}
+        />
       </div>
     </div>
   )

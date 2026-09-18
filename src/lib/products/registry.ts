@@ -6,7 +6,7 @@
  * Mantenha sincronizado em caso de adição/remoção de produtos.
  */
 
-export type ProductId = 'pentagrama' | 'nr01'
+export type ProductId = 'pentagrama' | 'nr01' | 'radar' | 'copiloto'
 
 export interface Product {
   id: ProductId
@@ -33,6 +33,22 @@ export const PRODUCTS: Record<ProductId, Product> = {
     description: 'Avaliação técnica de fatores psicossociais conforme NR-01.',
     paywallPath: '/paywall/nr01',
     appPath: '/nr01/dashboard',
+  },
+  radar: {
+    id: 'radar',
+    name: 'Radar Empresarial',
+    subdomain: 'radar',
+    description: 'Sinais contínuos da organização: ações, indicadores e alertas interpretados.',
+    paywallPath: '/paywall/radar',
+    appPath: '/radar',
+  },
+  copiloto: {
+    id: 'copiloto',
+    name: 'Copiloto Comercial',
+    subdomain: 'copiloto',
+    description: 'Fila do dia: quem contatar, por quê e o que fazer.',
+    paywallPath: '/paywall/copiloto',
+    appPath: '/copiloto',
   },
 }
 

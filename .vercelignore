@@ -1,5 +1,22 @@
+# Artefatos locais — reduz upload CLI (evita "fetch failed" com perfis Edge ~170MB)
 backups
 exports
 vendas-nr01
 node_modules
 .next
+**/.next
+
+# Automação Kiwify / Puppeteer
+scripts/_edge-sim-copy
+scripts/_edge-kiwify-profile
+scripts/_sim
+scripts/chrome-profile
+scripts/*.png
+scripts/_k_*.png
+scripts/_offer_*.png
+
+# Test / CI local
+playwright-report
+test-results
+coverage
+supabase/.temp

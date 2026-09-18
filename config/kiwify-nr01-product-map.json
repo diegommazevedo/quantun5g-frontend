@@ -369,10 +369,10 @@
       "kiwify_product_id": "aa995e40-80e5-11f1-a0f5-09dbf347c2c3",
       "checkout_url": "https://pay.kiwify.com.br/87dXrZy",
       "kiwify_link_id": "87dXrZy",
-      "label": "Quantum5G NR-01 · SIMULADO Lead R$10 PIX",
+      "label": "Quantum5G NR-01 · SIMULADO Lead R$5 PIX",
       "sku": "q5g-nr01-t01-sim-lead-pix",
-      "price_cents": 1000,
-      "synced_at": "2026-07-16T07:12:35.925Z",
+      "price_cents": 500,
+      "synced_at": "2026-07-19T23:00:23.896Z",
       "purpose": "sim_lead_test"
     }
   ],

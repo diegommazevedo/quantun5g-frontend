@@ -1,39 +1,12 @@
-import { redirect } from 'next/navigation'
-import { userHasNr01License } from '@/lib/billing/nr01-license'
-import type { UserRole } from '@/types/database'
-
-import { isPlatformStaff } from '@/lib/auth/roles'
-import { profileHasModule } from '@/lib/auth/modules'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { nr01LicenseRequiredHref } from '@/lib/billing/sales-path'
-
-/** Bloqueia criação de avaliação sem licença (líder/cliente); staff com módulo NR-01 segue liberado. */
-export async function requireNr01LicenseOrRedirect(params: {
+/**
+ * Licença NR-01: todo usuário autenticado com perfil pode criar/usar o módulo.
+ * Mantido como ponto único de gate para não espalhar checks de assinatura.
+ */
+export async function requireNr01LicenseOrRedirect(_params: {
   userId: string
-  role: UserRole
+  role: string
   moduleNr01?: boolean
   redirectTo?: string
 }): Promise<{ licensed: boolean }> {
-  if (params.role === 'admin') return { licensed: true }
-
-  if (params.moduleNr01 === true) return { licensed: true }
-
-  if (isPlatformStaff(params.role)) {
-    const admin = createServiceRoleClient()
-    const { data } = await admin
-      .from('profiles')
-      .select('module_nr01')
-      .eq('id', params.userId)
-      .returns<{ module_nr01: boolean }[]>()
-      .maybeSingle()
-    if (profileHasModule({ role: params.role, module_pentagrama: true, module_nr01: data?.module_nr01 ?? false }, 'nr01')) {
-      return { licensed: true }
-    }
-  }
-
-  const licensed = await userHasNr01License(params.userId)
-  if (!licensed) {
-    redirect(params.redirectTo ?? nr01LicenseRequiredHref('licenca_nr01'))
-  }
   return { licensed: true }
 }

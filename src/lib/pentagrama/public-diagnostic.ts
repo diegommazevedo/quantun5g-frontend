@@ -11,6 +11,7 @@ export type PentagramaPublicDiagnostic = {
   status: string
   leader_name: string | null
   il_submitted_at: string | null
+  companyId: string
   companyName: string
 }
 
@@ -21,6 +22,7 @@ function mapRow(
     status: string
     leader_name: string | null
     il_submitted_at: string | null
+    company_id: string
     companies: { name: string } | { name: string }[] | null
   } | null,
 ): PentagramaPublicDiagnostic | null {
@@ -33,6 +35,7 @@ function mapRow(
     status: row.status,
     leader_name: row.leader_name,
     il_submitted_at: row.il_submitted_at,
+    companyId: row.company_id,
     companyName: companyName ?? '',
   }
 }
@@ -43,7 +46,7 @@ export async function resolveDiagnosticByIcToken(
   const admin = createServiceRoleClient()
   const { data } = await admin
     .from('diagnostics')
-    .select('id, name, status, leader_name, il_submitted_at, companies(name)')
+    .select('id, name, status, leader_name, il_submitted_at, company_id, companies(name)')
     .eq('ic_token', token)
     .maybeSingle()
 
@@ -54,6 +57,7 @@ export async function resolveDiagnosticByIcToken(
       status: string
       leader_name: string | null
       il_submitted_at: string | null
+      company_id: string
       companies: { name: string } | null
     } | null,
   )
@@ -65,7 +69,7 @@ export async function resolveDiagnosticByIlToken(
   const admin = createServiceRoleClient()
   const { data } = await admin
     .from('diagnostics')
-    .select('id, name, status, leader_name, il_submitted_at, companies(name)')
+    .select('id, name, status, leader_name, il_submitted_at, company_id, companies(name)')
     .eq('il_token', token)
     .maybeSingle()
 
@@ -76,6 +80,7 @@ export async function resolveDiagnosticByIlToken(
       status: string
       leader_name: string | null
       il_submitted_at: string | null
+      company_id: string
       companies: { name: string } | null
     } | null,
   )

@@ -21,8 +21,8 @@ const OUT = join(root, 'config', 'kiwify-test-product.json')
 const MAP = join(root, 'config', 'kiwify-nr01-product-map.json')
 const VENDAS_TS = join(root, 'vendas-nr01', 'src', 'constants', 'kiwify-sim-checkout.ts')
 
-const PRODUCT_NAME = 'Quantum5G NR-01 · SIMULADO Lead R$10 PIX'
-const PRICE_STR = '10,00'
+const PRICE_STR = '5,00'
+const PRODUCT_NAME = 'Quantum5G NR-01 · SIMULADO Lead R$5 PIX'
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 mkdirSync(SHOTS, { recursive: true })
@@ -75,7 +75,7 @@ function upsertMapEntry(productId, checkoutUrl, linkId) {
     kiwify_link_id: linkId,
     label: PRODUCT_NAME,
     sku: 'q5g-nr01-t01-sim-lead-pix',
-    price_cents: 1000,
+    price_cents: 500,
     synced_at: new Date().toISOString(),
     purpose: 'sim_lead_test',
   }
@@ -85,7 +85,7 @@ function upsertMapEntry(productId, checkoutUrl, linkId) {
 }
 
 function writeVendasConstant(checkoutUrl) {
-  const ts = `/** Gerado por scripts/kiwify-setup-sim-lead.mjs */\nexport const KIWIFY_SIM_CHECKOUT_URL = '${checkoutUrl}'\nexport const KIWIFY_SIM_PRODUCT_LABEL = '${PRODUCT_NAME}'\n`
+  const ts = `/** Gerado por scripts/kiwify-setup-sim-lead.mjs */\nexport const KIWIFY_SIM_CHECKOUT_URL = '${checkoutUrl}'\nexport const KIWIFY_SIM_PRODUCT_LABEL = '${PRODUCT_NAME}'\n\nexport function isSimCheckoutReady(): boolean {\n  return Boolean(KIWIFY_SIM_CHECKOUT_URL?.trim())\n}\n`
   writeFileSync(VENDAS_TS, ts)
 }
 
@@ -163,7 +163,7 @@ async function extractCheckoutLink(productId) {
       })
       const product = await res.json()
       const links = (product.links ?? []).filter((l) => l.status === 'active')
-      const priced = links.find((l) => Number(l.price ?? product.price) === 1000) ?? links[0]
+      const priced = links.find((l) => Number(l.price ?? product.price) === 500) ?? links[0]
       if (priced?.id) return `https://pay.kiwify.com.br/${priced.id}`
     } catch (e) {
       console.warn('[sim-lead] API links fallback falhou:', e)
@@ -338,7 +338,7 @@ try {
     purpose: 'sim_lead_R$10_pix',
     tier_id: 't01',
     billing_mode: 'anual_vista',
-    price_cents: 1000,
+    price_cents: 500,
     label: PRODUCT_NAME,
   }
 

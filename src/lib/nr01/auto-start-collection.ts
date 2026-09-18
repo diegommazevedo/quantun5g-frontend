@@ -10,6 +10,7 @@ import {
   filterContactsForDispatch,
   type DispatchTarget,
 } from '@/lib/survey/dispatch'
+import { filterContactsByDepartments } from '@/lib/companies/contacts'
 import type { CompanyContact } from '@/types/database'
 
 export interface AutoStartCollectionResult {
@@ -36,6 +37,7 @@ export async function autoStartNr01Collection(params: {
     .select(
       `
       id, name, status, collection_token, collection_closes_at, consultant_id, company_id,
+      dispatch_scope, dispatch_departments,
       companies:companies!nr01_assessments_company_id_fkey ( id, name )
     `,
     )
@@ -54,6 +56,8 @@ export async function autoStartNr01Collection(params: {
     collection_closes_at: string | null
     consultant_id: string
     company_id: string
+    dispatch_scope: 'geral' | 'departamento' | null
+    dispatch_departments: string[] | null
     companies: { id: string; name: string } | { id: string; name: string }[] | null
   }
 
@@ -103,11 +107,19 @@ export async function autoStartNr01Collection(params: {
     .select('*')
     .eq('company_id', companyId)
 
-  const contacts = filterContactsForDispatch(
+  let contacts = filterContactsForDispatch(
     (contactsRaw ?? []) as CompanyContact[],
     'nr01',
     'nr01_coleta',
   )
+
+  if (
+    assess.dispatch_scope === 'departamento' &&
+    Array.isArray(assess.dispatch_departments) &&
+    assess.dispatch_departments.length > 0
+  ) {
+    contacts = filterContactsByDepartments(contacts, assess.dispatch_departments)
+  }
 
   if (contacts.length === 0) {
     return { opened, alreadyOpen, invites: emptyInvites }

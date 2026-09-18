@@ -1,12 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import type { CompanyContact } from '@/types/database'
-import { adicionarContato, removerContato } from '@/app/(dashboard)/empresas/[id]/equipe/actions'
+import type { CompanyContact, CompanyDepartment } from '@/types/database'
+import {
+  adicionarContato,
+  atualizarContato,
+  removerContato,
+} from '@/app/(dashboard)/empresas/[id]/equipe/actions'
 
 interface Props {
   companyId: string
   contacts: CompanyContact[]
+  departments: CompanyDepartment[]
   suppressedEmails?: string[]
 }
 
@@ -18,8 +23,52 @@ function contactStatus(c: CompanyContact, suppressed: string[] | undefined): str
   return c.is_active ? 'Ativo' : 'Inativo'
 }
 
-export function TeamContactsManager({ companyId, contacts, suppressedEmails }: Props) {
+function deptLabel(
+  c: CompanyContact,
+  departments: CompanyDepartment[],
+): string {
+  if (c.department_id) {
+    const d = departments.find((x) => x.id === c.department_id)
+    if (d) return d.name
+  }
+  const t = c.department?.trim()
+  return t && t.length > 0 ? t : ''
+}
+
+function DepartmentSelect({
+  name,
+  departments,
+  defaultValue,
+}: {
+  name: string
+  departments: CompanyDepartment[]
+  defaultValue?: string | null
+}) {
+  const active = departments.filter((d) => d.is_active)
+  return (
+    <select
+      name={name}
+      defaultValue={defaultValue ?? ''}
+      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+    >
+      <option value="">Sem departamento</option>
+      {active.map((d) => (
+        <option key={d.id} value={d.id}>
+          {d.name}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+export function TeamContactsManager({
+  companyId,
+  contacts,
+  departments,
+  suppressedEmails,
+}: Props) {
   const [tab, setTab] = useState<'all' | 'leader' | 'collaborator'>('all')
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const filtered =
     tab === 'all' ? contacts : contacts.filter((c) => c.contact_role === tab)
@@ -43,35 +92,57 @@ export function TeamContactsManager({ companyId, contacts, suppressedEmails }: P
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
           <p className="text-xs font-semibold uppercase text-zinc-600">Lista NR-01</p>
           <p className="mt-1 text-2xl font-bold text-zinc-900">{leaders.length + cols.length}</p>
-          <p className="text-xs text-zinc-500">Disparo único — sem distinguir papel</p>
+          <p className="text-xs text-zinc-500">Disparo por departamento no convite</p>
         </div>
       </div>
 
-      <form action={adicionarContato} className="rounded-xl border border-zinc-200 bg-white p-4 space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-900">Adicionar à equipe</h2>
+      <form action={adicionarContato} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">Adicionar à equipe</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Escolha o <strong>Departamento</strong> do catálogo da empresa para filtrar disparos e
+            identificar respostas no link compartilhado.
+          </p>
+        </div>
         <input type="hidden" name="company_id" value={companyId} />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <input
-            name="full_name"
-            required
-            placeholder="Nome completo *"
-            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="E-mail *"
-            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          <select name="contact_role" defaultValue="collaborator" className="rounded-lg border border-zinc-300 px-3 py-2 text-sm">
-            <option value="leader">Líder (IL)</option>
-            <option value="collaborator">Colaborador (IC)</option>
-          </select>
-          <input name="job_title" placeholder="Cargo (opcional)" className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-          <input name="department" placeholder="Área (opcional)" className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-zinc-600">Nome completo</span>
+            <input
+              name="full_name"
+              required
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-zinc-600">E-mail</span>
+            <input
+              name="email"
+              type="email"
+              required
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-zinc-600">Papel</span>
+            <select
+              name="contact_role"
+              defaultValue="collaborator"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              <option value="leader">Líder (IL)</option>
+              <option value="collaborator">Colaborador (IC)</option>
+            </select>
+          </label>
+          <label className="block space-y-1 sm:col-span-2 lg:col-span-1">
+            <span className="text-xs font-medium text-zinc-600">Departamento</span>
+            <DepartmentSelect name="department_id" departments={departments} />
+          </label>
         </div>
-        <button type="submit" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700">
+        <button
+          type="submit"
+          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
+        >
           Incluir na lista
         </button>
       </form>
@@ -97,6 +168,7 @@ export function TeamContactsManager({ companyId, contacts, suppressedEmails }: P
             <tr>
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">E-mail</th>
+              <th className="px-4 py-3">Departamento</th>
               <th className="px-4 py-3">Papel</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Ações</th>
@@ -105,28 +177,107 @@ export function TeamContactsManager({ companyId, contacts, suppressedEmails }: P
           <tbody className="divide-y divide-zinc-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
                   Nenhum contato neste filtro.
                 </td>
               </tr>
             ) : (
-              filtered.map((c) => (
-                <tr key={c.id} className={!c.is_active ? 'opacity-50' : ''}>
-                  <td className="px-4 py-3 font-medium">{c.full_name}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{c.email}</td>
-                  <td className="px-4 py-3">{ROLE_LABEL[c.contact_role]}</td>
-                  <td className="px-4 py-3">{contactStatus(c, suppressedEmails)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <form action={removerContato} className="inline">
-                      <input type="hidden" name="company_id" value={companyId} />
-                      <input type="hidden" name="contact_id" value={c.id} />
-                      <button type="submit" className="text-xs text-red-600 hover:underline">
-                        Remover
+              filtered.map((c) => {
+                const dept = deptLabel(c, departments)
+                return editingId === c.id ? (
+                  <tr key={c.id} className="bg-amber-50/40">
+                    <td colSpan={6} className="px-4 py-4">
+                      <form action={atualizarContato} className="space-y-3">
+                        <input type="hidden" name="company_id" value={companyId} />
+                        <input type="hidden" name="contact_id" value={c.id} />
+                        <input type="hidden" name="is_active" value={c.is_active ? 'true' : 'false'} />
+                        <p className="text-xs font-semibold text-zinc-700">Editar contato</p>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium text-zinc-600">Nome completo</span>
+                            <input
+                              name="full_name"
+                              required
+                              defaultValue={c.full_name}
+                              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                            />
+                          </label>
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium text-zinc-600">E-mail</span>
+                            <input
+                              name="email"
+                              type="email"
+                              required
+                              defaultValue={c.email}
+                              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                            />
+                          </label>
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium text-zinc-600">Papel</span>
+                            <select
+                              name="contact_role"
+                              defaultValue={c.contact_role}
+                              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                            >
+                              <option value="leader">Líder (IL)</option>
+                              <option value="collaborator">Colaborador (IC)</option>
+                            </select>
+                          </label>
+                          <label className="block space-y-1 sm:col-span-2 lg:col-span-1">
+                            <span className="text-xs font-medium text-zinc-600">Departamento</span>
+                            <DepartmentSelect
+                              name="department_id"
+                              departments={departments}
+                              defaultValue={c.department_id}
+                            />
+                          </label>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700"
+                          >
+                            Salvar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(null)}
+                            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </form>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={c.id} className={!c.is_active ? 'opacity-50' : ''}>
+                    <td className="px-4 py-3 font-medium">{c.full_name}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{c.email}</td>
+                    <td className="px-4 py-3 text-zinc-700">
+                      {dept ? dept : <span className="text-zinc-400">Sem departamento</span>}
+                    </td>
+                    <td className="px-4 py-3">{ROLE_LABEL[c.contact_role]}</td>
+                    <td className="px-4 py-3">{contactStatus(c, suppressedEmails)}</td>
+                    <td className="space-x-3 px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(c.id)}
+                        className="text-xs text-blue-800 hover:underline"
+                      >
+                        Editar
                       </button>
-                    </form>
-                  </td>
-                </tr>
-              ))
+                      <form action={removerContato} className="inline">
+                        <input type="hidden" name="company_id" value={companyId} />
+                        <input type="hidden" name="contact_id" value={c.id} />
+                        <button type="submit" className="text-xs text-red-600 hover:underline">
+                          Remover
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>

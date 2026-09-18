@@ -17,16 +17,29 @@ import {
   type Bloco,
 } from '@/lib/questions'
 import { PENTAGRAMA_LIKERT_SCALE } from '@/lib/pentagrama/likert-labels'
+import { SurveyDepartmentGate } from '@/components/survey/SurveyDepartmentGate'
 
 const DIMENSOES: Dimensao[] = ['fisica', 'afetiva', 'racional', 'social', 'cultural']
 
 interface Props {
   diagnosticId: string
   token: string
+  inviteToken?: string | null
+  departments: { id: string; name: string }[]
+  lockedDepartmentId?: string | null
+  lockedDepartmentLabel?: string | null
 }
 
-export default function ILFormClient({ diagnosticId, token }: Props) {
+export default function ILFormClient({
+  diagnosticId,
+  token,
+  inviteToken = null,
+  departments,
+  lockedDepartmentId = null,
+  lockedDepartmentLabel = null,
+}: Props) {
   const [respostas, setRespostas] = useState<Record<number, number>>({})
+  const [departmentId, setDepartmentId] = useState(lockedDepartmentId ?? '')
   const [isPending, startTransition] = useTransition()
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,10 +60,19 @@ export default function ILFormClient({ diagnosticId, token }: Props) {
       return
     }
 
+    if (!lockedDepartmentId && !departmentId) {
+      setError('Selecione o seu departamento para continuar.')
+      document.getElementById('erro-submit')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+
     setError(null)
 
     startTransition(async () => {
-      const result = await submitIlResponse(token, respostas)
+      const result = await submitIlResponse(token, respostas, {
+        inviteToken,
+        departmentId: lockedDepartmentId || departmentId,
+      })
 
       if (!result.ok) {
         if (result.alreadySubmitted) {
@@ -85,6 +107,14 @@ export default function ILFormClient({ diagnosticId, token }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-10">
+      <SurveyDepartmentGate
+        departments={departments}
+        lockedDepartmentId={lockedDepartmentId}
+        lockedDepartmentLabel={lockedDepartmentLabel}
+        value={departmentId}
+        onChange={setDepartmentId}
+      />
+
       {/* Barra de progresso */}
       <div className="bg-white rounded-xl border border-zinc-200 p-4 sticky top-[65px] z-10">
         <div className="flex items-center justify-between mb-2">

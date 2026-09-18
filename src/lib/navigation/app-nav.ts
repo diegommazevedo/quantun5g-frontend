@@ -13,47 +13,28 @@ import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 
 
 export type NavIconName =
-
   | 'home'
-
   | 'pentagrama'
-
   | 'plus'
-
   | 'building'
-
   | 'users'
-
   | 'nr01'
-
   | 'settings'
-
   | 'shield'
-
   | 'credit'
-
-
+  | 'radar'
+  | 'copiloto'
 
 export interface NavItem {
-
   href: string
-
   label: string
-
   icon: NavIconName
-
   /** Prefixo(s) de pathname para estado ativo */
-
   match: string | string[]
-
-  requiresModule?: 'pentagrama' | 'nr01'
-
+  requiresModule?: 'pentagrama' | 'nr01' | 'radar' | 'copiloto'
   adminOnly?: boolean
-
   /** Sempre visível no menu (vendas/consulta), sem filtro de módulo */
-
   alwaysShow?: boolean
-
 }
 
 
@@ -182,49 +163,42 @@ const STAFF_SECTIONS: NavSection[] = [
   },
 
   {
-
     id: 'nr01',
-
     label: 'NR-01',
-
     items: [
-
       { href: '/nr01/dashboard', label: 'Painel', icon: 'nr01', match: '/nr01/dashboard', requiresModule: 'nr01' },
-
       {
-
         href: '/nr01/avaliacao/nova',
-
         label: 'Nova avaliação',
-
         icon: 'plus',
-
         match: ['/nr01/avaliacao/nova', '/nr01/empresas'],
-
         requiresModule: 'nr01',
-
       },
-
     ],
-
   },
-
   {
-
-    id: 'admin',
-
-    label: 'Administração',
-
+    id: 'radar',
+    label: 'Radar Empresarial',
     items: [
-
-      { href: '/admin/usuarios', label: 'Usuários', icon: 'settings', match: '/admin/usuarios', adminOnly: true },
-
-      { href: '/admin/consultores', label: 'Consultores', icon: 'shield', match: '/admin/consultores', adminOnly: true },
-
+      { href: '/radar', label: 'Feed da semana', icon: 'radar', match: '/radar', alwaysShow: true },
     ],
-
   },
-
+  {
+    id: 'copiloto',
+    label: 'Copiloto Comercial',
+    items: [
+      { href: '/copiloto', label: 'Fila do dia', icon: 'copiloto', match: '/copiloto', alwaysShow: true },
+      { href: '/copiloto/importar', label: 'Importar carteira', icon: 'plus', match: '/copiloto/importar', alwaysShow: true },
+    ],
+  },
+  {
+    id: 'admin',
+    label: 'Administração',
+    items: [
+      { href: '/admin/usuarios', label: 'Usuários', icon: 'settings', match: '/admin/usuarios', adminOnly: true },
+      { href: '/admin/consultores', label: 'Consultores', icon: 'shield', match: '/admin/consultores', adminOnly: true },
+    ],
+  },
 ]
 
 
@@ -279,33 +253,33 @@ const LEADER_SECTIONS: NavSection[] = [
   },
 
   {
-
     id: 'nr01',
-
     label: 'NR-01',
-
     items: [
-
       { href: '/nr01/dashboard', label: 'Painel', icon: 'nr01', match: '/nr01/dashboard', requiresModule: 'nr01' },
-
       {
-
         href: '/nr01/avaliacao/nova',
-
         label: 'Nova avaliação',
-
         icon: 'plus',
-
         match: ['/nr01/avaliacao/nova'],
-
         requiresModule: 'nr01',
-
       },
-
     ],
-
   },
-
+  {
+    id: 'radar',
+    label: 'Radar Empresarial',
+    items: [
+      { href: '/radar', label: 'Feed da semana', icon: 'radar', match: '/radar', alwaysShow: true },
+    ],
+  },
+  {
+    id: 'copiloto',
+    label: 'Copiloto Comercial',
+    items: [
+      { href: '/copiloto', label: 'Fila do dia', icon: 'copiloto', match: '/copiloto', alwaysShow: true },
+    ],
+  },
 ]
 
 

@@ -127,7 +127,8 @@ function validateCompanyPayload(
   fields: ReturnType<typeof companyFormFields>,
   opts: { requireIl?: boolean } = {},
 ): string | null {
-  const requireIl = opts.requireIl !== false // padrão true; false para NR-01-only
+  // Liderança IL é opcional em todos os fluxos.
+  const requireIl = opts.requireIl === true
   if (!fields.name || fields.total <= 0) {
     return 'Preencha razão/nome e total de colaboradores.'
   }
@@ -285,6 +286,17 @@ async function syncCollaborators(
       .eq('email', c.email)
       .maybeSingle()
 
+    let departmentId: string | null = null
+    let department = c.department?.trim() || null
+    if (department) {
+      const { ensureCompanyDepartment } = await import('@/lib/companies/departments')
+      const ensured = await ensureCompanyDepartment(companyId, department)
+      if (ensured) {
+        departmentId = ensured.id
+        department = ensured.name
+      }
+    }
+
     if (row) {
       await supabase
         .from('company_contacts')
@@ -292,7 +304,8 @@ async function syncCollaborators(
           full_name: c.full_name,
           contact_role: 'collaborator',
           job_title: c.job_title,
-          department: c.department,
+          department,
+          department_id: departmentId,
           is_active: true,
         } as never)
         .eq('id', (row as { id: string }).id)
@@ -303,7 +316,8 @@ async function syncCollaborators(
         email: c.email,
         contact_role: 'collaborator',
         job_title: c.job_title,
-        department: c.department,
+        department,
+        department_id: departmentId,
       } as never)
       if (insErr) return mapDbError(insErr.message)
     }
@@ -397,8 +411,8 @@ export async function criarEmpresa(formData: FormData) {
   const schemaErr = await assertSchemaReady(supabase)
   if (schemaErr) redirect(novaEmpresaErrorUrl(retorno, schemaErr))
 
-  // Contratante self-serve: IL só obrigatório se tiver módulo Pentagrama
-  const validationErr = validateCompanyPayload(fields, { requireIl: !isSelfServe || modulePentagrama })
+  // Liderança IL opcional (mesmo com módulo Pentagrama).
+  const validationErr = validateCompanyPayload(fields, { requireIl: false })
   if (validationErr) redirect(novaEmpresaErrorUrl(retorno, validationErr))
 
   const dup = await assertNoDuplicate(supabase, consultantId, fields.name, fields.cnpj)
@@ -489,7 +503,7 @@ export async function atualizarEmpresa(formData: FormData) {
   if (schemaErr) redirect(editEmpresaErrorUrl(id || '', schemaErr, retorno ?? undefined))
 
   const isSelfServe = isContratanteRole(role)
-  const validationErr = validateCompanyPayload(fields, { requireIl: !isSelfServe || modulePentagrama })
+  const validationErr = validateCompanyPayload(fields, { requireIl: false })
   if (validationErr) redirect(editEmpresaErrorUrl(id || '', validationErr, retorno ?? undefined))
 
   const { data: owned } = await fetchCompanyForActor(supabase, user.id, role, id, 'id, consultant_id')
@@ -558,7 +572,7 @@ export async function loadCompanyReadiness(company: {
 }) {
   const hasRt = companyHasTechnicalLead(company)
   const hasIl = (company.il_leaders_count ?? 0) > 0
-  return { hasRt, hasIl, readyNr01: hasRt, readyPentagrama: hasRt && hasIl }
+  return { hasRt, hasIl, readyNr01: hasRt, readyPentagrama: hasRt }
 }
 
 export { isValidCnpj, validateCnpj }

@@ -3,9 +3,6 @@
  * Dashboard gerencial: KPIs + lista de avaliações com filtros.
  */
 
-import Link from 'next/link'
-import { userHasNr01License } from '@/lib/billing/nr01-license'
-import { isPlatformStaff } from '@/lib/auth/roles'
 import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { loadCompanyIdsForContratante, loadCompanyIdsForGerente } from '@/lib/org/queries'
 import { getPageActor } from '@/lib/org/page-actor'
@@ -50,12 +47,8 @@ export default async function Nr01DashboardPage({
   // IDs de empresas do contratante (carregado cedo para reuso no checklist)
   let contratanteCompanyIds: string[] = []
 
-  let canCreateAssessment = isAdmin || isPlatformStaff(role)
-  if (isLeader || isContratante || isGerente) {
-    canCreateAssessment = profile?.module_nr01 === true || (await userHasNr01License(user.id))
-  } else if (!isAdmin && isPlatformStaff(role)) {
-    canCreateAssessment = true
-  }
+  // Ambos os módulos liberados para qualquer usuário cadastrado.
+  const canCreateAssessment = true
 
   const query = db
     .from('nr01_assessments')
@@ -69,7 +62,7 @@ export default async function Nr01DashboardPage({
 
   if (!isAdmin && !isLeader && !isContratante && !isGerente) {
     query.eq('consultant_id', user.id)
-  } else if (isContratante) {
+  } else if (isContratante || isLeader) {
     contratanteCompanyIds = await loadCompanyIdsForContratante(user.id)
     if (contratanteCompanyIds.length) query.in('company_id', contratanteCompanyIds)
     else query.eq('company_id', '00000000-0000-0000-0000-000000000000')
@@ -200,14 +193,6 @@ export default async function Nr01DashboardPage({
         ) : errorParam === 'avaliacao-nao-encontrada' ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Avaliação não encontrada ou sem permissão para o seu perfil. Verifique o link ou escolha na lista abaixo.
-          </div>
-        ) : !canCreateAssessment && !error ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Licença NR-01 pendente.{' '}
-            <Link href="/checkout/nr01" className="font-semibold underline">
-              Contratar online
-            </Link>{' '}
-            para liberar o módulo.
           </div>
         ) : error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

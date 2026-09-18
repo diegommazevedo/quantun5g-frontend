@@ -218,6 +218,35 @@ for (const [step, file] of autonomySteps) {
   else fail(`Checklist: ${step} — arquivo ${file} ausente`)
 }
 
+if (existsSync(join(root, 'src/lib/nr01/contratante-onboarding-gate.ts'))) {
+  ok('Gate onboarding CNPJ + RT (contratante)')
+} else {
+  fail('contratante-onboarding-gate.ts ausente')
+}
+
+if (existsSync(join(root, 'src/lib/billing/kiwify-charge-cents.ts'))) {
+  ok('Normalização centavos Kiwify API')
+} else {
+  fail('kiwify-charge-cents.ts ausente')
+}
+
+const webhookRoute = readFileSync(join(root, 'src/app/api/billing/webhook/kiwify/route.ts'), 'utf8')
+if (webhookRoute.includes('status: 503')) ok('Webhook HTTP 503 para retry Kiwify')
+else fail('Webhook sem retry 503 para venda não indexada')
+
+if (existsSync(join(root, 'scripts/kiwify-configure-checkout-cnpj.mjs'))) {
+  ok('Script kiwify:configure-cnpj (CNPJ obrigatório checkout)')
+} else {
+  warn('Script configure CNPJ ausente')
+}
+
+const simCheckout = join(root, 'vendas-nr01/src/constants/kiwify-sim-checkout.ts')
+if (existsSync(simCheckout) && readFileSync(simCheckout, 'utf8').includes('isSimCheckoutReady')) {
+  ok('LP vendas: isSimCheckoutReady exportado')
+} else {
+  warn('kiwify-sim-checkout.ts sem isSimCheckoutReady')
+}
+
 // ── 6. validate-kiwify-bridge (se disponível) ───────────────────────────────
 console.log('\n── Bridge Kiwify ──')
 const bridgeScript = join(root, 'scripts', 'validate-kiwify-bridge.mjs')

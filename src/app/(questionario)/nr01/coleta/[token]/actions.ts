@@ -34,18 +34,7 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { loadInstrument, validateAnswers } from '@/lib/nr01/instrument'
 import { hashIp } from '@/lib/nr01/evidence'
 import { maybeAutoCompleteOnKThreshold } from '@/lib/nr01/auto-complete-on-k-threshold'
-
-export interface Nr01Contexto {
-  setor: string
-  funcao: string
-  vinculo: string
-  tempoCasa: string
-  isLeader: boolean
-  open1: string
-  open2: string
-  open3: string
-  open4: string
-}
+import { resolveDepartmentForSurveySubmit } from '@/lib/companies/departments'
 
 export type SubmitNr01Result =
   | { ok: true }
@@ -53,14 +42,14 @@ export type SubmitNr01Result =
 
 export async function submeterRespostaNr01(
   token: string,
-  contexto: Nr01Contexto,
   respostas: Record<string, number>,
+  deptOpts?: { inviteToken?: string | null; departmentId?: string | null },
 ): Promise<SubmitNr01Result> {
   const supabase = await createClient()
 
   const { data: assess } = await supabase
     .from('nr01_assessments')
-    .select('id, status, instrument_version, collection_opens_at, collection_closes_at')
+    .select('id, status, instrument_version, collection_opens_at, collection_closes_at, company_id')
     .eq('collection_token', token)
     .maybeSingle()
 
@@ -71,6 +60,7 @@ export async function submeterRespostaNr01(
     instrument_version: string
     collection_opens_at: string | null
     collection_closes_at: string | null
+    company_id: string
   }
 
   const now = new Date()
@@ -91,6 +81,13 @@ export async function submeterRespostaNr01(
   if (!parsed.ok) {
     return { ok: false, error: `Responda todas as questões (faltam ${parsed.missing.length}).` }
   }
+
+  const dept = await resolveDepartmentForSurveySubmit({
+    companyId: a.company_id,
+    inviteToken: deptOpts?.inviteToken,
+    clientDepartmentId: deptOpts?.departmentId,
+  })
+  if (!dept.ok) return { ok: false, error: dept.error }
 
   // Captura headers para o throttle anti-poisoning
   const headerStore = await headers()
@@ -163,15 +160,17 @@ export async function submeterRespostaNr01(
       id: responseId,
       assessment_id: a.id,
       anon_id: anonId,
-      setor: contexto.setor.trim() || null,
-      funcao: contexto.funcao.trim() || null,
-      vinculo: contexto.vinculo.trim() || null,
-      tempo_casa: contexto.tempoCasa.trim() || null,
-      is_leader: contexto.isLeader,
-      open_q1: contexto.open1.trim() || null,
-      open_q2: contexto.open2.trim() || null,
-      open_q3: contexto.open3.trim() || null,
-      open_q4: contexto.open4.trim() || null,
+      setor: dept.departmentLabel,
+      department_id: dept.departmentId,
+      department_label: dept.departmentLabel,
+      funcao: null,
+      vinculo: null,
+      tempo_casa: null,
+      is_leader: false,
+      open_q1: null,
+      open_q2: null,
+      open_q3: null,
+      open_q4: null,
       instrument_version: a.instrument_version,
     } as never)
 

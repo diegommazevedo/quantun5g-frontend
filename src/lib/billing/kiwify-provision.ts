@@ -372,25 +372,7 @@ export async function cancelFromKiwifyRefund(
 
   await admin.from('subscriptions').update({ status: 'cancelled' }).eq('id', data.id)
 
-  // Revoga acesso imediatamente: verifica se há outra subscription ativa antes de zerar
-  if (data.user_id) {
-    const { data: stillActive } = await admin
-      .from('active_subscriptions')
-      .select('id')
-      .eq('user_id', data.user_id)
-      .eq('product_id', 'nr01')
-      .limit(1)
-
-    if (!stillActive || stillActive.length === 0) {
-      // Revoga apenas o módulo NR-01; is_active mantido (conta persiste para reativação)
-      await admin
-        .from('profiles')
-        .update({ module_nr01: false })
-        .eq('id', data.user_id)
-      console.info('[kiwify-provision] módulo NR-01 revogado por cancelamento', { userId: data.user_id })
-    }
-  }
-
+  // Módulos permanecem liberados para o usuário cadastrado (sem revogação por cancelamento).
   return { action: 'ignored', reason: 'cancelled', subscriptionId: data.id }
 }
 

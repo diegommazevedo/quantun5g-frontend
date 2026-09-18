@@ -62,7 +62,7 @@ export default function VendasPage() {
             Estruturado
           </a>
           <a href="/simulado" className="underline" style={{ color: ACCENT }}>
-            Simulado R$10
+            Simulado R$5
           </a>
           <span className="opacity-50">·</span>
           <a href="/e" className="underline opacity-80">

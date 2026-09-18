@@ -11,7 +11,10 @@ export function ContextSubnav() {
   if (!ctx) return null
 
   return (
-    <div className="border-b border-[var(--q-border)] bg-[var(--q-surface)]/95 backdrop-blur-sm">
+    <div
+      data-app-chrome="context-subnav"
+      className="no-print border-b border-[var(--q-border)] bg-[var(--q-surface)]/95 backdrop-blur-sm"
+    >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex items-center gap-3 py-2.5">
           <Link

@@ -171,6 +171,7 @@ export default async function RelatorioLiderPage({ params }: Props) {
         <PrintButton
           companyName={company.name}
           diagnosticName={diag.name}
+          mode="inline"
         />
       </div>
 

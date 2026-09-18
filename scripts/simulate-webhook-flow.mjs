@@ -5,9 +5,13 @@
  *   compra_aprovada → invitePlatformUser → subscription ativa → module_nr01=true
  *
  * Requer o servidor Next.js rodando em localhost:3000
- * Usage: node scripts/simulate-webhook-flow.mjs [email_teste]
+ * Requer KIWIFY_TEST_MODE=true no .env.local
+ *
+ * Usage:
+ *   node --env-file=.env.local scripts/simulate-webhook-flow.mjs [email_teste]
+ *   node --env-file=.env.local scripts/simulate-webhook-flow.mjs --sim [email]
  */
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { createClient } from '@supabase/supabase-js'
@@ -22,13 +26,26 @@ const env = Object.fromEntries(
     .map(l => { const [k, ...v] = l.split('='); return [k.trim(), v.join('=').trim()] })
 )
 
-const APP_URL     = 'http://localhost:3000'
+const APP_URL     = process.env.APP_URL?.trim() || 'http://localhost:3000'
 const WEBHOOK_URL = `${APP_URL}/api/billing/webhook/kiwify?token=${env.KIWIFY_WEBHOOK_TOKEN}`
-const TEST_EMAIL  = process.argv[2] ?? `test+${Date.now()}@quantum5gtest.com`
+const useSimProduct = process.argv.includes('--sim') || !process.argv.includes('--catalog')
+const emailArg = process.argv.find((a) => a.includes('@'))
+const TEST_EMAIL  = emailArg ?? `test+${Date.now()}@quantum5gtest.com`
 const TEST_NAME   = 'Cliente Teste NR01'
 
-// Produto t01 do mapa (o mais barato)
-const T01_PRODUCT_ID = '2a82ed80-5d26-11f1-80a8-b56772044fb0'
+const simConfigPath = join(root, 'config', 'kiwify-test-product.json')
+const simConfig = existsSync(simConfigPath)
+  ? JSON.parse(readFileSync(simConfigPath, 'utf8'))
+  : null
+
+// Produto sim R$10 (default) ou t01 catálogo (--catalog)
+const T01_PRODUCT_ID = useSimProduct
+  ? (simConfig?.kiwify_product_id ?? 'aa995e40-80e5-11f1-a0f5-09dbf347c2c3')
+  : '2a82ed80-5d26-11f1-80a8-b56772044fb0'
+const CHARGE_AMOUNT = useSimProduct ? 10.0 : 2460.0
+const PRODUCT_LABEL = useSimProduct
+  ? (simConfig?.label ?? 'Quantum5G NR-01 · SIMULADO Lead R$10 PIX')
+  : 'Quantum5G NR-01 · 0–5 trabalhadores'
 const T01_ORDER_ID   = `test-order-${Date.now()}`
 
 /** CNPJ válido único por execução (evita colisão uq_companies_cnpj). */
@@ -70,7 +87,7 @@ function buildWebhookPayload() {
       order_status: 'paid',
       product: {
         product_id: T01_PRODUCT_ID,
-        product_name: 'Quantum5G NR-01 · 0–5 trabalhadores',
+        product_name: PRODUCT_LABEL,
       },
       customer: {
         email: TEST_EMAIL,
@@ -78,7 +95,7 @@ function buildWebhookPayload() {
         cnpj: TEST_CNPJ,
       },
       payment: {
-        charge_amount: 2460.00,
+        charge_amount: CHARGE_AMOUNT,
       },
     },
     TrackingParameters: {
@@ -88,7 +105,7 @@ function buildWebhookPayload() {
       // Sem utm_content — testa o caminho sem subscriptionRef (email lookup)
     },
     approved_date: new Date().toISOString(),
-    net_amount: 2460.00,
+    net_amount: CHARGE_AMOUNT,
   }
 }
 
@@ -155,11 +172,17 @@ console.log('\n╔════════════════════�
 console.log('║  QUANTUM5G — Simulador Webhook Kiwify End-to-End    ║')
 console.log('╚══════════════════════════════════════════════════════╝\n')
 console.log('Email de teste:', TEST_EMAIL)
-console.log('Produto:       ', T01_PRODUCT_ID, '(t01 anual_parcelado)')
+console.log('Produto:       ', T01_PRODUCT_ID, useSimProduct ? '(sim R$10 PIX)' : '(t01 catálogo)')
 console.log('Order ID:      ', T01_ORDER_ID)
 console.log('CNPJ teste:    ', TEST_CNPJ)
 console.log('Webhook URL:   ', WEBHOOK_URL)
+console.log('KIWIFY_TEST_MODE:', env.KIWIFY_TEST_MODE === 'true' ? 'true ✓' : 'AUSENTE — adicione KIWIFY_TEST_MODE=true no .env.local')
 console.log('')
+
+if (env.KIWIFY_TEST_MODE !== 'true') {
+  log('❌', 'KIWIFY_TEST_MODE=true é obrigatório para simulação local')
+  process.exit(1)
+}
 
 // 1. Verifica servidor
 log('🔍', 'Verificando servidor Next.js em', APP_URL)
@@ -259,7 +282,8 @@ const success =
   after.profile?.module_nr01 === true &&
   after.subscriptions[0]?.status === 'active' &&
   after.profile?.role === 'contratante' &&
-  (after.companies?.length ?? 0) > 0
+  (after.companies?.length ?? 0) > 0 &&
+  after.companies?.[0]?.cnpj?.length === 14
 
 console.log('\n╔══════════════════════════════════════════════════════╗')
 if (success) {

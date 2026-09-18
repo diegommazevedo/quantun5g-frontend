@@ -151,49 +151,11 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
       }
 
-      if (
-        needsPentagramaApp &&
-        role === 'leader' &&
-        profile &&
-        profile.module_pentagrama === false
-      ) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/checkout/nr01'
-        url.searchParams.set(
-          'error',
-          'Módulo Pentagrama não habilitado. Contrate pelo checkout online.',
-        )
-        return NextResponse.redirect(url)
-      }
-
-      if (
-        needsPentagramaApp &&
-        profile &&
-        profile.module_pentagrama === false &&
-        role === 'consultant'
-      ) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/checkout/nr01'
-        url.searchParams.set('error', 'Módulo Pentagrama não habilitado no seu perfil.')
-        return NextResponse.redirect(url)
-      }
-
+      // Módulos Pentagrama e NR-01 liberados para todos os usuários cadastrados.
+      // Onboarding NR-01 self-serve continua obrigatório para contratante quando aplicável.
       if (
         needsNr01Access &&
         profile &&
-        profile.module_nr01 === false &&
-        role !== 'admin'
-      ) {
-        const url = request.nextUrl.clone()
-        url.pathname = role === 'leader' ? '/checkout/nr01' : '/dashboard'
-        url.searchParams.set('error', 'Módulo NR-01 não habilitado. Contrate pelo checkout online.')
-        return NextResponse.redirect(url)
-      }
-
-      if (
-        needsNr01Access &&
-        profile &&
-        profile.module_nr01 === true &&
         shouldEnforceNr01SelfServiceOnboarding(role as UserRole, pathname)
       ) {
         const gap = await findContratanteOnboardingGap(user.id)

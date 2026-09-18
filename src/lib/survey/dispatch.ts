@@ -34,7 +34,7 @@ export type SurveyKind = 'il' | 'ic' | 'nr01_coleta'
 
 export interface DispatchTarget {
 
-  contact: Pick<CompanyContact, 'id' | 'full_name' | 'email' | 'contact_role'>
+  contact: Pick<CompanyContact, 'id' | 'full_name' | 'email' | 'contact_role' | 'department_id'>
 
   surveyUrl: string
 
@@ -337,6 +337,8 @@ export async function dispatchSurveyInvites(input: {
           referenceId: input.referenceId,
 
           surveyUrl,
+
+          departmentId: t.contact.department_id ?? null,
 
         },
 

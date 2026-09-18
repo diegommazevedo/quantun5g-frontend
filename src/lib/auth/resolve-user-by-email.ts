@@ -25,8 +25,8 @@ async function ensureProfileRow(userId: string, email: string, name?: string | n
       name: name?.trim() || email.split('@')[0] || 'Usuário',
       role: 'leader',
       is_active: true,
-      module_pentagrama: false,
-      module_nr01: false,
+      module_pentagrama: true,
+      module_nr01: true,
     } as never,
     { onConflict: 'id' },
   )

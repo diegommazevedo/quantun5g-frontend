@@ -10,10 +10,51 @@ import { getActiveDriver } from '@/lib/email/platform'
 import { DispatchSubmitButton } from '@/components/survey/DispatchSubmitButton'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 import type { CompanyContact } from '@/types/database'
+import type { DepartmentCount } from '@/lib/companies/contacts'
 
 interface Props {
   params: Promise<{ id: string }>
   searchParams: Promise<{ error?: string; sent?: string; failed?: string; skipped?: string; kind?: string }>
+}
+
+function DepartmentCheckboxes({
+  departments,
+  dispatchScope,
+  preselectedDepts,
+}: {
+  departments: DepartmentCount[]
+  dispatchScope: 'geral' | 'departamento'
+  preselectedDepts: Set<string>
+}) {
+  if (departments.length === 0) return null
+  return (
+    <fieldset className="mt-4">
+      <legend className="text-sm font-semibold text-zinc-900">Departamentos a incluir</legend>
+      <p className="mt-1 text-xs text-zinc-500">
+        {dispatchScope === 'departamento'
+          ? 'Pré-selecionado na criação do diagnóstico. Desmarque ou marque conforme necessário.'
+          : 'Desmarque departamentos que não devem receber este disparo.'}
+      </p>
+      <ul className="mt-3 space-y-2">
+        {departments.map((d) => (
+          <li key={d.key}>
+            <label className="flex items-center gap-2 text-sm text-zinc-800">
+              <input
+                type="checkbox"
+                name="department"
+                value={d.key}
+                defaultChecked={dispatchScope === 'geral' || preselectedDepts.has(d.key)}
+                className="rounded border-zinc-300"
+              />
+              <span>
+                {d.label} ({d.count})
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </fieldset>
+  )
 }
 
 export default async function DiagnosticoDisparosPage({ params, searchParams }: Props) {
@@ -23,7 +64,7 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
   const { db, diagnostic: diagRaw } = await loadDiagnosticForPage(
     id,
     `
-      id, name, status, il_deadline, ic_deadline,
+      id, name, status, il_deadline, ic_deadline, dispatch_scope, dispatch_departments,
       companies:companies!diagnostics_company_id_fkey ( id, name )
     `,
   )
@@ -31,9 +72,13 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
     id: string
     name: string
     status: string
+    dispatch_scope?: 'geral' | 'departamento' | null
+    dispatch_departments?: string[] | null
     companies: { id: string; name: string } | null
   }
   const companyId = d.companies?.id
+  const dispatchScope = d.dispatch_scope === 'departamento' ? 'departamento' : 'geral'
+  const preselectedDepts = new Set(d.dispatch_departments ?? [])
 
   const { data: contactsRaw } = companyId
     ? await db.from('company_contacts').select('*').eq('company_id', companyId)
@@ -42,6 +87,18 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
   const all = (contactsRaw ?? []) as CompanyContact[]
   const leaders = filterContactsForDispatch(all, 'pentagrama', 'il')
   const collaborators = filterContactsForDispatch(all, 'pentagrama', 'ic')
+  const { data: catalogRaw } = companyId
+    ? await db
+        .from('company_departments')
+        .select('id, name, is_active')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .order('sort_order')
+    : { data: [] }
+  const { listCatalogDepartmentsWithCounts } = await import('@/lib/companies/departments')
+  const catalog = (catalogRaw ?? []) as { id: string; name: string; is_active: boolean }[]
+  const leaderDepartments = listCatalogDepartmentsWithCounts(catalog, leaders)
+  const collaboratorDepartments = listCatalogDepartmentsWithCounts(catalog, collaborators)
   const lastBatch = await loadLastDispatchBatch(db, 'pentagrama', id)
   const deliveryStats = await loadInviteDeliveryStats(db, 'pentagrama', id)
   const deliveryDetailsIl = await loadInviteDeliveryDetails(db, 'pentagrama', id, 'il')
@@ -111,7 +168,7 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
         <h2 className="text-sm font-semibold text-zinc-900">Lista de transmissão (equipe)</h2>
         <p className="text-xs text-zinc-500">
           <strong>{leaders.length}</strong> líder(es) para IL · <strong>{collaborators.length}</strong>{' '}
-          colaborador(es) para IC
+          colaborador(es) para IC. O disparo pode filtrar por departamento cadastrado na equipe.
         </p>
         {deliveryStats.total > 0 && (
           <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-zinc-600 sm:grid-cols-4">
@@ -158,13 +215,18 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
           <input type="hidden" name="survey_kind" value="il" />
           <h3 className="font-semibold text-purple-900">Disparar IL (liderança)</h3>
           <p className="mt-1 text-sm text-purple-800/90">
-            Envia e-mail do SaaS para {leaders.length} líder(es) com link tokenizado.
+            Envia e-mail do SaaS para até {leaders.length} líder(es) com link tokenizado.
           </p>
+          <DepartmentCheckboxes
+            departments={leaderDepartments}
+            dispatchScope={dispatchScope}
+            preselectedDepts={preselectedDepts}
+          />
           <DispatchSubmitButton
             disabled={leaders.length === 0}
             className="mt-4 rounded-lg bg-purple-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            Enviar convites IL
+            Enviar convites IL ({leaders.length})
           </DispatchSubmitButton>
         </form>
       )}
@@ -175,13 +237,19 @@ export default async function DiagnosticoDisparosPage({ params, searchParams }: 
           <input type="hidden" name="survey_kind" value="ic" />
           <h3 className="font-semibold text-blue-900">Disparar IC (colaboradores)</h3>
           <p className="mt-1 text-sm text-blue-800/90">
-            Envia e-mail para {collaborators.length} colaborador(es). Link anônimo compartilhado por token IC.
+            Envia e-mail para até {collaborators.length} colaborador(es). Link anônimo compartilhado por
+            token IC.
           </p>
+          <DepartmentCheckboxes
+            departments={collaboratorDepartments}
+            dispatchScope={dispatchScope}
+            preselectedDepts={preselectedDepts}
+          />
           <DispatchSubmitButton
             disabled={collaborators.length === 0}
             className="mt-4 rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            Enviar convites IC
+            Enviar convites IC ({collaborators.length})
           </DispatchSubmitButton>
         </form>
       )}

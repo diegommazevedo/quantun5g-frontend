@@ -16,13 +16,17 @@
     "resend:send-test": "node --env-file=.env.local scripts/resend-remote.mjs send-test",
     "resend:setup": "node --env-file=.env.local scripts/verify-resend-setup.mjs",
     "vercel:sync-env": "node scripts/sync-vercel-production-env.mjs",
+    "vercel:deploy": "npx vercel deploy --prod --yes --archive=tgz",
     "kiwify:validate": "node --env-file=.env.local scripts/validate-kiwify-bridge.mjs",
     "kiwify:setup": "node --env-file=.env.local scripts/kiwify-setup.mjs",
     "kiwify:sync-map": "node --env-file=.env.local scripts/kiwify-sync-product-map.mjs",
     "kiwify:planilha": "node scripts/build-nr01-kiwify-planilha.mjs",
     "audit:global": "node --env-file=.env.local scripts/post-audit-global.mjs",
     "kiwify:sim-lead": "node scripts/kiwify-setup-sim-lead.mjs",
-    "kiwify:sim-register": "node --env-file=.env.local scripts/kiwify-register-sim-lead.mjs"
+    "kiwify:sim-register": "node --env-file=.env.local scripts/kiwify-register-sim-lead.mjs",
+    "kiwify:configure-cnpj": "node --env-file=.env.local scripts/kiwify-configure-checkout-cnpj.mjs",
+    "kiwify:sim-price": "node --env-file=.env.local scripts/kiwify-update-sim-price.mjs",
+    "webhook:simulate": "node --env-file=.env.local scripts/simulate-webhook-flow.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium-min": "^147.0.1",

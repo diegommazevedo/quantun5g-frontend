@@ -2,44 +2,36 @@
 
 /**
  * QUANTUM5G — NR-01 · Formulário de coleta pública (client-managed state)
- *
- * As respostas ficam em estado React (não em <form> nativo). Isso garante que,
- * se a submissão falhar (rede, RLS, throttle, coleta encerrada etc.), o usuário
- * NUNCA perde o que já preencheu: não há navegação/redirect, apenas uma
- * mensagem de erro inline, e o usuário pode tentar enviar novamente.
- *
- * Mesmo padrão usado com sucesso no IC/IL do Pentagrama
- * (ver src/app/ic/[token]/ICFormClient.tsx).
  */
 
 import { useMemo, useState, useTransition } from 'react'
-import { submeterRespostaNr01, type Nr01Contexto } from './actions'
+import { submeterRespostaNr01 } from './actions'
 import { LIKERT_LABELS, type DimensionWithQuestions } from '@/lib/nr01/instrument-shared'
+import { SurveyDepartmentGate } from '@/components/survey/SurveyDepartmentGate'
 
 interface Props {
   token: string
+  inviteToken?: string | null
   groups: DimensionWithQuestions[]
   kAnonymityMin: number
+  departments: { id: string; name: string }[]
+  lockedDepartmentId?: string | null
+  lockedDepartmentLabel?: string | null
 }
 
-const CONTEXTO_INICIAL: Nr01Contexto = {
-  setor: '',
-  funcao: '',
-  vinculo: '',
-  tempoCasa: '',
-  isLeader: false,
-  open1: '',
-  open2: '',
-  open3: '',
-  open4: '',
-}
-
-export default function ColetaFormClient({ token, groups }: Props) {
+export default function ColetaFormClient({
+  token,
+  inviteToken = null,
+  groups,
+  departments,
+  lockedDepartmentId = null,
+  lockedDepartmentLabel = null,
+}: Props) {
   const allQuestions = useMemo(() => groups.flatMap((g) => g.questions), [groups])
   const total = allQuestions.length
 
   const [respostas, setRespostas] = useState<Record<string, number>>({})
-  const [contexto, setContexto] = useState<Nr01Contexto>(CONTEXTO_INICIAL)
+  const [departmentId, setDepartmentId] = useState(lockedDepartmentId ?? '')
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
@@ -59,10 +51,19 @@ export default function ColetaFormClient({ token, groups }: Props) {
       return
     }
 
+    if (!lockedDepartmentId && !departmentId) {
+      setError('Selecione o seu departamento para continuar.')
+      document.getElementById('erro-submit')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+
     setError(null)
 
     startTransition(async () => {
-      const result = await submeterRespostaNr01(token, contexto, respostas)
+      const result = await submeterRespostaNr01(token, respostas, {
+        inviteToken,
+        departmentId: lockedDepartmentId || departmentId,
+      })
 
       if (!result.ok) {
         setError(result.error)
@@ -80,8 +81,7 @@ export default function ColetaFormClient({ token, groups }: Props) {
       <div className="mx-auto max-w-xl rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center">
         <h1 className="text-xl font-semibold text-emerald-900">Resposta registrada</h1>
         <p className="mt-2 text-sm text-emerald-800">
-          Obrigado pela sua participação. Sua resposta é anônima e foi registrada
-          com sucesso.
+          Obrigado pela sua participação. Sua resposta é anônima e foi registrada com sucesso.
         </p>
       </div>
     )
@@ -89,56 +89,13 @@ export default function ColetaFormClient({ token, groups }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-10">
-      <fieldset className="rounded-lg border border-zinc-200 bg-white p-4">
-        <legend className="px-2 text-xs uppercase tracking-wide text-zinc-500">
-          Dados de contexto (opcionais)
-        </legend>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input
-            value={contexto.setor}
-            onChange={(e) => setContexto((c) => ({ ...c, setor: e.target.value }))}
-            placeholder="Setor"
-            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          <input
-            value={contexto.funcao}
-            onChange={(e) => setContexto((c) => ({ ...c, funcao: e.target.value }))}
-            placeholder="Função"
-            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          <select
-            value={contexto.vinculo}
-            onChange={(e) => setContexto((c) => ({ ...c, vinculo: e.target.value }))}
-            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          >
-            <option value="">Tipo de vínculo</option>
-            <option value="efetivo">Efetivo</option>
-            <option value="temporario">Temporário</option>
-            <option value="terceirizado">Terceirizado</option>
-            <option value="outro">Outro</option>
-          </select>
-          <select
-            value={contexto.tempoCasa}
-            onChange={(e) => setContexto((c) => ({ ...c, tempoCasa: e.target.value }))}
-            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          >
-            <option value="">Tempo de empresa</option>
-            <option value="ate_6_meses">Até 6 meses</option>
-            <option value="6_meses_1_ano">6 meses a 1 ano</option>
-            <option value="1_3_anos">1 a 3 anos</option>
-            <option value="3_5_anos">3 a 5 anos</option>
-            <option value="mais_5_anos">Mais de 5 anos</option>
-          </select>
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
-            <input
-              type="checkbox"
-              checked={contexto.isLeader}
-              onChange={(e) => setContexto((c) => ({ ...c, isLeader: e.target.checked }))}
-            />
-            Sou liderança
-          </label>
-        </div>
-      </fieldset>
+      <SurveyDepartmentGate
+        departments={departments}
+        lockedDepartmentId={lockedDepartmentId}
+        lockedDepartmentLabel={lockedDepartmentLabel}
+        value={departmentId}
+        onChange={setDepartmentId}
+      />
 
       {groups.map((g) => (
         <section key={g.dimension.code} className="rounded-lg border border-zinc-200 bg-white p-4">
@@ -171,64 +128,19 @@ export default function ColetaFormClient({ token, groups }: Props) {
         </section>
       ))}
 
-      <fieldset className="rounded-lg border border-zinc-200 bg-white p-4">
-        <legend className="px-2 text-xs uppercase tracking-wide text-zinc-500">
-          Bloco 12 — Perguntas abertas (opcionais)
-        </legend>
-        <div className="mt-3 space-y-3">
-          <label className="block text-xs text-zinc-700">
-            <span className="mb-1 block">
-              Qual é hoje o principal fator de desgaste no seu trabalho?
-            </span>
-            <textarea
-              value={contexto.open1}
-              onChange={(e) => setContexto((c) => ({ ...c, open1: e.target.value }))}
-              rows={2}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="block text-xs text-zinc-700">
-            <span className="mb-1 block">
-              O que mais contribui positivamente para o seu trabalho?
-            </span>
-            <textarea
-              value={contexto.open2}
-              onChange={(e) => setContexto((c) => ({ ...c, open2: e.target.value }))}
-              rows={2}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="block text-xs text-zinc-700">
-            <span className="mb-1 block">
-              O que precisa mudar com urgência no ambiente de trabalho?
-            </span>
-            <textarea
-              value={contexto.open3}
-              onChange={(e) => setContexto((c) => ({ ...c, open3: e.target.value }))}
-              rows={2}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="block text-xs text-zinc-700">
-            <span className="mb-1 block">Deseja acrescentar algo?</span>
-            <textarea
-              value={contexto.open4}
-              onChange={(e) => setContexto((c) => ({ ...c, open4: e.target.value }))}
-              rows={2}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </label>
-        </div>
-      </fieldset>
-
       <div className="sticky bottom-4 space-y-3">
         {error && (
-          <div id="erro-submit" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div
+            id="erro-submit"
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
         <div className="flex items-center justify-between gap-3 rounded-xl bg-white/80 p-2 backdrop-blur">
-          <span className="text-xs text-zinc-500">{totalRespondidas}/{total} respondidas</span>
+          <span className="text-xs text-zinc-500">
+            {totalRespondidas}/{total} respondidas
+          </span>
           <button
             type="submit"
             disabled={isPending}

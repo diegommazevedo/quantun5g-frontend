@@ -49,6 +49,7 @@ export async function resolveInviteForDispatch(
     surveyKind: SurveyKind
     referenceId: string
     surveyUrl: string
+    departmentId?: string | null
   },
   existing?: CampaignInviteRow | null,
 ): Promise<InviteDispatchResolution> {
@@ -68,6 +69,7 @@ export async function resolveInviteForDispatch(
         survey_url: input.surveyUrl,
         email_status: 'pending',
         email_error: null,
+        ...(input.departmentId ? { department_id: input.departmentId } : {}),
       } as never)
       .eq('id', existing.id)
 
@@ -84,6 +86,7 @@ export async function resolveInviteForDispatch(
       reference_id: input.referenceId,
       survey_url: input.surveyUrl,
       email_status: 'pending',
+      ...(input.departmentId ? { department_id: input.departmentId } : {}),
     } as never)
     .select('id, token')
     .single()

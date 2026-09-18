@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import { loadNr01AssessmentForPage } from '@/lib/nr01/require-assessment-page'
 import { dispararConvitesNr01 } from './actions'
 import { filterContactsForDispatch } from '@/lib/survey/dispatch'
@@ -23,18 +22,40 @@ export default async function Nr01DisparosPage({ params, searchParams }: Props) 
   const { db, assessment: assess } = await loadNr01AssessmentForPage(
     id,
     `
-      id, name, status,
+      id, name, status, dispatch_scope, dispatch_departments,
       companies:companies!nr01_assessments_company_id_fkey ( id, name )
     `,
   )
-  const a = assess as { id: string; name: string; status: string; companies: { id: string; name: string } | null }
+  const a = assess as {
+    id: string
+    name: string
+    status: string
+    dispatch_scope?: 'geral' | 'departamento' | null
+    dispatch_departments?: string[] | null
+    companies: { id: string; name: string } | null
+  }
   const companyId = a.companies?.id
+  const dispatchScope = a.dispatch_scope === 'departamento' ? 'departamento' : 'geral'
+  const preselectedDepts = new Set(a.dispatch_departments ?? [])
 
   const { data: contactsRaw } = companyId
     ? await db.from('company_contacts').select('*').eq('company_id', companyId)
     : { data: [] }
 
   const lista = filterContactsForDispatch((contactsRaw ?? []) as CompanyContact[], 'nr01', 'nr01_coleta')
+  const { data: catalogRaw } = companyId
+    ? await db
+        .from('company_departments')
+        .select('id, name, is_active')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .order('sort_order')
+    : { data: [] }
+  const { listCatalogDepartmentsWithCounts } = await import('@/lib/companies/departments')
+  const departments = listCatalogDepartmentsWithCounts(
+    (catalogRaw ?? []) as { id: string; name: string; is_active: boolean }[],
+    lista,
+  ).filter((d) => d.key !== '__none__' || d.count > 0)
   const lastBatch = await loadLastDispatchBatch(db, 'nr01', id)
   const deliveryStats = await loadInviteDeliveryStats(db, 'nr01', id)
   const deliveryDetails = await loadInviteDeliveryDetails(db, 'nr01', id, 'nr01_coleta')
@@ -130,14 +151,46 @@ export default async function Nr01DisparosPage({ params, searchParams }: Props) 
       <DispatchDeliveryDetail rows={deliveryDetails} lastBatchItems={lastBatch?.items} />
 
       {a.status === 'COLETANDO' && (
-        <form action={dispararConvitesNr01} className="rounded-xl border border-zinc-200 bg-white p-4">
+        <form action={dispararConvitesNr01} className="rounded-xl border border-zinc-200 bg-white p-4 space-y-4">
           <input type="hidden" name="assessment_id" value={id} />
-          <p className="text-sm text-zinc-600 mb-4">
+          <p className="text-sm text-zinc-600">
             Driver de e-mail: <code>{emailDriver}</code>
             {emailDriver === 'console'
               ? ' — em dev os links aparecem no terminal do Next.js.'
               : ' — Resend + webhooks (entrega, bounce, abertura).'}
           </p>
+
+          {departments.length > 0 && (
+            <fieldset>
+              <legend className="text-sm font-semibold text-zinc-900">Departamentos a incluir</legend>
+              <p className="mt-1 text-xs text-zinc-500">
+                {dispatchScope === 'departamento'
+                  ? 'Pré-selecionado na criação da avaliação. Desmarque ou marque conforme necessário.'
+                  : 'Desmarque departamentos que não devem receber esta coleta.'}
+              </p>
+              <ul className="mt-3 space-y-2">
+                {departments.map((d) => (
+                  <li key={d.key}>
+                    <label className="flex items-center gap-2 text-sm text-zinc-800">
+                      <input
+                        type="checkbox"
+                        name="department"
+                        value={d.key}
+                        defaultChecked={
+                          dispatchScope === 'geral' || preselectedDepts.has(d.key)
+                        }
+                        className="rounded border-zinc-300"
+                      />
+                      <span>
+                        {d.label} ({d.count})
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+          )}
+
           <DispatchSubmitButton
             disabled={lista.length === 0}
             className="rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"

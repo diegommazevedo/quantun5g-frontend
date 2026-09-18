@@ -40,3 +40,23 @@ export function snapshotIlLeaderToDiagnostic(leader: {
 }): { leader_name: string; leader_email: string } {
   return { leader_name: leader.name, leader_email: leader.email }
 }
+
+/** Rodada com liderança IL vinculada (nome ou e-mail no diagnóstico). */
+export function diagnosticHasIlLeader(diag: {
+  leader_name?: string | null
+  leader_email?: string | null
+}): boolean {
+  return Boolean(diag.leader_name?.trim() || diag.leader_email?.trim())
+}
+
+/**
+ * Decisão 003: IL antes do cálculo quando há líder na rodada.
+ * Sem líder cadastrado (opcional no produto), o motor usa só IC.
+ */
+export function isIlSatisfiedForClose(opts: {
+  hasIlResponse: boolean
+  leaderAssigned: boolean
+}): boolean {
+  if (!opts.leaderAssigned) return true
+  return opts.hasIlResponse
+}

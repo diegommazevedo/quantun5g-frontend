@@ -1,95 +1,192 @@
-'use client'
-
 /**
  * QUANTUM5G — PentagramaVisual
- * Radar (pentágono) comparando IC vs IL nas 5 dimensões.
- * Recharts RadarChart — 'use client' obrigatório.
+ * Radar SVG estático (sem Recharts) — estável na tela e no PDF.
+ * Quando não há IL, desenha só o IC.
  */
 
-import { useState, useEffect } from 'react'
-import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-} from 'recharts'
-
-interface DimData {
-  dimensao: string
-  ic: number
-  il: number
-}
-
 interface Props {
-  ic_fisica_pct:   number | null
-  ic_afetiva_pct:  number | null
+  ic_fisica_pct: number | null
+  ic_afetiva_pct: number | null
   ic_racional_pct: number | null
-  ic_social_pct:   number | null
+  ic_social_pct: number | null
   ic_cultural_pct: number | null
-  il_fisica_pct:   number | null
-  il_afetiva_pct:  number | null
+  il_fisica_pct: number | null
+  il_afetiva_pct: number | null
   il_racional_pct: number | null
-  il_social_pct:   number | null
+  il_social_pct: number | null
   il_cultural_pct: number | null
 }
 
-const fmt = (v: number | null) => Math.round(v ?? 0)
+const LABELS = ['Física', 'Afetiva', 'Racional', 'Social', 'Cultural'] as const
+const CX = 200
+const CY = 190
+const R = 130
+
+function pct(v: number | null) {
+  if (v === null || Number.isNaN(v)) return 0
+  return Math.max(0, Math.min(100, v)) / 100
+}
+
+/** Ângulo: topo = Física (−90°), sentido horário. */
+function point(i: number, n: number, radius: number) {
+  const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n
+  return {
+    x: CX + radius * Math.cos(angle),
+    y: CY + radius * Math.sin(angle),
+  }
+}
+
+function polygon(values: number[], radius: number) {
+  return values
+    .map((v, i) => {
+      const p = point(i, values.length, radius * v)
+      return `${p.x.toFixed(1)},${p.y.toFixed(1)}`
+    })
+    .join(' ')
+}
+
+function gridRing(level: number) {
+  const pts = Array.from({ length: 5 }, (_, i) => point(i, 5, R * level))
+  return pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+}
 
 export function PentagramaVisual(props: Props) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  const hasIl = [
+    props.il_fisica_pct,
+    props.il_afetiva_pct,
+    props.il_racional_pct,
+    props.il_social_pct,
+    props.il_cultural_pct,
+  ].some((v) => v !== null)
 
-  const data: DimData[] = [
-    { dimensao: 'Física',   ic: fmt(props.ic_fisica_pct),   il: fmt(props.il_fisica_pct)   },
-    { dimensao: 'Afetiva',  ic: fmt(props.ic_afetiva_pct),  il: fmt(props.il_afetiva_pct)  },
-    { dimensao: 'Racional', ic: fmt(props.ic_racional_pct), il: fmt(props.il_racional_pct) },
-    { dimensao: 'Social',   ic: fmt(props.ic_social_pct),   il: fmt(props.il_social_pct)   },
-    { dimensao: 'Cultural', ic: fmt(props.ic_cultural_pct), il: fmt(props.il_cultural_pct) },
+  const ic = [
+    pct(props.ic_fisica_pct),
+    pct(props.ic_afetiva_pct),
+    pct(props.ic_racional_pct),
+    pct(props.ic_social_pct),
+    pct(props.ic_cultural_pct),
   ]
 
-  if (!mounted) return <div style={{ width: '100%', minWidth: 0, height: 360 }} />
+  const il = hasIl
+    ? [
+        pct(props.il_fisica_pct),
+        pct(props.il_afetiva_pct),
+        pct(props.il_racional_pct),
+        pct(props.il_social_pct),
+        pct(props.il_cultural_pct),
+      ]
+    : null
+
+  const labelOffset = 22
 
   return (
-    <div style={{ width: '100%', minWidth: 0, height: 360 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-          <PolarGrid stroke="#e4e4e7" />
-          <PolarAngleAxis
-            dataKey="dimensao"
-            tick={{ fill: '#3f3f46', fontSize: 13, fontWeight: 500 }}
+    <div data-pentagrama-chart="ready" className="mx-auto w-full max-w-[440px]">
+      <svg
+        viewBox="0 0 400 400"
+        width="100%"
+        height="auto"
+        className="block"
+        role="img"
+        aria-label="Pentagrama de scores organizacionais"
+      >
+        {/* Grades */}
+        {[0.25, 0.5, 0.75, 1].map((level) => (
+          <polygon
+            key={level}
+            points={gridRing(level)}
+            fill="none"
+            stroke="#e4e4e7"
+            strokeWidth={1}
           />
-          <Radar
-            name="IC — Colaboradores"
-            dataKey="ic"
-            stroke="#3b82f6"
-            fill="#3b82f6"
-            fillOpacity={0.18}
-            strokeWidth={2}
-            dot={{ r: 4, fill: '#3b82f6' }}
-          />
-          <Radar
-            name="IL — Liderança"
-            dataKey="il"
-            stroke="#f97316"
+        ))}
+
+        {/* Eixos */}
+        {LABELS.map((_, i) => {
+          const p = point(i, 5, R)
+          return (
+            <line
+              key={`axis-${i}`}
+              x1={CX}
+              y1={CY}
+              x2={p.x}
+              y2={p.y}
+              stroke="#e4e4e7"
+              strokeWidth={1}
+            />
+          )
+        })}
+
+        {/* IL (se houver) */}
+        {il && (
+          <polygon
+            points={polygon(il, R)}
             fill="#f97316"
             fillOpacity={0.12}
+            stroke="#f97316"
             strokeWidth={2}
             strokeDasharray="6 3"
-            dot={{ r: 4, fill: '#f97316' }}
           />
-          <Tooltip
-            formatter={(value) => [`${value}%`]}
-            contentStyle={{ borderRadius: 8, border: '1px solid #e4e4e7', fontSize: 13 }}
-          />
-          <Legend
-            iconType="line"
-            wrapperStyle={{ fontSize: 13, paddingTop: 12 }}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
+        )}
+
+        {/* IC */}
+        <polygon
+          points={polygon(ic, R)}
+          fill="#3b82f6"
+          fillOpacity={0.18}
+          stroke="#3b82f6"
+          strokeWidth={2.5}
+        />
+
+        {/* Pontos IC */}
+        {ic.map((v, i) => {
+          const p = point(i, 5, R * v)
+          return <circle key={`ic-${i}`} cx={p.x} cy={p.y} r={3.5} fill="#3b82f6" />
+        })}
+
+        {/* Pontos IL */}
+        {il &&
+          il.map((v, i) => {
+            const p = point(i, 5, R * v)
+            return <circle key={`il-${i}`} cx={p.x} cy={p.y} r={3.5} fill="#f97316" />
+          })}
+
+        {/* Labels */}
+        {LABELS.map((label, i) => {
+          const p = point(i, 5, R + labelOffset)
+          return (
+            <text
+              key={label}
+              x={p.x}
+              y={p.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#3f3f46"
+              fontSize={13}
+              fontWeight={500}
+            >
+              {label}
+            </text>
+          )
+        })}
+      </svg>
+
+      {/* Legenda HTML — nunca escala como SVG de Recharts */}
+      <div className="mt-1 flex flex-wrap items-center justify-center gap-5 text-sm text-zinc-600">
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-block h-0.5 w-5 rounded bg-[#3b82f6]" aria-hidden />
+          IC — Colaboradores
+        </span>
+        {hasIl && (
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="inline-block h-0.5 w-5 rounded bg-[#f97316]"
+              style={{ backgroundImage: 'repeating-linear-gradient(90deg,#f97316 0 4px,transparent 4px 7px)' }}
+              aria-hidden
+            />
+            IL — Liderança
+          </span>
+        )}
+      </div>
     </div>
   )
 }

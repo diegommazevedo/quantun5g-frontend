@@ -150,6 +150,11 @@ export async function getPentagramaLicenseForUser(userId: string): Promise<Penta
     }
   }
 
+  // Política: perfil ativo acessa Pentagrama mesmo sem flag/assinatura.
+  if (profile) {
+    return { licensed: true, source: 'module_flag', subscriptionId: null, invoiceId: null }
+  }
+
   return { licensed: false, source: null, subscriptionId: null, invoiceId: null }
 }
 

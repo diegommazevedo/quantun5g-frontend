@@ -32,8 +32,9 @@ export async function criarUsuario(formData: FormData) {
   const name = (formData.get('name') as string)?.trim()
   const email = (formData.get('email') as string)?.trim().toLowerCase()
   const role = ((formData.get('role') as string) || 'consultant') as UserRole
-  const modulePentagrama = formData.get('module_pentagrama') === 'on'
-  const moduleNr01 = formData.get('module_nr01') === 'on'
+  // Ambos os módulos liberados para todos os usuários cadastrados.
+  const modulePentagrama = true
+  const moduleNr01 = true
 
   if (!name || !email) return { error: 'Nome e e-mail são obrigatórios' }
   if (!['admin', 'consultant', 'leader', 'collaborator', 'contratante', 'gerente'].includes(role)) {
@@ -71,20 +72,17 @@ export async function atualizarAcessoUsuario(formData: FormData) {
 
   const userId = formData.get('user_id') as string
   const role = (formData.get('role') as string) as UserRole
-  const modulePentagrama = formData.get('module_pentagrama') === 'on'
-  const moduleNr01 = formData.get('module_nr01') === 'on'
 
   if (!userId) return { error: 'Usuário inválido' }
 
   const admin = adminClient()
-  const isAdmin = role === 'admin'
 
   const { error } = await admin
     .from('profiles')
     .update({
       role,
-      module_pentagrama: isAdmin ? true : modulePentagrama,
-      module_nr01: isAdmin ? true : moduleNr01,
+      module_pentagrama: true,
+      module_nr01: true,
     } as never)
     .eq('id', userId)
 

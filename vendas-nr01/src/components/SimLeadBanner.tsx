@@ -17,7 +17,7 @@ export function SimLeadBanner() {
         Simulado 100% real · ambiente de teste
       </p>
       <h2 className="mt-2 text-xl font-bold text-white sm:text-2xl">
-        Percorra o fluxo completo como lead — R$ 10,00 no PIX
+        Percorra o fluxo completo como lead — R$ 5,00 no PIX
       </h2>
       <p className="mt-3 text-sm leading-relaxed text-amber-100/90">
         Plano completo NR-01 (faixa até 5 colaboradores): compra real na Kiwify, webhook, magic link,
@@ -26,8 +26,9 @@ export function SimLeadBanner() {
       </p>
 
       <ul className="mt-4 space-y-1.5 text-sm text-amber-50/85">
-        <li>✓ Pagamento PIX R$ 10,00 (produto de teste)</li>
+        <li>✓ Pagamento PIX R$ 5,00 (produto de teste)</li>
         <li>✓ Licença NR-01 ativada automaticamente</li>
+        <li>✓ CNPJ empresarial obrigatório no checkout</li>
         <li>✓ Mesmo fluxo de produção (sem modo teste)</li>
       </ul>
 
@@ -39,7 +40,7 @@ export function SimLeadBanner() {
           className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-lg px-4 text-center text-sm font-bold transition hover:opacity-95 sm:w-auto"
           style={{ backgroundColor: ACCENT, color: BG }}
         >
-          Iniciar simulado — pagar R$ 10 no PIX
+          Iniciar simulado — pagar R$ 5 no PIX
         </a>
       ) : (
         <p className="mt-6 rounded-lg border border-amber-500/40 bg-black/20 px-4 py-3 text-sm text-amber-200">

@@ -11,9 +11,8 @@ import { NovoDiagnosticoSteps } from '@/components/pentagrama/NovoDiagnosticoSte
 import { criarDiagnostico } from '../actions'
 import { formatCnpjDisplay } from '@/lib/companies/cnpj'
 import { companyHasTechnicalLead, formatTechnicalLeadLine, technicalLeadFromCompany } from '@/lib/nr01/technical-lead'
-import { companyHasIlLeader } from '@/lib/pentagrama/il-leader'
 import { isValidCnpj } from '@/lib/companies/cnpj'
-import { CompetenciaSurveyFields } from '@/components/survey/CompetenciaSurveyFields'
+import { SurveyIdentityWithScopeFields } from '@/components/survey/SurveyIdentityWithScopeFields'
 import { fetchNextCompetenciaSeq } from '@/lib/survey/competencia-db'
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import {
@@ -21,6 +20,9 @@ import {
   defaultCompetenciaPeriod,
   localDateISO,
 } from '@/lib/survey/competencia'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
+import { listCatalogDepartmentsWithCounts } from '@/lib/companies/departments'
+import type { CompanyContact } from '@/types/database'
 
 interface Props {
   params: Promise<{ companyId: string }>
@@ -66,12 +68,30 @@ export default async function NovoDiagnosticoDadosPage({ params, searchParams }:
   const rt = technicalLeadFromCompany(empresa)
   const cnpjOk = Boolean(empresa.cnpj && isValidCnpj(empresa.cnpj))
   const rtOk = companyHasTechnicalLead(empresa)
-  const ilOk = leaders.length > 0
-  const ready = cnpjOk && rtOk && ilOk
+  const ready = cnpjOk && rtOk
   const hoje = localDateISO()
   const fimDefault = addDaysISO(hoje, 15)
   const nextSeq = await fetchNextCompetenciaSeq(supabase, companyId, 'pentagrama')
   const { mmYyyy } = defaultCompetenciaPeriod()
+
+  const admin = createServiceRoleAdmin()
+  const [{ data: contactsDept }, { data: catalogRaw }] = await Promise.all([
+    admin
+      .from('company_contacts')
+      .select('department, department_id, is_active')
+      .eq('company_id', companyId)
+      .eq('is_active', true),
+    admin
+      .from('company_departments')
+      .select('id, name, is_active')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .order('sort_order'),
+  ])
+  const departments = listCatalogDepartmentsWithCounts(
+    (catalogRaw ?? []) as { id: string; name: string; is_active: boolean }[],
+    (contactsDept ?? []) as Pick<CompanyContact, 'department' | 'department_id'>[],
+  ).map((d) => ({ key: d.key, label: d.label, count: d.count }))
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -102,7 +122,9 @@ export default async function NovoDiagnosticoDadosPage({ params, searchParams }:
           </div>
           <div>
             <span className="font-medium">Liderança IL: </span>
-            {ilOk ? `${leaders.length || 1} cadastrado(s)` : <span className="text-amber-700">Pendente</span>}
+            {leaders.length > 0
+              ? `${leaders.length} cadastrado(s)`
+              : <span className="text-zinc-400">Opcional — nenhum cadastrado</span>}
           </div>
         </dl>
         <Link
@@ -115,7 +137,7 @@ export default async function NovoDiagnosticoDadosPage({ params, searchParams }:
 
       {!ready && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Complete o cadastro unificado: CNPJ válido, RT assinante e ao menos um líder IL.
+          Complete o cadastro unificado: CNPJ válido e RT assinante.
         </div>
       )}
 
@@ -133,35 +155,37 @@ export default async function NovoDiagnosticoDadosPage({ params, searchParams }:
             Diagnóstico
           </legend>
 
-          <CompetenciaSurveyFields
+          <SurveyIdentityWithScopeFields
             module="pentagrama"
             nextSeq={nextSeq}
             defaultPeriod={mmYyyy}
             pesquisaInicioDefault={hoje}
             pesquisaFimDefault={fimDefault}
             disabled={!ready}
+            departments={departments}
           />
 
-          {leaders.length > 0 && (
-            <div className="space-y-1.5">
-              <label htmlFor="il_leader_id" className="block text-sm font-medium text-zinc-700">
-                Líder que receberá o link IL nesta rodada *
-              </label>
-              <select
-                id="il_leader_id"
-                name="il_leader_id"
-                required
-                defaultValue={leaders[0]?.id}
-                className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm"
-              >
-                {leaders.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.full_name} — {l.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <label htmlFor="il_leader_id" className="block text-sm font-medium text-zinc-700">
+              Líder que receberá o link IL nesta rodada
+            </label>
+            <select
+              id="il_leader_id"
+              name="il_leader_id"
+              defaultValue=""
+              className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm"
+            >
+              <option value="">— Nenhum (deixar em branco) —</option>
+              {leaders.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.full_name} — {l.email}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-zinc-500">
+              Opcional. Se houver líderes cadastrados na equipe, você pode escolher um ou deixar em branco.
+            </p>
+          </div>
         </fieldset>
 
         <div className="flex items-center gap-4 pt-2">

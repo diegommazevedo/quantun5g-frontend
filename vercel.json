@@ -10,6 +10,14 @@
     {
       "path": "/api/cron/expire-subscriptions",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/nr01-pulses",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/radar-collect",
+      "schedule": "30 11 * * *"
     }
   ]
 }

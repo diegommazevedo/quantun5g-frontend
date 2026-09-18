@@ -9,6 +9,10 @@ import {
   filterContactsForDispatch,
   type DispatchTarget,
 } from '@/lib/survey/dispatch'
+import {
+  filterContactsByDepartments,
+  sanitizeSelectedDepartments,
+} from '@/lib/companies/contacts'
 import type { CompanyContact } from '@/types/database'
 
 export async function dispararConvitesNr01(formData: FormData) {
@@ -45,7 +49,7 @@ export async function dispararConvitesNr01(formData: FormData) {
     .select('*')
     .eq('company_id', companyId)
 
-  const contacts = filterContactsForDispatch(
+  let contacts = filterContactsForDispatch(
     (contactsRaw ?? []) as CompanyContact[],
     'nr01',
     'nr01_coleta',
@@ -56,6 +60,36 @@ export async function dispararConvitesNr01(formData: FormData) {
       `/empresas/${companyId}/equipe?error=${encodeURIComponent(
         'Cadastre a equipe (líderes e colaboradores) antes do disparo NR-01.',
       )}&retorno=/nr01/avaliacao/${assessmentId}/disparos`,
+    )
+  }
+
+  const { data: catalogIds } = await db
+    .from('company_departments')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  const selectedDepartments = sanitizeSelectedDepartments(
+    contacts,
+    formData.getAll('department').map((v) => String(v)),
+    ((catalogIds ?? []) as { id: string }[]).map((d) => d.id),
+  )
+
+  if (selectedDepartments.length === 0) {
+    redirect(
+      `/nr01/avaliacao/${assessmentId}/disparos?error=${encodeURIComponent(
+        'Selecione ao menos um departamento para disparar os convites.',
+      )}`,
+    )
+  }
+
+  contacts = filterContactsByDepartments(contacts, selectedDepartments)
+
+  if (contacts.length === 0) {
+    redirect(
+      `/nr01/avaliacao/${assessmentId}/disparos?error=${encodeURIComponent(
+        'Nenhum contato nos departamentos escolhidos.',
+      )}`,
     )
   }
 
@@ -70,24 +104,40 @@ export async function dispararConvitesNr01(formData: FormData) {
     surveyUrl: buildNr01ColetaUrl(a.collection_token),
   }))
 
-  const result = await dispatchSurveyInvites({
-    companyId,
-    consultantId: a.consultant_id,
-    module: 'nr01',
-    surveyKind: 'nr01_coleta',
-    referenceId: assessmentId,
-    companyName: a.companies!.name,
-    surveyLabel: `Coleta NR-01 — ${a.name}`,
-    moduleLabel: 'NR-01',
-    targets,
-    deadline: a.collection_closes_at
-      ? new Date(a.collection_closes_at).toLocaleDateString('pt-BR')
-      : null,
-    consultantName: (profile as { name: string | null } | null)?.name,
-  })
+  try {
+    const result = await dispatchSurveyInvites({
+      companyId,
+      consultantId: a.consultant_id,
+      module: 'nr01',
+      surveyKind: 'nr01_coleta',
+      referenceId: assessmentId,
+      companyName: a.companies!.name,
+      surveyLabel: `Coleta NR-01 — ${a.name}`,
+      moduleLabel: 'NR-01',
+      targets,
+      deadline: a.collection_closes_at
+        ? new Date(a.collection_closes_at).toLocaleDateString('pt-BR')
+        : null,
+      consultantName: (profile as { name: string | null } | null)?.name,
+    })
 
-  revalidatePath(`/nr01/avaliacao/${assessmentId}/disparos`)
-  redirect(
-    `/nr01/avaliacao/${assessmentId}/disparos?sent=${result.sent}&failed=${result.failed}&skipped=${result.skipped}`,
-  )
+    revalidatePath(`/nr01/avaliacao/${assessmentId}/disparos`)
+    redirect(
+      `/nr01/avaliacao/${assessmentId}/disparos?sent=${result.sent}&failed=${result.failed}&skipped=${result.skipped}`,
+    )
+  } catch (err) {
+    // redirect() do Next lança; não engolir
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'digest' in err &&
+      String((err as { digest?: string }).digest).startsWith('NEXT_REDIRECT')
+    ) {
+      throw err
+    }
+    const msg = err instanceof Error ? err.message : 'Falha ao disparar convites.'
+    redirect(
+      `/nr01/avaliacao/${assessmentId}/disparos?error=${encodeURIComponent(msg)}`,
+    )
+  }
 }

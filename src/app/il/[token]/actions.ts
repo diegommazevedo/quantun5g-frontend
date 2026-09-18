@@ -3,6 +3,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 import { resolveDiagnosticByIlToken } from '@/lib/pentagrama/public-diagnostic'
+import { resolveDepartmentForSurveySubmit } from '@/lib/companies/departments'
 
 export type SubmitIlResult =
   | { ok: true }
@@ -11,6 +12,7 @@ export type SubmitIlResult =
 export async function submitIlResponse(
   token: string,
   respostas: Record<number, number>,
+  deptOpts?: { inviteToken?: string | null; departmentId?: string | null },
 ): Promise<SubmitIlResult> {
   const diag = await resolveDiagnosticByIlToken(token)
   if (!diag) return { ok: false, error: 'Link inválido ou expirado.' }
@@ -28,7 +30,18 @@ export async function submitIlResponse(
     }
   }
 
-  const payload: Record<string, number | string> = { diagnostic_id: diag.id }
+  const dept = await resolveDepartmentForSurveySubmit({
+    companyId: diag.companyId,
+    inviteToken: deptOpts?.inviteToken,
+    clientDepartmentId: deptOpts?.departmentId,
+  })
+  if (!dept.ok) return { ok: false, error: dept.error }
+
+  const payload: Record<string, number | string | null> = {
+    diagnostic_id: diag.id,
+    department_id: dept.departmentId,
+    department_label: dept.departmentLabel,
+  }
   for (let i = 1; i <= 125; i++) {
     payload[`q${i}`] = respostas[i]
   }

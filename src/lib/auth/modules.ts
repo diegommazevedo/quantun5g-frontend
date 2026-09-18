@@ -1,15 +1,16 @@
 import type { Profile } from '@/types/database'
 
-export type AppModule = 'pentagrama' | 'nr01'
+export type AppModule = 'pentagrama' | 'nr01' | 'radar' | 'copiloto'
 
+/**
+ * Acesso a módulos: todo usuário cadastrado (com perfil) acessa todos os módulos.
+ * Flags no perfil são mantidos por compatibilidade, mas não restringem mais.
+ */
 export function profileHasModule(
   profile: Pick<Profile, 'role' | 'module_pentagrama' | 'module_nr01'> | null,
-  module: AppModule,
+  _module: AppModule,
 ): boolean {
-  if (!profile) return false
-  if (profile.role === 'admin') return true
-  if (module === 'pentagrama') return profile.module_pentagrama !== false
-  return profile.module_nr01 !== false
+  return profile != null
 }
 
 export async function requireModule(

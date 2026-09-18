@@ -3,10 +3,6 @@
  * Dashboard gerencial: KPIs + lista de diagnósticos com filtros.
  */
 
-import Link from 'next/link'
-import { userHasPentagramaLicense } from '@/lib/billing/pentagrama-license'
-import { isPlatformStaff } from '@/lib/auth/roles'
-import { isContratanteRole, isGerenteRole } from '@/lib/org/roles'
 import { getPageActor } from '@/lib/org/page-actor'
 import {
   loadIcRespondentCounts,
@@ -26,16 +22,8 @@ export default async function DashboardPage({ searchParams }: Props) {
   const { error } = await searchParams
   const { user, role, profile, db } = await getPageActor()
 
-  const isAdmin = role === 'admin'
-  const isLeader = role === 'leader'
-  const isContratante = isContratanteRole(role)
-  const isGerente = isGerenteRole(role)
-
-  let canCreateDiagnostic = isAdmin || isPlatformStaff(role)
-  if (isLeader || isContratante || isGerente) {
-    canCreateDiagnostic =
-      profile?.module_pentagrama === true || (await userHasPentagramaLicense(user.id))
-  }
+  // Ambos os módulos liberados para qualquer usuário cadastrado.
+  const canCreateDiagnostic = true
 
   const diags = await loadPentagramaDashboardDiagnostics(role, user.id, db)
   const diagIds = diags.map((d) => d.id)
@@ -70,24 +58,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       primaryActionLockedHref="/checkout/nr01"
       sectionTitle="Diagnósticos"
       alert={
-        !canCreateDiagnostic && !error ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {isContratante || isGerente ? (
-              <>
-                Módulo Pentagrama indisponível para sua conta. Peça ao administrador Quantum5G
-                ou ao consultor da organização para ativar o acesso.
-              </>
-            ) : (
-              <>
-                Licença Pentagrama pendente.{' '}
-                <Link href="/checkout/nr01" className="font-semibold underline">
-                  Contratar online
-                </Link>{' '}
-                para liberar o módulo.
-              </>
-            )}
-          </div>
-        ) : error ? (
+        error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {decodeURIComponent(error)}
           </div>

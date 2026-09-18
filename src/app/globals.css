@@ -255,19 +255,34 @@ body {
 
 /* ── Impressão / Export PDF ──────────────────────────── */
 @media print {
-  .no-print {
+  .no-print,
+  [data-app-chrome] {
     display: none !important;
   }
 
-  body {
-    background: white !important;
-    color: #000 !important;
+  /* Força aparência clara no PDF (mesmo com quantum-dark na tela) */
+  html,
+  body,
+  .q-page-bg {
+    background: #fff !important;
+    color: #18181b !important;
     font-size: 11pt;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
-  .max-w-4xl {
+  .flex.h-\[100dvh\],
+  .flex.h-full,
+  main {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .max-w-4xl,
+  .max-w-5xl {
     max-width: 100% !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
@@ -275,50 +290,87 @@ body {
 
   .sticky {
     position: static !important;
-    display: none !important;
   }
 
+  /* Capa sozinha; demais seções fluem sem forçar página vazia */
   .page-break {
+    break-inside: auto;
+    break-after: auto;
+  }
+  .page-break-after {
     break-after: page;
   }
 
-  .rounded-xl,
-  .rounded-lg,
-  table,
-  tr {
+  /* Evita cortar só cards/linhas — NÃO seções inteiras */
+  .relatorio-card,
+  #relatorio-documento table,
+  #relatorio-documento tr,
+  #relatorio-documento thead {
     break-inside: avoid;
   }
 
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    box-shadow: none !important;
   }
 
-  .recharts-responsive-container {
-    width: 500px !important;
-    min-width: 500px !important;
-    height: 360px !important;
-    min-height: 360px !important;
+  /* Neutraliza overrides do tema escuro no PDF */
+  [data-theme="quantum-dark"] .bg-white,
+  [data-theme="quantum-dark"] .bg-zinc-50,
+  [data-theme="quantum-dark"] .bg-zinc-50\/80 {
+    background-color: #fff !important;
+    color: #18181b !important;
+  }
+  [data-theme="quantum-dark"] .text-zinc-900,
+  [data-theme="quantum-dark"] .text-zinc-800 {
+    color: #18181b !important;
+  }
+  [data-theme="quantum-dark"] .text-zinc-700 {
+    color: #3f3f46 !important;
+  }
+  [data-theme="quantum-dark"] .text-zinc-600,
+  [data-theme="quantum-dark"] .text-zinc-500 {
+    color: #71717a !important;
+  }
+  [data-theme="quantum-dark"] .text-zinc-400 {
+    color: #a1a1aa !important;
+  }
+  [data-theme="quantum-dark"] .border-zinc-200,
+  [data-theme="quantum-dark"] .border-zinc-200\/80,
+  [data-theme="quantum-dark"] .border-zinc-100,
+  [data-theme="quantum-dark"] .border-zinc-300 {
+    border-color: #e4e4e7 !important;
+  }
+  [data-theme="quantum-dark"] .text-blue-700,
+  [data-theme="quantum-dark"] .text-blue-800,
+  [data-theme="quantum-dark"] .text-blue-900 {
+    color: #1d4ed8 !important;
+  }
+  [data-theme="quantum-dark"] .bg-blue-100 {
+    background-color: #dbeafe !important;
   }
 
-  .recharts-wrapper {
-    width: 500px !important;
-    height: 360px !important;
+  /* Esconde restos de Recharts (legado) — radar agora é SVG estático */
+  .recharts-responsive-container,
+  .recharts-wrapper,
+  .recharts-legend-wrapper {
+    display: none !important;
   }
 
-  .recharts-wrapper svg {
-    width: 500px !important;
-    height: 360px !important;
-    overflow: visible !important;
+  [data-pentagrama-chart] svg {
+    max-width: 420px !important;
+    height: auto !important;
+    margin: 0 auto;
   }
 
-  [class*="bg-gradient"] {
+  [class*='bg-gradient'] {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
   @page {
     size: A4 portrait;
-    margin: 15mm 12mm;
+    margin: 12mm 11mm;
   }
 }

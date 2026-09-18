@@ -40,7 +40,7 @@ export async function provisionNr01Subscription(params: {
   }
 
   const profileUpdate: Record<string, unknown> = {
-    module_nr01: entitlements.includes('core_nr01'),
+    module_nr01: true,
     module_pentagrama: true,
     is_active: true,
   }

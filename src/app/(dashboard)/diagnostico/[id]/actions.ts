@@ -9,6 +9,10 @@ import { revalidatePath } from 'next/cache'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 import { ensureDiagnosticAccess } from '@/lib/pentagrama/diagnostic-access'
+import {
+  diagnosticHasIlLeader,
+  isIlSatisfiedForClose,
+} from '@/lib/pentagrama/il-leader'
 
 async function edgeErrorDetail(fnError: { message: string; context?: Response }): Promise<string> {
   try {
@@ -36,18 +40,22 @@ async function edgeErrorDetail(fnError: { message: string; context?: Response })
 export async function encerrarECalcular(diagnosticId: string): Promise<{ error: string }> {
   const { db, diagnostic: diagRaw } = await ensureDiagnosticAccess(
     diagnosticId,
-    'id, status, consultant_id, il_submitted_at',
+    'id, status, consultant_id, il_submitted_at, leader_name, leader_email',
   )
   const diag = diagRaw as {
     id: string
     status: string
     consultant_id: string
     il_submitted_at: string | null
+    leader_name: string | null
+    leader_email: string | null
   }
 
   if (!isPentagramaColetaAberta(diag.status)) {
     return { error: 'Status inválido para encerramento.' }
   }
+
+  const leaderAssigned = diagnosticHasIlLeader(diag)
 
   const { data: ilRow } = await db
     .from('il_responses')
@@ -55,7 +63,8 @@ export async function encerrarECalcular(diagnosticId: string): Promise<{ error: 
     .eq('diagnostic_id', diagnosticId)
     .maybeSingle()
 
-  if (!ilRow && !diag.il_submitted_at) {
+  const hasIlResponse = Boolean(ilRow) || Boolean(diag.il_submitted_at)
+  if (!isIlSatisfiedForClose({ hasIlResponse, leaderAssigned })) {
     return {
       error:
         'A liderança ainda não respondeu o IL. Complete o questionário IL antes de encerrar e calcular o diagnóstico.',

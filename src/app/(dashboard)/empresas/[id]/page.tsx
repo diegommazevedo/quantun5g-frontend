@@ -68,7 +68,7 @@ export default async function EditarEmpresaPage({ params, searchParams }: Props)
 
   const { data: collabData } = await supabase
     .from('company_contacts')
-    .select('full_name, email, job_title')
+    .select('full_name, email, department')
     .eq('company_id', id)
     .eq('contact_role', 'collaborator')
     .order('created_at')
@@ -76,7 +76,7 @@ export default async function EditarEmpresaPage({ params, searchParams }: Props)
   const collaborators = ((collabData ?? []) as CompanyContact[]).map((c) => ({
     full_name: c.full_name,
     email: c.email,
-    job_title: c.job_title ?? undefined,
+    department: c.department ?? undefined,
   }))
 
   const voltarHref = retorno ?? '/empresas'

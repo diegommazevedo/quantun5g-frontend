@@ -57,9 +57,16 @@ scripts/_otp_input.txt
 scripts/.edge-session-ok
 scripts/_sim/
 
+# perfis Edge usados só em scripts locais Kiwify (centenas de MB)
+scripts/_edge-sim-copy/
+scripts/_edge-kiwify-profile/
+
 # supabase cli temp
 supabase/.temp/
 
 # vendas-nr01 vendored deps
 /vendas-nr01/node_modules/
+
+
+/vendas-nr01/.next/
 

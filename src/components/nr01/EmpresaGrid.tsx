@@ -42,11 +42,9 @@ function hasCnpj(e: EmpresaGridRow) {
   return Boolean(e.cnpj && e.cnpj.length === 14)
 }
 
-function isReady(e: EmpresaGridRow, product: EmpresaGridProduct) {
-  if (!hasCnpj(e) || !hasRt(e)) return false
-  if (product === 'pentagrama') return hasIl(e)
-  if (product === 'nr01') return true
-  return hasRt(e) && hasIl(e)
+function isReady(e: EmpresaGridRow, _product: EmpresaGridProduct) {
+  // Liderança IL é opcional (disparo IL pode ficar em branco).
+  return hasCnpj(e) && hasRt(e)
 }
 
 function matchQuery(row: EmpresaGridRow, q: string): boolean {
@@ -194,7 +192,7 @@ export function EmpresaGrid({
                             : e.il_leader_name ?? '1 líder'}
                         </span>
                       ) : (
-                        <span className="text-amber-700">Pendente</span>
+                        <span className="text-zinc-400">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-zinc-600">

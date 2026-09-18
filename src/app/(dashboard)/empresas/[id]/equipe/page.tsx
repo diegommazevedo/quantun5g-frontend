@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { Company, CompanyContact, UserRole } from '@/types/database'
+import type { Company, CompanyContact, CompanyDepartment, UserRole } from '@/types/database'
 import { fetchCompanyForActor } from '@/lib/companies/list-for-actor'
 import { TeamContactsManager } from '@/components/companies/TeamContactsManager'
+import { CompanyDepartmentsManager } from '@/components/companies/CompanyDepartmentsManager'
 import { EmailSuppressionsPanel } from '@/components/companies/EmailSuppressionsPanel'
 import { loadSuppressionDetailsForEmails } from '@/lib/email/suppression'
 import type { EmailSuppressionRow } from '@/lib/email/suppression'
+import { createServiceRoleAdmin } from '@/lib/supabase/service-role'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -17,7 +19,9 @@ export default async function EmpresaEquipePage({ params, searchParams }: Props)
   const { id } = await params
   const { error, reativado } = await searchParams
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -31,15 +35,25 @@ export default async function EmpresaEquipePage({ params, searchParams }: Props)
   const { data: company } = await fetchCompanyForActor<Company>(supabase, user.id, role, id, '*')
   if (!company) notFound()
 
-  const { data: contacts } = await supabase
-    .from('company_contacts')
-    .select('*')
-    .eq('company_id', id)
-    .order('contact_role')
-    .order('full_name')
+  const admin = createServiceRoleAdmin()
+  const [{ data: contacts }, { data: departments }] = await Promise.all([
+    admin
+      .from('company_contacts')
+      .select('*')
+      .eq('company_id', id)
+      .order('contact_role')
+      .order('full_name'),
+    admin
+      .from('company_departments')
+      .select('*')
+      .eq('company_id', id)
+      .order('sort_order')
+      .order('name'),
+  ])
 
   const co = company
   const list = (contacts ?? []) as CompanyContact[]
+  const deptList = (departments ?? []) as CompanyDepartment[]
 
   const suppressionMap = await loadSuppressionDetailsForEmails(
     supabase,
@@ -56,8 +70,9 @@ export default async function EmpresaEquipePage({ params, searchParams }: Props)
         <h1 className="mt-2 text-2xl font-bold text-zinc-900">Equipe e listas de transmissão</h1>
         <p className="mt-1 max-w-2xl text-sm text-zinc-600">
           Cadastro único para os dois módulos. No <strong>Pentagrama</strong>, líderes recebem o IL e
-          colaboradores o IC. No <strong>NR-01</strong>, todos os contatos ativos entram na mesma lista
-          de convite (coleta anônima — sem distinção de papel).
+          colaboradores o IC. No <strong>NR-01</strong>, todos os contatos ativos entram na lista de
+          convite; o disparo e a filtragem das respostas usam o{' '}
+          <strong>catálogo de departamentos</strong>.
         </p>
       </div>
 
@@ -74,9 +89,12 @@ export default async function EmpresaEquipePage({ params, searchParams }: Props)
 
       <EmailSuppressionsPanel companyId={id} suppressions={suppressions} />
 
+      <CompanyDepartmentsManager companyId={id} departments={deptList} />
+
       <TeamContactsManager
         companyId={id}
         contacts={list}
+        departments={deptList}
         suppressedEmails={suppressions.map((s) => s.email_normalized)}
       />
     </div>

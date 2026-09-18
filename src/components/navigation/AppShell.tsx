@@ -99,18 +99,19 @@ export function AppShell({
   )
 
   return (
-    <div className="flex h-full min-w-0 flex-1 overflow-hidden bg-[var(--q-bg)]">
+    <div className="flex h-full min-w-0 flex-1 overflow-hidden bg-[var(--q-bg)] print:h-auto print:overflow-visible">
       {mobileOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] md:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] md:hidden no-print"
           aria-label="Fechar menu"
           onClick={closeMobile}
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(280px,88vw)] flex-col border-r border-[var(--q-border)] bg-[var(--q-surface)] shadow-xl shadow-black/40 transition-transform duration-200 ease-out md:static md:z-auto md:w-64 md:shrink-0 md:translate-x-0 md:shadow-none ${
+        data-app-chrome="sidebar"
+        className={`no-print fixed inset-y-0 left-0 z-50 flex w-[min(280px,88vw)] flex-col border-r border-[var(--q-border)] bg-[var(--q-surface)] shadow-xl shadow-black/40 transition-transform duration-200 ease-out md:static md:z-auto md:w-64 md:shrink-0 md:translate-x-0 md:shadow-none ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -123,8 +124,11 @@ export function AppShell({
         <div className="flex min-h-0 flex-1 flex-col">{sidebarInner}</div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 flex-col border-b border-[var(--q-border)] bg-[var(--q-surface)] md:hidden">
+      <div className="flex min-w-0 flex-1 flex-col print:overflow-visible">
+        <header
+          data-app-chrome="header-mobile"
+          className="no-print flex shrink-0 flex-col border-b border-[var(--q-border)] bg-[var(--q-surface)] md:hidden"
+        >
           <div className="flex h-12 items-center gap-2 px-3">
             <MenuButton open={mobileOpen} onClick={() => setMobileOpen((v) => !v)} />
             <UserAccountBlock
@@ -137,7 +141,10 @@ export function AppShell({
           </div>
         </header>
 
-        <header className="hidden shrink-0 items-center justify-between gap-4 border-b border-[var(--q-border)] bg-[var(--q-surface)] px-4 py-2.5 md:flex">
+        <header
+          data-app-chrome="header-desktop"
+          className="no-print hidden shrink-0 items-center justify-between gap-4 border-b border-[var(--q-border)] bg-[var(--q-surface)] px-4 py-2.5 md:flex"
+        >
           <p className="text-xs text-[var(--q-text-muted)]">
             Logado como{' '}
             <span className="font-medium text-[var(--q-text)]">{sidebarRoleLabel(role)}</span>
@@ -157,8 +164,8 @@ export function AppShell({
 
         <ContextSubnav />
 
-        <main className="flex-1 overflow-y-auto bg-[var(--q-bg-muted)]">
-          <div className={`mx-auto w-full ${contentMaxWidth} px-4 py-6 sm:px-6 sm:py-8`}>
+        <main className="flex-1 overflow-y-auto bg-[var(--q-bg-muted)] print:overflow-visible print:bg-white">
+          <div className={`mx-auto w-full ${contentMaxWidth} px-4 py-6 sm:px-6 sm:py-8 print:max-w-none print:px-0 print:py-0`}>
             {children}
           </div>
         </main>

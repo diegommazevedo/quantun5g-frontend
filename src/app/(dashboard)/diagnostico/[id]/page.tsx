@@ -7,7 +7,10 @@ import Link from 'next/link'
 import type { Diagnostic, Company } from '@/types/database'
 import { loadDiagnosticForPage } from '@/lib/pentagrama/require-diagnostic-page'
 import { EncerrarColetaButton } from './EncerrarColetaButton'
-import { formatIlLeaderLine } from '@/lib/pentagrama/il-leader'
+import {
+  diagnosticHasIlLeader,
+  formatIlLeaderLine,
+} from '@/lib/pentagrama/il-leader'
 import { isPentagramaColetaAberta } from '@/lib/pentagrama/coleta'
 import { resolveAppBaseUrl } from '@/lib/auth/app-url'
 
@@ -45,11 +48,21 @@ export default async function DiagnosticoPage({ params }: Props) {
   }
 
   // Conta IC responses + presença de IL (obrigatório para calcular)
-  const [{ count: nIC }, { data: ilRow }] = await Promise.all([
+  const [{ count: nIC }, { data: ilRow }, { data: icDeptRows }] = await Promise.all([
     db.from('ic_responses').select('*', { count: 'exact', head: true }).eq('diagnostic_id', id),
     db.from('il_responses').select('id').eq('diagnostic_id', id).maybeSingle(),
+    db
+      .from('ic_responses')
+      .select('department_id, department_label')
+      .eq('diagnostic_id', id),
   ])
   const hasIL = Boolean(ilRow) || Boolean(diag.il_submitted_at)
+  const requiresIL = diagnosticHasIlLeader(diag)
+  const { aggregateDepartmentCounts } = await import('@/lib/survey/department-filter')
+  const icByDept = aggregateDepartmentCounts(
+    (icDeptRows ?? []) as { department_id: string | null; department_label: string | null }[],
+    3,
+  )
 
   const baseUrl = resolveAppBaseUrl()
   const linkIL  = `${baseUrl}/il/${diag.il_token}`
@@ -141,6 +154,30 @@ export default async function DiagnosticoPage({ params }: Props) {
         </div>
       </div>
 
+      {icByDept.length > 0 && (
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-sm font-semibold text-zinc-900">IC por departamento</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Cortes com menos de 3 respostas ficam ocultos (amostra mínima).
+          </p>
+          <ul className="mt-4 divide-y divide-zinc-100">
+            {icByDept.map((d) => (
+              <li
+                key={d.departmentId ?? d.departmentLabel}
+                className="flex items-center justify-between py-2 text-sm"
+              >
+                <span className="text-zinc-800">{d.departmentLabel}</span>
+                {d.visible ? (
+                  <span className="font-semibold text-zinc-900">{d.count}</span>
+                ) : (
+                  <span className="text-xs text-zinc-400">amostra insuficiente ({d.count})</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Links de token */}
       <div className="space-y-4">
         {/* IL */}
@@ -149,7 +186,9 @@ export default async function DiagnosticoPage({ params }: Props) {
             <div>
               <h2 className="font-semibold text-zinc-900">Instrumento de Liderança (IL)</h2>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Envie este link para o(a) líder. Resposta única — 125 questões.
+                {requiresIL
+                  ? 'Envie este link para o(a) líder. Resposta única — 125 questões.'
+                  : 'Nenhum líder vinculado a esta rodada — IL opcional. O cálculo pode usar só o IC.'}
               </p>
               {coletaAberta && (
                 <Link
@@ -160,8 +199,20 @@ export default async function DiagnosticoPage({ params }: Props) {
                 </Link>
               )}
             </div>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${diag.il_submitted_at ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-              {diag.il_submitted_at ? '✓ Respondido' : 'Pendente'}
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                !requiresIL
+                  ? 'bg-zinc-100 text-zinc-600'
+                  : diag.il_submitted_at
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              {!requiresIL
+                ? 'Não vinculado'
+                : diag.il_submitted_at
+                  ? '✓ Respondido'
+                  : 'Pendente'}
             </span>
           </div>
 
@@ -226,6 +277,7 @@ export default async function DiagnosticoPage({ params }: Props) {
               diagnosticId={id}
               nIC={nIC ?? 0}
               hasIL={hasIL}
+              requiresIL={requiresIL}
               linkIL={linkIL}
             />
           )}

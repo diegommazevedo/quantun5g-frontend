@@ -125,13 +125,18 @@ export function parseCompetenciaForm(formData: FormData, module: SurveyModuleTok
 }
 
 export function assertSurveyNameMatches(
-  module: SurveyModuleToken,
+  _module: SurveyModuleToken,
   submittedName: string,
   resolved: CompetenciaResolved,
 ): string | null {
   const expected = resolved.surveyName
-  if (submittedName.trim() !== expected) {
-    return `Nome da rodada deve ser "${expected}". Recarregue a página e tente novamente.`
+  const submitted = submittedName.trim()
+  if (!submitted) {
+    return 'Informe o nome da rodada.'
   }
-  return null
+  // Permite sufixo (ex.: " — Departamento Pessoal") em NR-01 e Pentagrama.
+  if (submitted === expected || submitted.startsWith(expected)) {
+    return null
+  }
+  return `Nome da rodada deve começar com "${expected}" (pode acrescentar sufixo).`
 }

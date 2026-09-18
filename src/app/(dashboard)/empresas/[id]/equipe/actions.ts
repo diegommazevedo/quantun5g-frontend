@@ -39,11 +39,25 @@ export async function adicionarContato(formData: FormData) {
   const full_name = (formData.get('full_name') as string)?.trim()
   const email = (formData.get('email') as string)?.trim().toLowerCase()
   const contact_role = (formData.get('contact_role') as CompanyContactRole) || 'collaborator'
-  const job_title = (formData.get('job_title') as string)?.trim() || null
-  const department = (formData.get('department') as string)?.trim() || null
+  const departmentId = (formData.get('department_id') as string)?.trim() || null
 
   if (!full_name || !email) {
     redirect(`/empresas/${companyId}/equipe?error=Dados+incompletos`)
+  }
+
+  let department: string | null = null
+  if (departmentId) {
+    const { data: dept } = await supabase
+      .from('company_departments')
+      .select('id, name')
+      .eq('id', departmentId)
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .maybeSingle()
+    if (!dept) {
+      redirect(`/empresas/${companyId}/equipe?error=${encodeURIComponent('Departamento inválido.')}`)
+    }
+    department = (dept as { name: string }).name
   }
 
   const { error } = await supabase.from('company_contacts').insert({
@@ -51,8 +65,8 @@ export async function adicionarContato(formData: FormData) {
     full_name,
     email,
     contact_role,
-    job_title,
     department,
+    department_id: departmentId,
   } as never)
 
   if (error) {
@@ -70,14 +84,30 @@ export async function atualizarContato(formData: FormData) {
   const contactId = formData.get('contact_id') as string
   const { supabase } = await authCompany(companyId)
 
+  const departmentId = (formData.get('department_id') as string)?.trim() || null
+  let department: string | null = null
+  if (departmentId) {
+    const { data: dept } = await supabase
+      .from('company_departments')
+      .select('id, name')
+      .eq('id', departmentId)
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .maybeSingle()
+    if (!dept) {
+      redirect(`/empresas/${companyId}/equipe?error=${encodeURIComponent('Departamento inválido.')}`)
+    }
+    department = (dept as { name: string }).name
+  }
+
   const { error } = await supabase
     .from('company_contacts')
     .update({
       full_name: (formData.get('full_name') as string)?.trim(),
       email: (formData.get('email') as string)?.trim().toLowerCase(),
       contact_role: formData.get('contact_role') as CompanyContactRole,
-      job_title: (formData.get('job_title') as string)?.trim() || null,
-      department: (formData.get('department') as string)?.trim() || null,
+      department,
+      department_id: departmentId,
       is_active: formData.get('is_active') === 'true',
     } as never)
     .eq('id', contactId)

@@ -157,6 +157,10 @@ export interface Nr01Assessment {
   competencia_month: number | null
   competencia_year: number | null
   competencia_label: string | null
+  /** geral = todos no disparo; departamento = pré-seleção em dispatch_departments */
+  dispatch_scope: 'geral' | 'departamento'
+  /** Chaves normalizeDepartment / __none__; vazio se geral */
+  dispatch_departments: string[]
   created_at: string
   updated_at: string
 }
@@ -187,6 +191,8 @@ export interface Nr01Response {
   funcao: string | null
   vinculo: string | null
   tempo_casa: string | null
+  department_id: string | null
+  department_label: string | null
   is_leader: boolean
   open_q1: string | null
   open_q2: string | null

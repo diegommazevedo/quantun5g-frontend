@@ -123,11 +123,10 @@ async function upsertInvitedProfile(
   email: string,
   name: string,
   role: UserRole,
-  modulePentagrama: boolean,
-  moduleNr01: boolean,
+  _modulePentagrama: boolean,
+  _moduleNr01: boolean,
 ): Promise<void> {
   const admin = createServiceRoleAdmin()
-  const isAdmin = role === 'admin'
   await admin.from('profiles').upsert(
     {
       id: userId,
@@ -135,8 +134,8 @@ async function upsertInvitedProfile(
       name,
       role,
       is_active: true,
-      module_pentagrama: isAdmin ? true : modulePentagrama,
-      module_nr01: isAdmin ? true : moduleNr01,
+      module_pentagrama: true,
+      module_nr01: true,
     } as never,
     { onConflict: 'id' },
   )

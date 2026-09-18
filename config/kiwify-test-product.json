@@ -4,9 +4,10 @@
   "kiwify_link_id": "87dXrZy",
   "edit_url": "https://dashboard.kiwify.com/products/edit/aa995e40-80e5-11f1-a0f5-09dbf347c2c3",
   "created_at": "2026-07-16T07:12:35.918Z",
-  "purpose": "sim_lead_R$10_pix",
+  "purpose": "sim_lead_R$5_pix",
   "tier_id": "t01",
   "billing_mode": "anual_vista",
-  "price_cents": 1000,
-  "label": "Quantum5G NR-01 · SIMULADO Lead R$10 PIX"
+  "price_cents": 500,
+  "label": "Quantum5G NR-01 · SIMULADO Lead R$5 PIX",
+  "updated_at": "2026-07-19T23:00:23.887Z"
 }

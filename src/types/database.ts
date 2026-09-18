@@ -88,6 +88,17 @@ export interface CompanyIlLeader {
 
 export type CompanyContactRole = 'leader' | 'collaborator'
 
+export interface CompanyDepartment {
+  id: string
+  company_id: string
+  name: string
+  name_normalized: string
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 export interface CompanyContact {
   id: string
   company_id: string
@@ -96,6 +107,7 @@ export interface CompanyContact {
   contact_role: CompanyContactRole
   job_title: string | null
   department: string | null
+  department_id: string | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -113,6 +125,7 @@ export interface SurveyInvite {
   survey_kind: SurveyKind
   reference_id: string
   survey_url: string
+  department_id: string | null
   email_sent_at: string | null
   email_status: string | null
   email_error: string | null
@@ -216,6 +229,8 @@ export interface Diagnostic {
   competencia_month: number | null
   competencia_year: number | null
   competencia_label: string | null
+  dispatch_scope: 'geral' | 'departamento'
+  dispatch_departments: string[]
   created_at: string
   updated_at: string
 }
@@ -265,6 +280,8 @@ type Q125 = {
 export interface ILResponse extends Q125 {
   id: string
   diagnostic_id: string
+  department_id: string | null
+  department_label: string | null
   submitted_at: string
 }
 
@@ -282,6 +299,8 @@ export interface ICResponse extends Q125 {
   id: string
   diagnostic_id: string
   respondente_anonimo_id: string  // UUID sem FK — NUNCA ALTERAR
+  department_id: string | null
+  department_label: string | null
   submitted_at: string
 }
 

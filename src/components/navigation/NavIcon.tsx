@@ -59,6 +59,19 @@ const paths: Record<NavIconName, ReactNode> = {
       <path strokeLinecap="round" d="M3 10h18" />
     </>
   ),
+  radar: (
+    <>
+      <circle cx="12" cy="12" r="2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4a8 8 0 0 1 8 8M12 4a8 8 0 0 0-8 8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a11 11 0 0 1 11 11M12 1a11 11 0 0 0-11 11" />
+    </>
+  ),
+  copiloto: (
+    <>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 19V5l7 4 9-4v14l-9 4-7-4Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 9v14" />
+    </>
+  ),
 }
 
 interface Props {

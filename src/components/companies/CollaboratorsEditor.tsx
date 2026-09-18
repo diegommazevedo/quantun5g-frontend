@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-export type CollaboratorRow = { full_name: string; email: string; job_title?: string }
+export type CollaboratorRow = { full_name: string; email: string; department?: string }
 
 interface Props {
   initial?: CollaboratorRow[]
@@ -10,7 +10,7 @@ interface Props {
 
 export function CollaboratorsEditor({ initial }: Props) {
   const [rows, setRows] = useState<CollaboratorRow[]>(
-    initial && initial.length > 0 ? initial : [{ full_name: '', email: '', job_title: '' }],
+    initial && initial.length > 0 ? initial : [{ full_name: '', email: '', department: '' }],
   )
 
   function updateRow(index: number, field: keyof CollaboratorRow, value: string) {
@@ -18,11 +18,15 @@ export function CollaboratorsEditor({ initial }: Props) {
   }
 
   function addRow() {
-    setRows((prev) => [...prev, { full_name: '', email: '', job_title: '' }])
+    setRows((prev) => [...prev, { full_name: '', email: '', department: '' }])
   }
 
   function removeRow(index: number) {
-    setRows((prev) => (prev.length <= 1 ? [{ full_name: '', email: '', job_title: '' }] : prev.filter((_, i) => i !== index)))
+    setRows((prev) =>
+      prev.length <= 1
+        ? [{ full_name: '', email: '', department: '' }]
+        : prev.filter((_, i) => i !== index),
+    )
   }
 
   const payload = rows
@@ -30,7 +34,7 @@ export function CollaboratorsEditor({ initial }: Props) {
       full_name: r.full_name.trim(),
       email: r.email.trim().toLowerCase(),
       contact_role: 'collaborator' as const,
-      job_title: r.job_title?.trim() || null,
+      department: r.department?.trim() || null,
     }))
     .filter((r) => r.full_name || r.email)
 
@@ -40,9 +44,9 @@ export function CollaboratorsEditor({ initial }: Props) {
         Colaboradores IC — lista de transmissão por e-mail
       </legend>
       <p className="text-xs text-q-muted">
-        Pessoas que recebem o convite do <strong>Instrumento de Colaboradores (IC)</strong> no Pentagrama.
-        No <strong>NR-01</strong>, líderes e colaboradores ativos entram na mesma lista de disparo.
-        Você pode incluir agora ou depois em{' '}
+        Pessoas que recebem o convite do <strong>Instrumento de Colaboradores (IC)</strong> no
+        Pentagrama. No <strong>NR-01</strong>, o disparo pode filtrar por{' '}
+        <strong>Departamento</strong>. Você pode incluir agora ou depois em{' '}
         <span className="font-medium">Empresas → Equipe</span>.
       </p>
 
@@ -75,12 +79,12 @@ export function CollaboratorsEditor({ initial }: Props) {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-q-muted">Cargo (opc.)</label>
+              <label className="block text-xs font-medium text-q-muted">Departamento</label>
               <input
                 type="text"
-                value={row.job_title ?? ''}
-                onChange={(e) => updateRow(index, 'job_title', e.target.value)}
-                placeholder="Analista"
+                value={row.department ?? ''}
+                onChange={(e) => updateRow(index, 'department', e.target.value)}
+                placeholder="Ex.: Estoque, Vendas"
                 className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               />
             </div>

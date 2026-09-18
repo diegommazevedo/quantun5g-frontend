@@ -86,8 +86,6 @@ export default async function Nr01OnboardingPage({ searchParams }: Props) {
 
   if (!isContratanteRole(role)) redirect('/dashboard')
 
-  if (!profile?.module_nr01) redirect('/checkout/nr01?hint=licenca')
-
 
 
   const gap = await findContratanteOnboardingGap(user.id)

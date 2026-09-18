@@ -30,8 +30,6 @@ async function upsertPurchaseProfile(
   userId: string,
   email: string,
   name: string,
-  moduleNr01: boolean,
-  modulePentagrama: boolean,
 ): Promise<void> {
   const admin = createServiceRoleAdmin()
   await admin.from('profiles').upsert(
@@ -41,8 +39,8 @@ async function upsertPurchaseProfile(
       name,
       role: 'contratante',
       is_active: true,
-      module_pentagrama: modulePentagrama,
-      module_nr01: moduleNr01,
+      module_pentagrama: true,
+      module_nr01: true,
     } as never,
     { onConflict: 'id' },
   )
@@ -157,22 +155,12 @@ export async function sendPurchaseAccessEmail(params: {
 }): Promise<PurchaseAccessResult> {
   const normalized = normalizeEmail(params.email)
   const displayName = params.name?.trim() || normalized.split('@')[0] || 'Cliente'
-  const redirectTo = buildAuthCallbackUrl(PURCHASE_ONBOARDING_PATH)
-  const moduleNr01 = params.moduleNr01 ?? true
-  const modulePentagrama = params.modulePentagrama ?? true
-
   const access = await generateAccessLink(normalized, redirectTo, displayName, 'contratante')
   if (!access) {
     return { userId: '', emailSent: false, error: 'Não foi possível gerar link de acesso' }
   }
 
-  await upsertPurchaseProfile(
-    access.userId,
-    normalized,
-    displayName,
-    moduleNr01,
-    modulePentagrama,
-  )
+  await upsertPurchaseProfile(access.userId, normalized, displayName)
 
   const mail = await sendPurchaseWelcomeEmail({
     email: normalized,
