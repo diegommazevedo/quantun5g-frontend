@@ -51,7 +51,13 @@ export default async function RadarPage({
   }
 
   const { data: signals, error } = await query
-  const rows = (signals ?? []) as Row[]
+  const rows = (signals ?? []).map((raw) => {
+    const r = raw as Omit<Row, 'companies'> & {
+      companies: { name: string } | { name: string }[] | null
+    }
+    const company = Array.isArray(r.companies) ? r.companies[0] ?? null : r.companies
+    return { ...r, companies: company } satisfies Row
+  })
   const bullets = bulletsFromSignals(
     rows.map((r) => ({
       title: r.title,

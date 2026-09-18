@@ -30,6 +30,12 @@ function fingerprint(input: RadarSignalInput): string {
   return createHash('sha256').update(raw).digest('hex').slice(0, 40)
 }
 
+/** Supabase tipa joins 1:1 como array — normaliza para objeto único. */
+function one<T>(value: T | T[] | null | undefined): T | null {
+  if (value == null) return null
+  return Array.isArray(value) ? (value[0] ?? null) : value
+}
+
 export async function upsertRadarSignal(
   sb: SupabaseClient,
   input: RadarSignalInput,
@@ -86,11 +92,23 @@ export async function collectRadarSignals(sb: SupabaseClient): Promise<{
         title: string
         due_date: string
         owner_name: string | null
-        action_plan: {
-          assessment: { id: string; name: string; company_id: string; status: string } | null
-        } | null
+        action_plan:
+          | {
+              assessment:
+                | { id: string; name: string; company_id: string; status: string }
+                | { id: string; name: string; company_id: string; status: string }[]
+                | null
+            }
+          | {
+              assessment:
+                | { id: string; name: string; company_id: string; status: string }
+                | { id: string; name: string; company_id: string; status: string }[]
+                | null
+            }[]
+          | null
       }
-      const assessment = r.action_plan?.assessment
+      const plan = one(r.action_plan)
+      const assessment = one(plan?.assessment)
       if (!assessment || assessment.status === 'ARQUIVADO') continue
       const days = Math.max(
         1,
@@ -128,20 +146,24 @@ export async function collectRadarSignals(sb: SupabaseClient): Promise<{
       const c = cfg as {
         assessment_id: string
         last_dispatched_at: string | null
-        assessment: { id: string; name: string; company_id: string; status: string } | null
+        assessment:
+          | { id: string; name: string; company_id: string; status: string }
+          | { id: string; name: string; company_id: string; status: string }[]
+          | null
       }
-      if (!c.assessment || c.assessment.status !== 'CONCLUIDO') continue
+      const assessment = one(c.assessment)
+      if (!assessment || assessment.status !== 'CONCLUIDO') continue
       const last = c.last_dispatched_at ? new Date(c.last_dispatched_at) : null
       if (last && last > tenDaysAgo) continue
       const ok = await upsertRadarSignal(sb, {
-        companyId: c.assessment.company_id,
+        companyId: assessment.company_id,
         source: 'pulse',
         kind: 'pulse_stale',
         severity: 3,
         title: 'Monitoramento NR-01 sem pulso recente',
         message: last
-          ? `Último pulso em ${last.toISOString().slice(0, 10)} — ${c.assessment.name}.`
-          : `Monitoramento ativo sem nenhum pulso disparado — ${c.assessment.name}.`,
+          ? `Último pulso em ${last.toISOString().slice(0, 10)} — ${assessment.name}.`
+          : `Monitoramento ativo sem nenhum pulso disparado — ${assessment.name}.`,
         payload: { assessment_id: c.assessment_id },
       })
       if (ok) written++
@@ -163,16 +185,20 @@ export async function collectRadarSignals(sb: SupabaseClient): Promise<{
         assessment_id: string
         iso_risk_level: string
         iso_score: number | null
-        assessment: { id: string; name: string; company_id: string; status: string } | null
+        assessment:
+          | { id: string; name: string; company_id: string; status: string }
+          | { id: string; name: string; company_id: string; status: string }[]
+          | null
       }
-      if (!r.assessment || r.assessment.status === 'ARQUIVADO') continue
+      const assessment = one(r.assessment)
+      if (!assessment || assessment.status === 'ARQUIVADO') continue
       const ok = await upsertRadarSignal(sb, {
-        companyId: r.assessment.company_id,
+        companyId: assessment.company_id,
         source: 'nr01',
         kind: 'iso_high_risk',
         severity: 5,
         title: `Risco ISO ${r.iso_risk_level}`,
-        message: `${r.assessment.name}: score ISO ${r.iso_score ?? '—'} — acompanhe plano e pulsos.`,
+        message: `${assessment.name}: score ISO ${r.iso_score ?? '—'} — acompanhe plano e pulsos.`,
         payload: { assessment_id: r.assessment_id, iso_risk_level: r.iso_risk_level },
       })
       if (ok) written++

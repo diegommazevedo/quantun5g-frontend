@@ -155,6 +155,7 @@ export async function sendPurchaseAccessEmail(params: {
 }): Promise<PurchaseAccessResult> {
   const normalized = normalizeEmail(params.email)
   const displayName = params.name?.trim() || normalized.split('@')[0] || 'Cliente'
+  const redirectTo = buildAuthCallbackUrl(PURCHASE_ONBOARDING_PATH)
   const access = await generateAccessLink(normalized, redirectTo, displayName, 'contratante')
   if (!access) {
     return { userId: '', emailSent: false, error: 'Não foi possível gerar link de acesso' }
