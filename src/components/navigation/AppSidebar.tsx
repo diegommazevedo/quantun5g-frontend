@@ -23,9 +23,10 @@ interface Props {
 
 function accentForSection(sectionId: string, active: boolean): string {
   if (!active) return 'text-[var(--q-text-faint)] group-hover:text-[var(--q-text)]'
-  if (sectionId === 'nr01') return 'text-blue-300'
-  if (sectionId === 'admin') return 'text-amber-300'
-  if (sectionId === 'pentagrama') return 'text-violet-300'
+  // Tons escuros na paleta clara; globals.css clareia no quantum-dark.
+  if (sectionId === 'nr01') return 'text-blue-700'
+  if (sectionId === 'admin') return 'text-amber-700'
+  if (sectionId === 'pentagrama') return 'text-violet-700'
   return 'text-[var(--q-text)]'
 }
 
@@ -33,9 +34,10 @@ function activeClasses(sectionId: string, active: boolean): string {
   if (!active) {
     return 'text-[var(--q-text-muted)] hover:bg-[var(--q-surface-elevated)] hover:text-[var(--q-text)]'
   }
-  if (sectionId === 'nr01') return 'bg-blue-500/15 text-blue-100 ring-1 ring-blue-400/25'
-  if (sectionId === 'admin') return 'bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/25'
-  if (sectionId === 'pentagrama') return 'bg-violet-500/15 text-violet-100 ring-1 ring-violet-400/25'
+  // Evita text-*-100 (invisível na paleta clara — “Painel” em branco no NR-01).
+  if (sectionId === 'nr01') return 'bg-blue-500/15 text-blue-900 ring-1 ring-blue-400/30'
+  if (sectionId === 'admin') return 'bg-amber-500/15 text-amber-900 ring-1 ring-amber-400/30'
+  if (sectionId === 'pentagrama') return 'bg-violet-500/15 text-violet-900 ring-1 ring-violet-400/30'
   return 'bg-[var(--q-nav-active-bg)] text-[var(--q-text)] ring-1 ring-[var(--q-border)]'
 }
 
@@ -118,18 +120,18 @@ export function AppSidebar({ role, modulePentagrama, moduleNr01, onNavigate }: P
   return (
     <div className="flex h-full flex-col">
       {isContratante && (
-        <p className="mx-3 mb-3 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-2.5 text-[11px] leading-snug text-blue-100/90">
+        <p className="mx-3 mb-3 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-2.5 text-[11px] leading-snug text-blue-900">
           Contratante do grupo. Gerencie equipe e filiais; novos CNPJs são cadastrados pelo consultor
           operador.
         </p>
       )}
       {isGerente && (
-        <p className="mx-3 mb-3 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-2.5 text-[11px] leading-snug text-blue-100/90">
+        <p className="mx-3 mb-3 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-2.5 text-[11px] leading-snug text-blue-900">
           Gerente de filial. Você vê apenas as empresas atribuídas pelo contratante.
         </p>
       )}
       {!staff && !isContratante && !isGerente && (
-        <p className="mx-3 mb-3 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-[11px] leading-snug text-amber-100/90">
+        <p className="mx-3 mb-3 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-[11px] leading-snug text-amber-900">
           Perfil de liderança (IL). Empresas e disparos são gerenciados pelo consultor.
         </p>
       )}

@@ -233,8 +233,12 @@ body {
 [data-theme="quantum-dark"] .text-purple-900\/80 {
   color: #e9d5ff !important;
 }
-[data-theme="quantum-dark"] .text-violet-800 {
+[data-theme="quantum-dark"] .text-violet-800,
+[data-theme="quantum-dark"] .text-violet-700 {
   color: #ddd6fe !important;
+}
+[data-theme="quantum-dark"] .text-amber-700 {
+  color: #fde68a !important;
 }
 [data-theme="quantum-dark"] .text-sky-600,
 [data-theme="quantum-dark"] .text-sky-700 {
